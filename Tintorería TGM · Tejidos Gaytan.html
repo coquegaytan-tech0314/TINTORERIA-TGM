@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Tintorería TGM" />
+<meta name="theme-color" content="#07090d" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="description" content="Dashboard Tintorería TGM - Tejidos Gaytan de Moroleón" />
+<!-- Icono SVG inline (funciona como favicon y como icono en home screen iOS/Android) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2307090d'/%3E%3Cpath d='M4 7c2.5-2 5.5-2 8 0s5.5 2 8 0M4 12c2.5-2 5.5-2 8 0s5.5 2 8 0M4 17c2.5-2 5.5-2 8 0s5.5 2 8 0' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2307090d'/%3E%3Cpath d='M4 7c2.5-2 5.5-2 8 0s5.5 2 8 0M4 12c2.5-2 5.5-2 8 0s5.5 2 8 0M4 17c2.5-2 5.5-2 8 0s5.5 2 8 0' stroke='%2338bdf8' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
+<title>Tintorería TGM · Tejidos Gaytan de Moroleón</title>
+
+<!-- Tailwind CSS via CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Chart.js para gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+  // Tailwind config con colores industriales
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:  { 950:'#07090d', 900:'#0b0f16', 800:'#111826', 700:'#1a2232', 600:'#253149' },
+          sky:  { accent:'#38bdf8', deep:'#0ea5e9' },
+          emer: { accent:'#10b981', deep:'#059669' },
+          warn: '#f59e0b',
+          danger:'#ef4444'
+        },
+        fontFamily: {
+          sans: ['system-ui','-apple-system','Segoe UI','Roboto','Helvetica','Arial','sans-serif']
+        }
+      }
+    }
+  };
+</script>
+
+<style>
+  /* ---------- Base ---------- */
+  html, body { background: #07090d; color: #e5e7eb; }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+  input, textarea, select { -webkit-user-select: text; user-select: text; }
+
+  /* Tamaños táctiles grandes - iPad/tablets */
+  .touch-xl { min-height: 72px; font-size: 1.25rem; }
+  .touch-lg { min-height: 60px; font-size: 1.125rem; }
+
+  /* Inputs */
+  .field {
+    width: 100%;
+    background: #111826;
+    border: 2px solid #253149;
+    color: #f8fafc;
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 1.25rem;
+    font-weight: 500;
+    transition: border-color .15s, background .15s;
+  }
+  .field:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: #0b0f16;
+    box-shadow: 0 0 0 4px rgba(56,189,248,0.15);
+  }
+  .field::placeholder { color: #64748b; }
+
+  label.lbl {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 8px;
+  }
+
+  /* Botones */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 10px; font-weight: 700; border-radius: 14px;
+    padding: 18px 22px;
+    transition: transform .08s ease, background .15s, box-shadow .15s;
+    border: 2px solid transparent;
+    letter-spacing: 0.01em;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: #10b981; color: #04120b; }
+  .btn-primary:hover { background: #34d399; }
+  .btn-secondary { background: #1a2232; color: #e2e8f0; border-color: #253149; }
+  .btn-secondary:hover { background: #253149; }
+  .btn-sky { background: #0ea5e9; color: #04121c; }
+  .btn-sky:hover { background: #38bdf8; }
+  .btn-danger { background: #ef4444; color: #fff; }
+
+  /* Botones de MÁQUINA - grandes, un solo toque */
+  .machine-btn {
+    background: #111826;
+    border: 2px solid #253149;
+    color: #cbd5e1;
+    border-radius: 16px;
+    padding: 18px 10px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    min-height: 92px;
+    transition: all .12s;
+    display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center;
+  }
+  .machine-btn small { font-size: 0.7rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+  .machine-btn:hover { border-color: #38bdf8; color: #fff; }
+  .machine-btn.active {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    border-color: #38bdf8;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(56,189,248,0.2), 0 10px 25px -10px rgba(14,165,233,0.6);
+  }
+  .machine-btn.active small { color: rgba(255,255,255,0.8); }
+
+  /* Turnos */
+  .shift-btn {
+    background: #111826;
+    border: 2px solid #253149;
+    color: #cbd5e1;
+    border-radius: 14px;
+    padding: 18px;
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+  .shift-btn.active {
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-color: #10b981;
+    color: #04120b;
+  }
+
+  /* Tarjetas */
+  .card {
+    background: linear-gradient(180deg, #111826 0%, #0b0f16 100%);
+    border: 1px solid #1a2232;
+    border-radius: 18px;
+  }
+
+  /* Chips */
+  .chip { font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .chip-ok   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.35); }
+  .chip-warn { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+  .chip-bad  { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+  .chip-info { background: rgba(56,189,248,0.15); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.35); }
+
+  /* Navegación inferior tipo iPad */
+  .tab-btn {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 10px 6px;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 12px;
+    min-height: 64px;
+    gap: 4px;
+    transition: all .15s;
+  }
+  .tab-btn.active { color: #38bdf8; background: rgba(56,189,248,0.08); }
+  .tab-btn svg { width: 26px; height: 26px; }
+
+  /* Toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 110px;
+    transform: translateX(-50%) translateY(20px);
+    background: #10b981; color: #04120b;
+    font-weight: 800; font-size: 1.1rem;
+    padding: 14px 24px; border-radius: 999px;
+    box-shadow: 0 12px 30px -8px rgba(16,185,129,0.5);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 100;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { background: #ef4444; color: #fff; }
+
+  /* Tabla */
+  .tbl { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .tbl th, .tbl td { padding: 12px 10px; text-align: left; font-size: 0.98rem; }
+  .tbl thead th {
+    background: #0b0f16;
+    color: #94a3b8;
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 1px solid #1a2232;
+    position: sticky; top: 0;
+    white-space: nowrap;
+  }
+  .tbl tbody tr { border-bottom: 1px solid #1a2232; }
+  .tbl tbody tr:hover { background: rgba(56,189,248,0.04); }
+
+  /* Cabecera agrupada por máquina (como el reporte en papel) */
+  .group-header {
+    background: linear-gradient(90deg, #1a2232 0%, #0b0f16 100%);
+    padding: 10px 14px;
+    border-top: 2px solid #38bdf8;
+    border-bottom: 1px solid #253149;
+    display: flex; justify-content: space-between; align-items: center;
+    font-weight: 800; letter-spacing: 0.06em;
+  }
+  .group-header .m-name { color: #38bdf8; font-size: 1rem; text-transform: uppercase; }
+  .group-header .m-tot  { color: #10b981; font-size: 0.95rem; }
+
+  /* KPIs */
+  .kpi-num { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+  .kpi-lbl { font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Barra eficiencia */
+  .eff-bar { height: 14px; background: #1a2232; border-radius: 999px; overflow: hidden; }
+  .eff-fill { height: 100%; border-radius: 999px; transition: width .5s ease; }
+
+  /* Scroll */
+  .scroll-x { overflow-x: auto; scrollbar-width: thin; }
+  .scroll-x::-webkit-scrollbar { height: 8px; }
+  .scroll-x::-webkit-scrollbar-thumb { background: #253149; border-radius: 4px; }
+
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, #253149, transparent); }
+  .pulse-dot { width: 10px; height: 10px; border-radius: 999px; background: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,0.6); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+    70% { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+
+  main { padding-bottom: 110px; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+  /* Pills categoría tiempo muerto */
+  .cat-btn {
+    background: #111826; border: 2px solid #253149; color: #cbd5e1;
+    padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1rem;
+    min-height: 60px;
+  }
+  .cat-btn.active { background: linear-gradient(135deg,#f59e0b,#d97706); color:#1c1005; border-color:#f59e0b; }
+
+  /* Historial - item */
+  .hist-item { padding: 14px 18px; display: flex; align-items: center; gap: 14px; transition: background .12s; }
+  .hist-item:hover { background: rgba(56,189,248,0.04); }
+  .hist-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .hist-title { font-weight: 700; color: #e2e8f0; font-size: 0.98rem; }
+  .hist-meta  { font-size: 0.82rem; color: #94a3b8; margin-top: 2px; }
+  .hist-time  { font-size: 0.78rem; color: #64748b; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ============================================================
+     RESPONSIVE - TELÉFONOS (Android / iOS)
+     ============================================================ */
+  /* iOS safe-area: respetar notch y barras del sistema */
+  header { padding-top: env(safe-area-inset-top, 0); }
+  nav.fixed.bottom-0 { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+  /* En pantallas <= 480px (teléfono) reducimos tamaños y compactamos */
+  @media (max-width: 480px) {
+    main { padding-bottom: 120px; }
+
+    /* Inputs siguen >=16px para evitar zoom automático iOS */
+    .field { font-size: 1rem; padding: 14px 14px; border-radius: 12px; }
+    /* input[type="date"] / time en iOS necesita al menos 16px para NO hacer zoom */
+    input[type="date"].field,
+    input[type="time"].field,
+    input[type="number"].field,
+    input[type="text"].field { font-size: 16px; }
+
+    .touch-xl { min-height: 58px; font-size: 1.05rem; }
+    .touch-lg { min-height: 52px; font-size: 1rem; }
+    .btn { padding: 14px 16px; border-radius: 12px; }
+
+    .machine-btn { min-height: 78px; padding: 12px 6px; font-size: 0.95rem; }
+    .machine-btn small { font-size: 0.62rem; }
+    .shift-btn { padding: 14px 6px; font-size: 1.05rem; }
+    .cat-btn { min-height: 52px; padding: 10px; font-size: 0.92rem; }
+
+    /* Nav inferior: 6 pestañas. Reducimos padding + icono para que quepan */
+    .tab-btn { font-size: 0.68rem; padding: 8px 2px; min-height: 58px; gap: 2px; }
+    .tab-btn svg { width: 22px; height: 22px; }
+
+    /* Header: más compacto */
+    header h1 { font-size: 1rem; }
+    header p { font-size: 0.68rem; }
+    #userPill { padding: 6px 10px; font-size: 0.78rem; }
+    #userPillName { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Tablas: mantener scroll horizontal obligatorio */
+    .tbl th, .tbl td { padding: 8px 8px; font-size: 0.85rem; }
+    .tbl thead th { font-size: 0.68rem; }
+
+    /* KPIs numéricos más compactos */
+    .kpi-num { font-size: 1.8rem; }
+
+    /* Toast más pequeño */
+    #toast { bottom: 120px; font-size: 0.95rem; padding: 12px 18px; }
+
+    label.lbl { font-size: 0.78rem; margin-bottom: 6px; }
+
+    /* Cards con padding reducido */
+    .card { border-radius: 14px; }
+
+    /* Historial más compacto */
+    .hist-item { padding: 10px 12px; gap: 10px; }
+    .hist-icon { width: 30px; height: 30px; }
+    .hist-title { font-size: 0.9rem; }
+    .hist-meta { font-size: 0.74rem; }
+    .hist-time { font-size: 0.7rem; }
+  }
+
+  /* ============================================================
+     DESKTOP - PC / MacBook
+     ============================================================ */
+  @media (min-width: 1024px) {
+    /* En desktop habilitamos selección de texto (útil para copiar lotes, operadores, etc.) */
+    body { -webkit-user-select: auto; user-select: auto; }
+
+    /* Mejor hover y cursor pointer en elementos interactivos */
+    .machine-btn, .shift-btn, .tab-btn, .cat-btn, .btn, #userPill { cursor: pointer; }
+
+    /* Scroll personalizado general en desktop */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #0b0f16; }
+    ::-webkit-scrollbar-thumb { background: #253149; border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  }
+
+  /* ============================================================
+     IMPRESIÓN - para imprimir reportes desde PC
+     ============================================================ */
+  @media print {
+    body { background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    header, nav.fixed.bottom-0, #autosaveBar, #toast, #userModal, .btn, #exportBtn, #userPill { display: none !important; }
+    main { padding: 0 !important; }
+    .card { border: 1px solid #ccc !important; background: #fff !important; box-shadow: none !important; page-break-inside: avoid; }
+    .tab-panel { display: block !important; page-break-after: always; }
+    .tbl th, .tbl td { color: #000 !important; border: 1px solid #aaa !important; }
+    .group-header { background: #eee !important; color: #000 !important; border-top-color: #000 !important; }
+    .group-header .m-name, .group-header .m-tot { color: #000 !important; }
+  }
+</style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ============================================================= -->
+<!-- HEADER                                                        -->
+<!-- ============================================================= -->
+<header class="sticky top-0 z-40 bg-ink-950/95 backdrop-blur border-b border-ink-800">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-accent to-emer-accent flex items-center justify-center shadow-lg">
+        <svg viewBox="0 0 24 24" fill="none" class="w-7 h-7" stroke="#04120b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7c2.5-2 5.5-2 8 0s5.5 2 8 0"/>
+          <path d="M4 12c2.5-2 5.5-2 8 0s5.5 2 8 0"/>
+          <path d="M4 17c2.5-2 5.5-2 8 0s5.5 2 8 0"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-lg sm:text-xl font-black tracking-tight text-white leading-none">Tintorería TGM</h1>
+        <p class="text-xs text-slate-400 font-semibold">Tejidos Gaytan de Moroleón S.A. de C.V.</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="hidden sm:flex items-center gap-2 text-sm text-slate-400">
+        <span class="pulse-dot"></span>
+        <span id="todayLabel" class="font-semibold"></span>
+      </div>
+
+      <!-- Usuario de sesión: chip pequeño y discreto, clickeable para cambiar -->
+      <button id="userPill" class="flex items-center gap-2 bg-ink-800 border border-ink-600 hover:border-sky-accent transition-colors rounded-full py-1.5 px-3 text-sm" title="Usuario de sesión (clic para cambiar)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="w-4 h-4 text-sky-accent"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="userPillName" class="text-slate-300 font-semibold">Invitado</span>
+      </button>
+
+      <button id="exportBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Exportar datos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="hidden sm:inline">Exportar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Indicador sutil de autosave -->
+  <div id="autosaveBar" class="hidden max-w-7xl mx-auto px-4 pb-2 -mt-1 flex items-center gap-2 text-xs text-slate-500">
+    <span id="autosaveDot" class="w-2 h-2 rounded-full bg-emer-accent"></span>
+    <span id="autosaveMsg">Autoguardado activo · cada 5 minutos</span>
+  </div>
+</header>
+
+<!-- ============================================================= -->
+<!-- MAIN                                                          -->
+<!-- ============================================================= -->
+<main class="max-w-7xl mx-auto px-4 pt-5">
+
+  <!-- =========================================== -->
+  <!-- TAB: FICHA DE PRODUCCIÓN (captura operador) -->
+  <!-- =========================================== -->
+  <section id="tab-capture" class="tab-panel">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Ficha de Producción</h2>
+        <p class="text-slate-400 text-sm">Área de Tintorería TGM · Captura por ficha</p>
+      </div>
+      <span class="chip chip-info">Nueva entrada</span>
+    </div>
+
+    <!-- Datos de cabecera: Turno / Operador / Fecha -->
+    <div class="card p-5 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="lbl">Turno</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" class="shift-btn" data-shift="1°">1°</button>
+            <button type="button" class="shift-btn" data-shift="2°">2°</button>
+            <button type="button" class="shift-btn" data-shift="3°">3°</button>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Operador</label>
+          <input type="text" id="f_operador" class="field" placeholder="Nombre o # de empleado" />
+        </div>
+        <div>
+          <label class="lbl">Fecha</label>
+          <input type="date" id="f_fecha" class="field" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector de MÁQUINA con capacidad -->
+    <div class="card p-5 mb-4">
+      <label class="lbl">Máquina</label>
+      <div id="machineGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+        <!-- renderizado con JS: nombre + capacidad en KG -->
+      </div>
+    </div>
+
+    <!-- Campos de la ficha (coincide con papel: MÁQUINA | LOTE | TELA | COLOR | KILOS | H/ENTRADA | H/SALIDA | PROCESO) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div class="card p-5">
+        <label class="lbl">Lote</label>
+        <input type="text" id="f_lote" class="field" placeholder="Ej: 741" inputmode="numeric" />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Tela</label>
+        <input type="text" id="f_tela" class="field" placeholder="Ej: Dubay, Sontex, Unitec, Universo..." />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Color</label>
+        <input type="text" id="f_color" class="field" placeholder="Ej: Blanco, Negro, Rojo, Turquesa..." />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Diseño</label>
+        <input type="text" id="f_diseno" class="field" placeholder="Ej: Pique Boss, Maiky Plus, Borde Pique..." />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Pedido</label>
+        <input type="text" id="f_pedido" class="field" placeholder="Ej: 7026-B / 2564-C" />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Kilos</label>
+        <input type="number" step="0.01" min="0" id="f_kilos" class="field" placeholder="0.00 kg" inputmode="decimal" />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Hora Entrada</label>
+        <input type="time" id="f_hEntrada" class="field" />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Hora Salida</label>
+        <input type="time" id="f_hSalida" class="field" />
+      </div>
+
+      <div class="card p-5 md:col-span-2">
+        <label class="lbl">Proceso</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
+          <!-- Procesos rápidos -->
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol">Teñido Pol</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón">Pol + Algodón</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Blanqueo Pol">Blanqueo Pol</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Blanqueo Pol + Algodón">Blanqueo Pol+Alg</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Descrude Pol">Descrude Pol</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Descrude Pol + Algodón">Desc. Pol+Alg</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Matiz Pol">Matiz Pol</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Bajando con Poliéster">Bajando c/ Poliéster</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Despicando Color">Despicando Color</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Lavado de Máquina">Lavado de Máquina</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Suavizado">Suavizado</button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Baño Ciego">Baño Ciego</button>
+        </div>
+        <input type="text" id="f_proceso" class="field" placeholder="Proceso (puede editarse o escribir uno nuevo)" />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">APQ <span class="text-slate-500 normal-case text-xs">(kilos aprobados)</span></label>
+        <input type="number" step="0.01" min="0" id="f_apq" class="field" placeholder="0.00 kg" inputmode="decimal" />
+      </div>
+
+      <div class="card p-5">
+        <label class="lbl">Baños <span class="text-slate-500 normal-case text-xs">(# de baños en esta ficha)</span></label>
+        <input type="number" step="1" min="1" value="1" id="f_banos" class="field" inputmode="numeric" />
+      </div>
+    </div>
+
+    <!-- Cálculos automáticos -->
+    <div class="card p-5 mt-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div>
+          <div class="kpi-lbl">Duración</div>
+          <div id="calc_dur" class="kpi-num text-sky-accent">--:--</div>
+        </div>
+        <div>
+          <div class="kpi-lbl">Kilos / hora</div>
+          <div id="calc_kph" class="kpi-num text-white">--</div>
+        </div>
+        <div class="col-span-2 sm:col-span-1">
+          <div class="kpi-lbl">Desempeño estimado</div>
+          <div id="calc_eff" class="kpi-num text-emer-accent">-- %</div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mt-3">Desempeño = Kilos reales vs capacidad nominal de <span id="benchmarkLbl">— kg</span> de la máquina seleccionada.</p>
+    </div>
+
+    <!-- Reporte de Estado de Máquinas (texto libre) -->
+    <div class="card p-5 mt-4">
+      <label class="lbl">Reporte de Estado de Máquina / Notas</label>
+      <textarea id="f_notas" rows="3" class="field" placeholder="Ej: Checar tono final / Bajando con poliéster / Para descargar / Paro por atorón / Falla en válvula..."></textarea>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+      <button id="btnSave" class="btn btn-primary touch-xl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Guardar
+      </button>
+      <button id="btnSaveNew" class="btn btn-sky touch-xl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><path d="M12 5v14M5 12h14"/></svg>
+        Guardar y Nuevo
+      </button>
+      <button id="btnClear" class="btn btn-secondary touch-xl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Limpiar
+      </button>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- TAB: REPORTE DE PRODUCCIÓN (master sheet) -->
+  <!-- ========================================= -->
+  <section id="tab-report" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Reporte de Producción Tintorería</h2>
+        <p class="text-slate-400 text-sm" id="reportSub">Fichas agrupadas por máquina</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="date" id="reportDate" class="field !py-2 !text-base" />
+        <span id="reportTotal" class="chip chip-ok">0 kg</span>
+      </div>
+    </div>
+
+    <!-- Reporte agrupado por máquina (imita el papel "REPORTE DE PRODUCCIÓN TINTORERÍA") -->
+    <div id="reportGroups" class="space-y-3">
+      <!-- renderizado dinámico -->
+    </div>
+
+    <div id="reportEmpty" class="hidden card p-10 text-center">
+      <div class="text-6xl mb-3 opacity-40">📋</div>
+      <p class="text-slate-400 font-semibold">No hay fichas registradas para esta fecha.</p>
+      <p class="text-slate-500 text-sm mt-1">Captura una ficha desde la pestaña <b>Ficha</b>.</p>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- TAB: EFICIENCIA (tipo JETS Excel)         -->
+  <!-- ========================================= -->
+  <section id="tab-efficiency" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+      <div>
+        <h2 class="text-2xl font-black text-white">Eficiencia por Máquina</h2>
+        <p class="text-slate-400 text-sm">Disponibilidad · Desempeño · Producción real vs estimada</p>
+      </div>
+      <select id="effRange" class="field !py-2 !text-base max-w-[200px]">
+        <option value="today">Hoy</option>
+        <option value="7" selected>Últimos 7 días</option>
+        <option value="30">Últimos 30 días</option>
+        <option value="week">Semana actual</option>
+        <option value="all">Todo</option>
+      </select>
+    </div>
+
+    <!-- Resumen total -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-5">
+        <div class="kpi-lbl">Producción real</div>
+        <div id="eff_kpi_real" class="kpi-num text-sky-accent mt-1">0</div>
+        <div class="text-xs text-slate-500 mt-1">kg en el rango</div>
+      </div>
+      <div class="card p-5">
+        <div class="kpi-lbl">Producción estimada</div>
+        <div id="eff_kpi_estim" class="kpi-num text-white mt-1">0</div>
+        <div class="text-xs text-slate-500 mt-1">kg esperados</div>
+      </div>
+      <div class="card p-5">
+        <div class="kpi-lbl">Desempeño global</div>
+        <div id="eff_kpi_des" class="kpi-num text-emer-accent mt-1">0%</div>
+        <div class="text-xs text-slate-500 mt-1">real / estimado</div>
+      </div>
+      <div class="card p-5">
+        <div class="kpi-lbl">Tiempos muertos</div>
+        <div id="eff_kpi_tm" class="kpi-num text-warn mt-1">0 h</div>
+        <div class="text-xs text-slate-500 mt-1">total acumulado</div>
+      </div>
+    </div>
+
+    <!-- Gráfica -->
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-bold text-white">Producción real vs estimada (kg)</h3>
+        <span class="chip chip-info" id="effRangeChip">Últimos 7 días</span>
+      </div>
+      <div style="height: 300px;"><canvas id="chartKilos"></canvas></div>
+    </div>
+
+    <!-- Tabla estilo JETS Excel -->
+    <div class="card overflow-hidden mb-4">
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Máquina</th>
+              <th>Cap. (kg)</th>
+              <th>Baños</th>
+              <th>Prod. Estim.</th>
+              <th>Prod. Real</th>
+              <th>Disponib.%</th>
+              <th>Desempeño%</th>
+              <th>T. Muerto</th>
+              <th>Problema Principal</th>
+            </tr>
+          </thead>
+          <tbody id="effTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tarjetas por máquina (visuales) -->
+    <div id="effCards" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- TAB: TIEMPOS MUERTOS                      -->
+  <!-- ========================================= -->
+  <section id="tab-downtime" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-black text-white">Tiempos Muertos</h2>
+        <p class="text-slate-400 text-sm">Registro de paros de máquina</p>
+      </div>
+      <span id="dtCount" class="chip chip-warn">0 paros hoy</span>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card p-5 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="lbl">Máquina</label>
+          <select id="dt_machine" class="field">
+            <option value="">-- Selecciona --</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Fecha</label>
+          <input type="date" id="dt_fecha" class="field" />
+        </div>
+        <div>
+          <label class="lbl">Hora inicio</label>
+          <input type="time" id="dt_hIni" class="field" />
+        </div>
+        <div>
+          <label class="lbl">Hora fin</label>
+          <input type="time" id="dt_hFin" class="field" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Categoría</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Mecánico">Mecánico</button>
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Eléctrico">Eléctrico</button>
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Programación">Programación</button>
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Operación">Operación</button>
+          </div>
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Motivo específico</label>
+          <select id="dt_motivo" class="field">
+            <option value="">-- Selecciona --</option>
+            <option>Lavado de máquina</option>
+            <option>Cambio de guía / descontaminar</option>
+            <option>Mantenimiento preventivo</option>
+            <option>Falla eléctrica</option>
+            <option>Falta de material</option>
+            <option>Falta de vapor</option>
+            <option>Falta de agua</option>
+            <option>Falla mecánica</option>
+            <option>Atorón</option>
+            <option>Problema en válvula</option>
+            <option>Checar tono</option>
+            <option>Descargar / Cargar</option>
+            <option>Día festivo</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Descripción del problema</label>
+          <textarea id="dt_notas" rows="2" class="field" placeholder="Descripción breve del problema..."></textarea>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+        <button id="dtSave" class="btn btn-primary touch-xl">Registrar Paro</button>
+        <button id="dtClear" class="btn btn-secondary touch-xl">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="card overflow-hidden">
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Máquina</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Duración</th>
+              <th>Categoría</th>
+              <th>Motivo</th>
+              <th>Descripción</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dtTbody"></tbody>
+        </table>
+      </div>
+      <div id="dtEmpty" class="hidden text-center py-16 px-6">
+        <div class="text-6xl mb-3 opacity-40">⏱️</div>
+        <p class="text-slate-400 font-semibold">Sin tiempos muertos registrados.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- TAB: BRUCKNER (rama / acabados)           -->
+  <!-- ========================================= -->
+  <section id="tab-bruckner" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-black text-white">Rama Bruckner · Acabados</h2>
+        <p class="text-slate-400 text-sm">Suavizado y termofijado</p>
+      </div>
+    </div>
+
+    <!-- Formulario Bruckner -->
+    <div class="card p-5 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="lbl">Fecha</label>
+          <input type="date" id="br_fecha" class="field" />
+        </div>
+        <div>
+          <label class="lbl">Turno</label>
+          <select id="br_turno" class="field">
+            <option value="1°">1°</option>
+            <option value="2°">2°</option>
+            <option value="3°">3°</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Operador</label>
+          <input type="text" id="br_operador" class="field" placeholder="Nombre o # empleado" />
+        </div>
+        <div>
+          <label class="lbl">Lote</label>
+          <input type="text" id="br_lote" class="field" placeholder="Ej: 2458" />
+        </div>
+        <div>
+          <label class="lbl">Tela</label>
+          <input type="text" id="br_tela" class="field" placeholder="Ej: Dubay, Pique..." />
+        </div>
+        <div>
+          <label class="lbl">Color</label>
+          <input type="text" id="br_color" class="field" placeholder="Ej: Blanco, Negro..." />
+        </div>
+        <div>
+          <label class="lbl">Kilos</label>
+          <input type="number" step="0.01" min="0" id="br_kilos" class="field" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="lbl">Metros</label>
+          <input type="number" step="0.1" min="0" id="br_metros" class="field" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="lbl">Velocidad (m/min)</label>
+          <input type="number" step="0.1" min="0" id="br_vel" class="field" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="lbl">Temperatura (°C)</label>
+          <input type="number" step="1" min="0" id="br_temp" class="field" inputmode="numeric" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Proceso</label>
+          <select id="br_proceso" class="field">
+            <option value="Suavizado">Suavizado</option>
+            <option value="Termofijado">Termofijado</option>
+            <option value="Suavizado y Termofijado">Suavizado y Termofijado</option>
+            <option value="Secado">Secado</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Notas</label>
+          <textarea id="br_notas" rows="2" class="field" placeholder="Observaciones..."></textarea>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+        <button id="brSave" class="btn btn-primary touch-xl">Guardar</button>
+        <button id="brClear" class="btn btn-secondary touch-xl">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- KPIs Bruckner -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-5">
+        <div class="kpi-lbl">Kilos (hoy)</div>
+        <div id="br_kpiKilos" class="kpi-num text-sky-accent mt-1">0</div>
+      </div>
+      <div class="card p-5">
+        <div class="kpi-lbl">Metros (hoy)</div>
+        <div id="br_kpiMts" class="kpi-num text-emer-accent mt-1">0</div>
+      </div>
+      <div class="card p-5">
+        <div class="kpi-lbl">Fichas</div>
+        <div id="br_kpiFichas" class="kpi-num text-white mt-1">0</div>
+      </div>
+      <div class="card p-5">
+        <div class="kpi-lbl">Kilos totales</div>
+        <div id="br_kpiTot" class="kpi-num text-white mt-1">0</div>
+      </div>
+    </div>
+
+    <!-- Tabla Bruckner -->
+    <div class="card overflow-hidden">
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Turno</th>
+              <th>Lote</th>
+              <th>Tela</th>
+              <th>Color</th>
+              <th>Kilos</th>
+              <th>Metros</th>
+              <th>Vel.</th>
+              <th>Temp.</th>
+              <th>Proceso</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="brTbody"></tbody>
+        </table>
+      </div>
+      <div id="brEmpty" class="hidden text-center py-16 px-6">
+        <div class="text-6xl mb-3 opacity-40">🧵</div>
+        <p class="text-slate-400 font-semibold">Sin registros de Bruckner todavía.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- TAB: HISTORIAL DE CAMBIOS (audit log)    -->
+  <!-- ========================================= -->
+  <section id="tab-history" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Historial de Cambios</h2>
+        <p class="text-slate-400 text-sm">Últimos 20 movimientos · todos los módulos</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="historyCount" class="chip chip-info">0 movimientos</span>
+        <button id="historyClear" class="btn btn-secondary !py-2 !px-3 text-sm">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Lista de cambios -->
+    <div class="card overflow-hidden">
+      <div id="historyList" class="divide-y divide-ink-700">
+        <!-- renderizado dinámico -->
+      </div>
+      <div id="historyEmpty" class="hidden text-center py-16 px-6">
+        <div class="text-6xl mb-3 opacity-40">📜</div>
+        <p class="text-slate-400 font-semibold">Sin movimientos registrados todavía.</p>
+        <p class="text-slate-500 text-sm mt-1">Cada nuevo registro aparecerá aquí automáticamente.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================= -->
+<!-- BARRA INFERIOR DE PESTAÑAS                                    -->
+<!-- ============================================================= -->
+<nav class="fixed bottom-0 left-0 right-0 z-40 bg-ink-950/98 backdrop-blur border-t border-ink-800 safe-bottom">
+  <div class="max-w-7xl mx-auto px-2 py-2 flex gap-1">
+    <button class="tab-btn active" data-tab="tab-capture">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      <span>Ficha</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 3v5h5"/><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+      <span>Reporte</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-efficiency">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/></svg>
+      <span>Eficiencia</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-downtime">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>T. Muerto</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-bruckner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span>Bruckner</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 14"/></svg>
+      <span>Historial</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Toast -->
+<div id="toast">Guardado ✓</div>
+
+<!-- ============================================================= -->
+<!-- MODAL: Pedir nombre de usuario (una sola vez por sesión)      -->
+<!-- Aparece solo la primera vez que se guarda algo en la sesión.  -->
+<!-- ============================================================= -->
+<div id="userModal" class="hidden fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="card p-6 w-full max-w-md">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-12 h-12 rounded-full bg-sky-accent/15 border border-sky-accent/30 flex items-center justify-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" class="w-6 h-6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div>
+        <h3 class="text-xl font-black text-white">¿Quién está capturando?</h3>
+        <p class="text-sm text-slate-400">Sólo lo preguntamos una vez por sesión.</p>
+      </div>
+    </div>
+    <label class="lbl">Nombre u número de empleado</label>
+    <input id="userModalInput" type="text" class="field" placeholder="Ej: Pablo / 3255 / Ricardo" autocomplete="off" />
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button id="userModalSkip" class="btn btn-secondary touch-lg">Ahora no</button>
+      <button id="userModalOk" class="btn btn-primary touch-lg">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- JS · LÓGICA                                                   -->
+<!-- ============================================================= -->
+<script>
+'use strict';
+
+/* ---------------------------------------------------------------
+   CONFIG - Máquinas de Tintorería TGM
+   Capacidad (kg) y baños/24h extraídos de:
+   - Hoja "EFICIENCIAS DE MAQUINAS DE TINTORERIA"
+   - Hoja JETS.xlsx (producción estim.)
+--------------------------------------------------------------- */
+const MACHINES = [
+  { id: 'THIES-1',    capacityKg: 1600, banos24h: 2.2 }, // 2.2 Baños (24 h) · 1,600 kg
+  { id: 'THIES-2',    capacityKg: 2200, banos24h: 3.7 }, // 3.7 Baños (24 h) · 2,200 kg
+  { id: 'THIES-3',    capacityKg: 2200, banos24h: 3.7 },
+  { id: 'THIES-4',    capacityKg: 3600, banos24h: 4.0 }, // 4.0 Baños (24 h) · 3,600 kg
+  { id: 'THEN-1',     capacityKg: 3800, banos24h: 3.4 }, // 3.4 Baños (24 h) · 3,800 kg
+  { id: 'THEN-2',     capacityKg: 2700, banos24h: 3.4 }, // 3.4 Baños (24 h) · 2,700 kg
+  { id: 'OVERFLOW-1', capacityKg: 2200, banos24h: 3.4 },
+  { id: 'OVERFLOW-2', capacityKg: 2200, banos24h: 3.4 },
+  { id: 'GASTON-2',   capacityKg: 2200, banos24h: 3.7 }, // 3.7 Baños (24 h) · 2,200 kg
+];
+
+/* ---------------------------------------------------------------
+   STORAGE - localStorage
+   - prod/down/bruck: datos persistentes
+   - history: bitácora de cambios (audit log) persistente
+   - sessionStorage: nombre del usuario SOLO durante la sesión
+     (al cerrar el navegador o la pestaña se vuelve a preguntar)
+--------------------------------------------------------------- */
+const LS_KEYS = {
+  prod:    'tg_tint_prod_v2',    // fichas de producción
+  down:    'tg_tint_down_v2',    // tiempos muertos
+  bruck:   'tg_tint_bruck_v2',   // Bruckner
+  history: 'tg_tint_history_v2'  // bitácora de cambios
+};
+const SS_KEYS = {
+  user:    'tg_tint_user_session',  // nombre del usuario (sesión)
+  skipped: 'tg_tint_user_skipped'   // si el usuario dio "Ahora no"
+};
+const load = (k) => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch(e){ return []; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+let state = {
+  prod:    load(LS_KEYS.prod),
+  down:    load(LS_KEYS.down),
+  bruck:   load(LS_KEYS.bruck),
+  history: load(LS_KEYS.history),
+  selectedMachine: null,
+  selectedShift:   null,
+  selectedDtCat:   null,
+  // Usuario de sesión (se pregunta una sola vez)
+  user: sessionStorage.getItem(SS_KEYS.user) || '',
+  // Cola de acciones pendientes que esperan al nombre del usuario
+  pendingAfterUser: null
+};
+
+/* ---------------------------------------------------------------
+   HELPERS
+--------------------------------------------------------------- */
+const $  = (s, p=document) => p.querySelector(s);
+const $$ = (s, p=document) => Array.from(p.querySelectorAll(s));
+const todayISO = () => {
+  // Fecha local ISO (evita desfase por UTC)
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+/** Duración en minutos entre "HH:MM" y "HH:MM", soporta cruzar medianoche */
+function durationMinutes(hIni, hFin) {
+  if (!hIni || !hFin) return 0;
+  const [h1,m1] = hIni.split(':').map(Number);
+  const [h2,m2] = hFin.split(':').map(Number);
+  let mins = (h2*60+m2) - (h1*60+m1);
+  if (mins < 0) mins += 24*60;
+  return mins;
+}
+const fmtDur = (mins) => {
+  if (!mins) return '--:--';
+  const h = Math.floor(mins/60), m = mins%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+};
+const fmtKg = (n) => (Number(n)||0).toLocaleString('es-MX', { maximumFractionDigits: 1 });
+
+function toast(msg, isErr=false) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.toggle('err', isErr);
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function getMachine(id) { return MACHINES.find(m => m.id === id); }
+
+/** Desempeño (%) = Kilos reales / Capacidad nominal de la máquina * 100
+ *  Así coincide con la métrica de la hoja JETS (producción real / producción estimada por carga).
+ *  La "ficha" representa un baño; se compara kilos cargados vs capacidad máxima.
+ */
+function calcDesempeno(machineId, kilos) {
+  const m = getMachine(machineId);
+  if (!m || !kilos) return 0;
+  return Math.round((kilos / m.capacityKg) * 100);
+}
+
+/* ===============================================================
+   USUARIO DE SESIÓN - Se pregunta UNA SOLA VEZ por sesión
+   ===============================================================
+   Flujo:
+   1. Al cargar la página NO preguntamos nada (no es intrusivo).
+   2. Cuando el usuario guarda algo por primera vez (o pulsa el pill),
+      abrimos el modal de nombre.
+   3. Guardamos el nombre en sessionStorage (persiste hasta cerrar la
+      pestaña/navegador, así no molestamos durante toda la sesión).
+   4. Mostramos el nombre en el pill del header.
+   5. Si el usuario hace clic en "Ahora no", seguimos con "Invitado".
+--------------------------------------------------------------- */
+function updateUserPill() {
+  const name = state.user || 'Invitado';
+  $('#userPillName').textContent = name;
+}
+
+/** Abre el modal. Si `pendingFn` se pasa, se ejecutará después de
+ *  que el usuario confirme su nombre (o lo omita). */
+function openUserModal(pendingFn) {
+  state.pendingAfterUser = pendingFn || null;
+  const m = $('#userModal');
+  $('#userModalInput').value = state.user || '';
+  m.classList.remove('hidden');
+  setTimeout(() => $('#userModalInput').focus(), 80);
+}
+function closeUserModal() { $('#userModal').classList.add('hidden'); }
+
+/** Se llama ANTES de cualquier acción de guardado.
+ *  - Si ya tenemos nombre o el usuario lo omitió, se ejecuta `fn` directo.
+ *  - Si no, abre el modal y pospone la ejecución.
+ *  Devuelve true si la acción puede continuar; false si hay que esperar.
+ */
+function requireUserThen(fn) {
+  if (state.user || sessionStorage.getItem(SS_KEYS.skipped) === '1') {
+    fn();
+    return true;
+  }
+  openUserModal(fn);
+  return false;
+}
+
+function bindUserModal() {
+  // Confirmar
+  $('#userModalOk').addEventListener('click', () => {
+    const v = $('#userModalInput').value.trim();
+    if (v) {
+      state.user = v;
+      sessionStorage.setItem(SS_KEYS.user, v);
+      sessionStorage.removeItem(SS_KEYS.skipped);
+    }
+    updateUserPill();
+    closeUserModal();
+    // Ejecutar acción pendiente (ej: guardado que disparó el modal)
+    const fn = state.pendingAfterUser; state.pendingAfterUser = null;
+    if (typeof fn === 'function') fn();
+  });
+
+  // Omitir (no volver a preguntar en esta sesión)
+  $('#userModalSkip').addEventListener('click', () => {
+    sessionStorage.setItem(SS_KEYS.skipped, '1');
+    closeUserModal();
+    const fn = state.pendingAfterUser; state.pendingAfterUser = null;
+    if (typeof fn === 'function') fn();
+  });
+
+  // Enter para confirmar
+  $('#userModalInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('#userModalOk').click();
+    if (e.key === 'Escape') $('#userModalSkip').click();
+  });
+
+  // Click en el pill del header para cambiar/establecer nombre en cualquier momento
+  $('#userPill').addEventListener('click', () => {
+    sessionStorage.removeItem(SS_KEYS.skipped);
+    openUserModal(null);
+  });
+}
+
+/* ===============================================================
+   HISTORIAL DE CAMBIOS (audit log)
+   ===============================================================
+   Cada movimiento queda registrado con:
+     - ts      : timestamp (ms)
+     - user    : nombre de usuario de la sesión
+     - module  : 'Ficha' | 'Tiempo Muerto' | 'Bruckner'
+     - action  : 'Nuevo registro' | 'Actualización' | 'Borrado' | 'Autoguardado'
+     - machine : id de máquina (si aplica)
+     - lote    : lote (si aplica)
+     - detail  : resumen libre
+--------------------------------------------------------------- */
+function logChange({ module, action, machine='', lote='', detail='' }) {
+  const entry = {
+    ts: Date.now(),
+    user: state.user || 'Invitado',
+    module, action, machine, lote, detail
+  };
+  state.history.unshift(entry);
+  // Guardamos todo el historial en localStorage (persistente).
+  // En pantalla sólo mostramos los últimos 20, pero conservamos más
+  // para exportación/auditoría (limitado a 500 para evitar crecer demasiado).
+  if (state.history.length > 500) state.history = state.history.slice(0, 500);
+  save(LS_KEYS.history, state.history);
+  renderHistory();
+}
+
+function renderHistory() {
+  const recent = state.history.slice(0, 20);
+  $('#historyCount').textContent = `${state.history.length} movimiento${state.history.length===1?'':'s'}`;
+  const list = $('#historyList');
+  const empty = $('#historyEmpty');
+
+  if (!recent.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  const iconFor = (action) => {
+    if (action === 'Nuevo registro') return { bg:'rgba(16,185,129,0.15)', stroke:'#34d399', path:'<path d="M12 5v14M5 12h14"/>' };
+    if (action === 'Actualización') return { bg:'rgba(56,189,248,0.15)', stroke:'#7dd3fc', path:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><polyline points="21 3 21 8 16 8"/>' };
+    if (action === 'Borrado')       return { bg:'rgba(239,68,68,0.15)',  stroke:'#f87171', path:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' };
+    return { bg:'rgba(148,163,184,0.15)', stroke:'#cbd5e1', path:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>' };
+  };
+
+  list.innerHTML = recent.map(h => {
+    const ic = iconFor(h.action);
+    const d = new Date(h.ts);
+    const timeStr = d.toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const bits = [];
+    if (h.module)  bits.push(`<span class="text-slate-300">${h.module}</span>`);
+    if (h.machine) bits.push(`<span class="text-sky-accent font-bold">${h.machine}</span>`);
+    if (h.lote)    bits.push(`Lote <b>${h.lote}</b>`);
+    if (h.detail)  bits.push(`<span class="text-slate-400">${h.detail}</span>`);
+    return `
+      <div class="hist-item">
+        <div class="hist-icon" style="background:${ic.bg}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="${ic.stroke}" stroke-width="2.2" class="w-4 h-4">${ic.path}</svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="hist-title">${h.action} · <span class="text-slate-400 font-semibold">${h.user}</span></div>
+          <div class="hist-meta">${bits.join(' · ')}</div>
+        </div>
+        <div class="hist-time">${timeStr}</div>
+      </div>`;
+  }).join('');
+}
+
+function bindHistoryTab() {
+  $('#historyClear').addEventListener('click', () => {
+    if (!confirm('¿Limpiar todo el historial? Esta acción no se puede deshacer.')) return;
+    state.history = [];
+    save(LS_KEYS.history, state.history);
+    renderHistory();
+    toast('Historial limpiado');
+  });
+}
+
+/* ===============================================================
+   AUTOSAVE
+   ===============================================================
+   - Al cargar la página (sincroniza storage por si hay datos en memoria)
+   - Cada 5 minutos
+   - Registra el evento en el historial (solo el primero de cada 5 min)
+--------------------------------------------------------------- */
+const AUTOSAVE_MS = 5 * 60 * 1000; // 5 minutos
+let autosaveTimer = null;
+
+function runAutosave(reason='Programado') {
+  // Re-guardar todas las colecciones (idempotente).
+  save(LS_KEYS.prod,    state.prod);
+  save(LS_KEYS.down,    state.down);
+  save(LS_KEYS.bruck,   state.bruck);
+  save(LS_KEYS.history, state.history);
+
+  // Registrar evento de autoguardado solo si hay datos
+  const total = state.prod.length + state.down.length + state.bruck.length;
+  if (total > 0) {
+    logChange({
+      module: 'Sistema',
+      action: 'Autoguardado',
+      detail: `${reason} · ${state.prod.length} fichas, ${state.down.length} paros, ${state.bruck.length} Bruckner`
+    });
+  }
+
+  // Indicador visual sutil
+  const bar = $('#autosaveBar');
+  const msg = $('#autosaveMsg');
+  bar.classList.remove('hidden');
+  msg.textContent = `Guardado automático ✓ ${new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+  setTimeout(() => bar.classList.add('hidden'), 3500);
+}
+
+function startAutosave() {
+  // Autosave inicial al cargar la página
+  runAutosave('Carga inicial');
+  // Programado cada 5 minutos
+  if (autosaveTimer) clearInterval(autosaveTimer);
+  autosaveTimer = setInterval(() => runAutosave('Programado cada 5 min'), AUTOSAVE_MS);
+
+  // Guardado oportunístico antes de cerrar la pestaña
+  window.addEventListener('beforeunload', () => {
+    save(LS_KEYS.prod,    state.prod);
+    save(LS_KEYS.down,    state.down);
+    save(LS_KEYS.bruck,   state.bruck);
+    save(LS_KEYS.history, state.history);
+  });
+}
+
+/* ---------------------------------------------------------------
+   INIT
+--------------------------------------------------------------- */
+function init() {
+  const now = new Date();
+  $('#todayLabel').textContent = now.toLocaleDateString('es-MX', { weekday:'long', day:'2-digit', month:'long' });
+
+  // Renderizar botones de máquina con capacidad
+  $('#machineGrid').innerHTML = MACHINES.map(m =>
+    `<button type="button" class="machine-btn" data-machine="${m.id}">
+       <span>${m.id}</span>
+       <small>${m.capacityKg.toLocaleString('es-MX')} kg · ${m.banos24h} baños/24h</small>
+     </button>`
+  ).join('');
+
+  // Select de máquinas en Tiempos Muertos
+  $('#dt_machine').innerHTML = '<option value="">-- Selecciona --</option>' +
+    MACHINES.map(m => `<option>${m.id}</option>`).join('');
+
+  // Fechas por defecto = hoy
+  $('#f_fecha').value    = todayISO();
+  $('#dt_fecha').value   = todayISO();
+  $('#br_fecha').value   = todayISO();
+  $('#reportDate').value = todayISO();
+
+  bindTabs();
+  bindCaptureForm();
+  bindDowntimeForm();
+  bindBrucknerForm();
+  bindExport();
+  bindUserModal();
+  bindHistoryTab();
+  updateUserPill();
+  startAutosave();
+  $('#reportDate').addEventListener('change', renderReport);
+  $('#effRange').addEventListener('change', renderEfficiency);
+
+  renderAll();
+}
+
+/* ---------------------------------------------------------------
+   NAV
+--------------------------------------------------------------- */
+function bindTabs() {
+  $$('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      $$('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      $$('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== tab));
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+}
+
+/* ---------------------------------------------------------------
+   FICHA - form
+--------------------------------------------------------------- */
+function bindCaptureForm() {
+  // Máquina
+  $('#machineGrid').addEventListener('click', (e) => {
+    const b = e.target.closest('.machine-btn'); if (!b) return;
+    $$('.machine-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.selectedMachine = b.dataset.machine;
+    const m = getMachine(state.selectedMachine);
+    $('#benchmarkLbl').textContent = m ? m.capacityKg.toLocaleString('es-MX')+' kg' : '—';
+    recalc();
+  });
+
+  // Turno
+  $$('.shift-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('.shift-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.selectedShift = b.dataset.shift;
+    });
+  });
+
+  // Botones de proceso rápido → llena el campo
+  $$('.proceso-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('.proceso-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      $('#f_proceso').value = b.dataset.p;
+    });
+  });
+
+  // Recalcular
+  ['#f_hEntrada','#f_hSalida','#f_kilos'].forEach(sel => {
+    $(sel).addEventListener('input', recalc);
+  });
+
+  $('#btnSave').addEventListener('click', () => requireUserThen(() => saveProd(false)));
+  $('#btnSaveNew').addEventListener('click', () => requireUserThen(() => saveProd(true)));
+  $('#btnClear').addEventListener('click', clearProdForm);
+}
+
+function recalc() {
+  const mins  = durationMinutes($('#f_hEntrada').value, $('#f_hSalida').value);
+  const kilos = parseFloat($('#f_kilos').value) || 0;
+  const des   = calcDesempeno(state.selectedMachine, kilos);
+  $('#calc_dur').textContent = fmtDur(mins);
+  $('#calc_kph').textContent = mins > 0 ? (kilos / (mins/60)).toFixed(1) : '--';
+  $('#calc_eff').textContent = kilos > 0 && state.selectedMachine ? des + ' %' : '-- %';
+  const el = $('#calc_eff');
+  el.classList.remove('text-emer-accent','text-warn','text-danger','text-white');
+  if (!kilos || !state.selectedMachine) el.classList.add('text-white');
+  else if (des >= 80) el.classList.add('text-emer-accent');
+  else if (des >= 55) el.classList.add('text-warn');
+  else el.classList.add('text-danger');
+}
+
+function saveProd(andNew) {
+  if (!state.selectedMachine) return toast('Selecciona una máquina', true);
+  if (!state.selectedShift)   return toast('Selecciona un turno', true);
+  const kilos = parseFloat($('#f_kilos').value);
+  if (!kilos || kilos <= 0)   return toast('Captura los kilos', true);
+  if (!$('#f_hEntrada').value || !$('#f_hSalida').value)
+    return toast('Captura horas de entrada y salida', true);
+
+  const mins = durationMinutes($('#f_hEntrada').value, $('#f_hSalida').value);
+
+  const rec = {
+    id: uid(),
+    ts: Date.now(),
+    machine:  state.selectedMachine,
+    shift:    state.selectedShift,
+    operador: $('#f_operador').value.trim(),
+    fecha:    $('#f_fecha').value || todayISO(),
+    lote:     $('#f_lote').value.trim(),
+    tela:     $('#f_tela').value.trim(),
+    color:    $('#f_color').value.trim(),
+    diseno:   $('#f_diseno').value.trim(),
+    pedido:   $('#f_pedido').value.trim(),
+    kilos:    kilos,
+    hEntrada: $('#f_hEntrada').value,
+    hSalida:  $('#f_hSalida').value,
+    duracionMin: mins,
+    proceso:  $('#f_proceso').value.trim(),
+    apq:      parseFloat($('#f_apq').value) || 0,
+    banos:    parseInt($('#f_banos').value, 10) || 1,
+    notas:    $('#f_notas').value.trim(),
+    des:      calcDesempeno(state.selectedMachine, kilos)
+  };
+
+  state.prod.unshift(rec);
+  save(LS_KEYS.prod, state.prod);
+  logChange({ module:'Ficha', action:'Nuevo registro', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.color||'sin color'}` });
+  toast('Ficha guardada ✓');
+  renderAll();
+
+  if (andNew) {
+    // Mantener máquina+turno+operador+fecha; limpiar resto
+    ['#f_lote','#f_tela','#f_color','#f_diseno','#f_pedido','#f_kilos','#f_hEntrada','#f_hSalida','#f_proceso','#f_apq','#f_notas']
+      .forEach(s => $(s).value = '');
+    $('#f_banos').value = '1';
+    $$('.proceso-btn').forEach(x => x.classList.remove('active'));
+    recalc();
+    $('#f_lote').focus();
+  } else {
+    clearProdForm();
+  }
+}
+
+function clearProdForm() {
+  state.selectedMachine = null;
+  state.selectedShift   = null;
+  $$('.machine-btn').forEach(x => x.classList.remove('active'));
+  $$('.shift-btn').forEach(x => x.classList.remove('active'));
+  $$('.proceso-btn').forEach(x => x.classList.remove('active'));
+  ['#f_operador','#f_lote','#f_tela','#f_color','#f_diseno','#f_pedido','#f_kilos',
+   '#f_hEntrada','#f_hSalida','#f_proceso','#f_apq','#f_notas'].forEach(s => $(s).value = '');
+  $('#f_fecha').value = todayISO();
+  $('#f_banos').value = '1';
+  $('#benchmarkLbl').textContent = '— kg';
+  recalc();
+}
+
+/* ---------------------------------------------------------------
+   REPORTE DE PRODUCCIÓN (agrupado por máquina - imita el papel)
+--------------------------------------------------------------- */
+function renderReport() {
+  const date = $('#reportDate').value || todayISO();
+  const rows = state.prod.filter(r => r.fecha === date);
+
+  const totalK = rows.reduce((a,r)=>a+r.kilos, 0);
+  $('#reportTotal').textContent = fmtKg(totalK) + ' kg';
+  $('#reportSub').textContent = rows.length
+    ? `${rows.length} ficha${rows.length===1?'':'s'} · ${new Date(date+'T12:00:00').toLocaleDateString('es-MX',{weekday:'long', day:'2-digit', month:'long', year:'numeric'})}`
+    : `Sin fichas para esta fecha`;
+
+  const container = $('#reportGroups');
+  const empty = $('#reportEmpty');
+  if (!rows.length) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  // Agrupar por máquina, en el orden del papel
+  const order = MACHINES.map(m => m.id);
+  const byM = {};
+  rows.forEach(r => { (byM[r.machine] = byM[r.machine] || []).push(r); });
+
+  // Solo mostramos las máquinas que tienen fichas (más limpio)
+  container.innerHTML = order.filter(id => byM[id]).map(id => {
+    const items = byM[id];
+    const totM = items.reduce((a,r)=>a+r.kilos, 0);
+    return `
+      <div class="card overflow-hidden">
+        <div class="group-header">
+          <span class="m-name">${id}</span>
+          <span class="m-tot">Total: ${fmtKg(totM)} kg · ${items.length} ficha${items.length===1?'':'s'}</span>
+        </div>
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Turno</th>
+                <th>Kilos</th>
+                <th>Color</th>
+                <th>Diseño / Tela</th>
+                <th>Lote</th>
+                <th>Pedido</th>
+                <th>Proceso</th>
+                <th>Hr. Ent.</th>
+                <th>Hr. Sal.</th>
+                <th>APQ</th>
+                <th>Operador</th>
+                <th>Notas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(r => `
+                <tr>
+                  <td><b>${r.shift}</b></td>
+                  <td><b class="text-sky-accent">${fmtKg(r.kilos)}</b></td>
+                  <td>${r.color||'—'}</td>
+                  <td>${[r.diseno, r.tela].filter(Boolean).join(' · ') || '—'}</td>
+                  <td>${r.lote||'—'}</td>
+                  <td>${r.pedido||'—'}</td>
+                  <td class="text-slate-300">${r.proceso||'—'}</td>
+                  <td class="text-slate-400">${r.hEntrada||'—'}</td>
+                  <td class="text-slate-400">${r.hSalida||'—'}</td>
+                  <td>${r.apq? fmtKg(r.apq):'—'}</td>
+                  <td class="text-slate-400 text-sm">${r.operador||'—'}</td>
+                  <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
+                  <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteProd('${r.id}')">✕</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+window.deleteProd = function(id) {
+  if (!confirm('¿Borrar esta ficha?')) return;
+  const rec = state.prod.find(r => r.id === id);
+  state.prod = state.prod.filter(r => r.id !== id);
+  save(LS_KEYS.prod, state.prod);
+  if (rec) logChange({ module:'Ficha', action:'Borrado', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.color||''}`.trim() });
+  toast('Ficha borrada');
+  renderAll();
+};
+
+/* ---------------------------------------------------------------
+   EFICIENCIA - tipo JETS Excel
+--------------------------------------------------------------- */
+let chartKilos = null;
+
+function getDateRange(range) {
+  const now = new Date();
+  if (range === 'today') return { from: new Date().setHours(0,0,0,0), days: 1 };
+  if (range === 'week') {
+    const d = new Date();
+    const day = d.getDay(); // 0=Dom, 1=Lun...
+    const diffToMon = (day + 6) % 7; // días desde lunes
+    d.setDate(d.getDate() - diffToMon);
+    d.setHours(0,0,0,0);
+    return { from: d.getTime(), days: diffToMon + 1 };
+  }
+  if (range === 'all') return { from: 0, days: null };
+  const n = Number(range);
+  return { from: now.getTime() - n*24*60*60*1000, days: n };
+}
+
+/** Devuelve el # de días distintos con fichas dentro del rango;
+ *  esta cifra se usa como base "real" para estimar producción esperada
+ *  (evita comparar 1 día de datos contra 7 días de capacidad nominal).
+ */
+function distinctDaysWithData(rows) {
+  const s = new Set(rows.map(r => r.fecha));
+  return Math.max(1, s.size);
+}
+
+function renderEfficiency() {
+  const range = $('#effRange').value;
+  const { from, days } = getDateRange(range);
+  const chipText = { today:'Hoy', '7':'Últimos 7 días', '30':'Últimos 30 días', week:'Semana actual', all:'Todo' }[range];
+  $('#effRangeChip').textContent = chipText;
+
+  const rows = state.prod.filter(r => r.ts >= from);
+  const downs = state.down.filter(d => d.ts >= from);
+
+  // Agregados por máquina
+  const agg = {};
+  MACHINES.forEach(m => agg[m.id] = { kilos:0, estim:0, banos:0, downMin:0, problems:{}, des:0, desN:0 });
+
+  // ESTIMADA = Capacidad * baños/24h * días con datos
+  // Usar días reales con fichas hace que la comparación sea justa
+  // aún si el rango es más amplio que la ventana de datos capturados.
+  const diasBase = distinctDaysWithData(rows);
+  MACHINES.forEach(m => {
+    agg[m.id].estim = Math.round(m.capacityKg * m.banos24h * diasBase);
+  });
+
+  rows.forEach(r => {
+    if (!agg[r.machine]) return;
+    agg[r.machine].kilos += r.kilos;
+    agg[r.machine].banos += (r.banos||1);
+    agg[r.machine].des   += r.des;
+    agg[r.machine].desN  += 1;
+  });
+
+  downs.forEach(d => {
+    if (!agg[d.machine]) return;
+    agg[d.machine].downMin += d.duracionMin;
+    agg[d.machine].problems[d.categoria || d.motivo || 'Otro'] =
+      (agg[d.machine].problems[d.categoria || d.motivo || 'Otro']||0) + d.duracionMin;
+  });
+
+  // KPIs globales
+  const totalReal  = rows.reduce((a,r)=>a+r.kilos,0);
+  const totalEstim = Object.values(agg).reduce((a,x)=>a+x.estim,0);
+  const totalTM    = downs.reduce((a,d)=>a+d.duracionMin,0);
+  const desGlobal  = totalEstim > 0 ? Math.round((totalReal/totalEstim)*100) : 0;
+  $('#eff_kpi_real').textContent  = fmtKg(totalReal);
+  $('#eff_kpi_estim').textContent = fmtKg(totalEstim);
+  $('#eff_kpi_des').textContent   = desGlobal + '%';
+  $('#eff_kpi_tm').textContent    = (totalTM/60).toFixed(1) + ' h';
+
+  // Gráfica barras: Real vs Estimado
+  const labels = MACHINES.map(m => m.id);
+  const dataReal  = labels.map(id => Math.round(agg[id].kilos));
+  const dataEstim = labels.map(id => Math.round(agg[id].estim));
+  const ctx = $('#chartKilos').getContext('2d');
+  if (chartKilos) chartKilos.destroy();
+  chartKilos = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Prod. Estimada', data: dataEstim, backgroundColor: '#253149', borderRadius: 6 },
+        { label: 'Prod. Real',     data: dataReal,  backgroundColor: '#0ea5e9', borderRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color:'#cbd5e1', font:{weight:'700'} } },
+        tooltip: {
+          backgroundColor:'#0b0f16', borderColor:'#253149', borderWidth:1,
+          titleColor:'#e2e8f0', bodyColor:'#e2e8f0', padding: 12,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtKg(ctx.parsed.y)} kg` }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font:{weight:'600'} }, grid: { display: false } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#1a2232' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Tabla tipo JETS
+  $('#effTbody').innerHTML = MACHINES.map(m => {
+    const g = agg[m.id];
+    const desempeno = g.estim > 0 ? Math.round((g.kilos/g.estim)*100) : 0;
+    // Disponibilidad % = (tiempo total - tiempo muerto) / tiempo total * 100
+    const totalMin = diasBase*24*60;
+    const disp = Math.max(0, Math.round(((totalMin - g.downMin)/totalMin)*100));
+    const topProb = Object.entries(g.problems).sort((a,b)=>b[1]-a[1])[0];
+    const desClass = desempeno >= 80 ? 'chip-ok' : desempeno >= 55 ? 'chip-warn' : desempeno > 0 ? 'chip-bad' : 'chip-info';
+    const dispClass = disp >= 90 ? 'chip-ok' : disp >= 75 ? 'chip-warn' : 'chip-bad';
+    return `
+      <tr>
+        <td><b class="text-sky-accent">${m.id}</b></td>
+        <td>${m.capacityKg.toLocaleString('es-MX')}</td>
+        <td>${g.banos}</td>
+        <td>${fmtKg(g.estim)}</td>
+        <td><b>${fmtKg(g.kilos)}</b></td>
+        <td><span class="chip ${dispClass}">${disp}%</span></td>
+        <td><span class="chip ${desClass}">${desempeno}%</span></td>
+        <td>${(g.downMin/60).toFixed(1)} h</td>
+        <td class="text-slate-400 text-sm">${topProb ? topProb[0]+' ('+(topProb[1]/60).toFixed(1)+'h)' : '—'}</td>
+      </tr>`;
+  }).join('');
+
+  // Tarjetas por máquina
+  $('#effCards').innerHTML = MACHINES.map(m => {
+    const g = agg[m.id];
+    const des = g.estim > 0 ? Math.round((g.kilos/g.estim)*100) : 0;
+    const fill  = des >= 80 ? '#10b981' : des >= 55 ? '#f59e0b' : '#ef4444';
+    const color = des >= 80 ? 'emer-accent' : des >= 55 ? 'warn' : 'danger';
+    const status = des >= 80 ? { chip:'chip-ok', label:'Óptima' }
+                 : des >= 55 ? { chip:'chip-warn', label:'Regular' }
+                 : g.kilos  ? { chip:'chip-bad', label:'Baja' }
+                            : { chip:'chip-info', label:'Sin datos' };
+    return `
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="text-xl font-black text-white">${m.id}</div>
+            <div class="text-xs text-slate-500">Capacidad ${m.capacityKg.toLocaleString('es-MX')} kg · ${m.banos24h} baños/24h</div>
+          </div>
+          <span class="chip ${status.chip}">${status.label}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div>
+            <div class="kpi-lbl">Real</div>
+            <div class="text-2xl font-black text-sky-accent">${fmtKg(g.kilos)}</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Estim.</div>
+            <div class="text-2xl font-black text-slate-400">${fmtKg(g.estim)}</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">T. Muerto</div>
+            <div class="text-2xl font-black text-warn">${(g.downMin/60).toFixed(1)}h</div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mb-1 text-sm">
+          <span class="text-slate-400 font-semibold">Desempeño</span>
+          <span class="font-black text-${color}">${des}%</span>
+        </div>
+        <div class="eff-bar">
+          <div class="eff-fill" style="width:${Math.min(des,100)}%; background:${fill};"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------
+   TIEMPOS MUERTOS
+--------------------------------------------------------------- */
+function bindDowntimeForm() {
+  // Botones de categoría
+  $$('.dt-cat-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('.dt-cat-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      state.selectedDtCat = b.dataset.cat;
+    });
+  });
+
+  $('#dtSave').addEventListener('click', () => requireUserThen(() => {
+    const m = $('#dt_machine').value;
+    const f = $('#dt_fecha').value || todayISO();
+    const i = $('#dt_hIni').value;
+    const e = $('#dt_hFin').value;
+    const mot = $('#dt_motivo').value;
+    if (!m) return toast('Selecciona la máquina', true);
+    if (!i || !e) return toast('Captura horas de inicio y fin', true);
+    if (!state.selectedDtCat) return toast('Selecciona una categoría', true);
+    if (!mot) return toast('Selecciona el motivo', true);
+    const mins = durationMinutes(i, e);
+    const rec = {
+      id: uid(), ts: Date.now(),
+      machine: m, fecha: f, hIni: i, hFin: e,
+      duracionMin: mins,
+      categoria: state.selectedDtCat,
+      motivo: mot,
+      notas: $('#dt_notas').value.trim()
+    };
+    state.down.unshift(rec);
+    save(LS_KEYS.down, state.down);
+    logChange({ module:'Tiempo Muerto', action:'Nuevo registro', machine:rec.machine, detail:`${rec.categoria} · ${rec.duracionMin} min · ${rec.motivo}` });
+    toast('Paro registrado');
+    clearDtForm();
+    renderAll();
+  }));
+  $('#dtClear').addEventListener('click', clearDtForm);
+}
+function clearDtForm() {
+  state.selectedDtCat = null;
+  $$('.dt-cat-btn').forEach(x => x.classList.remove('active'));
+  ['#dt_machine','#dt_hIni','#dt_hFin','#dt_motivo','#dt_notas'].forEach(s => $(s).value = '');
+  $('#dt_fecha').value = todayISO();
+}
+function renderDowntime() {
+  const rows = state.down;
+  const today = todayISO();
+  const todayRows = rows.filter(r => r.fecha === today);
+  $('#dtCount').textContent = `${todayRows.length} paro${todayRows.length===1?'':'s'} hoy`;
+
+  const tb = $('#dtTbody');
+  if (!rows.length) {
+    tb.innerHTML = '';
+    $('#dtEmpty').classList.remove('hidden');
+  } else {
+    $('#dtEmpty').classList.add('hidden');
+    tb.innerHTML = rows.map(r => {
+      const catColor = {
+        'Mecánico': 'chip-bad',
+        'Eléctrico': 'chip-warn',
+        'Programación': 'chip-info',
+        'Operación': 'chip-ok'
+      }[r.categoria] || 'chip-info';
+      return `
+      <tr>
+        <td>${r.fecha}</td>
+        <td><b class="text-sky-accent">${r.machine}</b></td>
+        <td>${r.hIni}</td>
+        <td>${r.hFin}</td>
+        <td><b>${r.duracionMin}</b> min</td>
+        <td><span class="chip ${catColor}">${r.categoria||'—'}</span></td>
+        <td>${r.motivo}</td>
+        <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
+        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteDowntime('${r.id}')">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+}
+window.deleteDowntime = function(id) {
+  if (!confirm('¿Borrar este paro?')) return;
+  const rec = state.down.find(r => r.id === id);
+  state.down = state.down.filter(r => r.id !== id);
+  save(LS_KEYS.down, state.down);
+  if (rec) logChange({ module:'Tiempo Muerto', action:'Borrado', machine:rec.machine, detail:`${rec.categoria||''} · ${rec.duracionMin} min`.trim() });
+  renderAll();
+};
+
+/* ---------------------------------------------------------------
+   BRUCKNER
+--------------------------------------------------------------- */
+function bindBrucknerForm() {
+  $('#brSave').addEventListener('click', () => requireUserThen(() => {
+    const k = parseFloat($('#br_kilos').value) || 0;
+    if (!k) return toast('Captura los kilos', true);
+    const rec = {
+      id: uid(), ts: Date.now(),
+      fecha:    $('#br_fecha').value || todayISO(),
+      turno:    $('#br_turno').value,
+      operador: $('#br_operador').value.trim(),
+      lote:     $('#br_lote').value.trim(),
+      tela:     $('#br_tela').value.trim(),
+      color:    $('#br_color').value.trim(),
+      kilos:    k,
+      metros:   parseFloat($('#br_metros').value) || 0,
+      vel:      parseFloat($('#br_vel').value) || 0,
+      temp:     parseFloat($('#br_temp').value) || 0,
+      proceso:  $('#br_proceso').value,
+      notas:    $('#br_notas').value.trim()
+    };
+    state.bruck.unshift(rec);
+    save(LS_KEYS.bruck, state.bruck);
+    logChange({ module:'Bruckner', action:'Nuevo registro', lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.proceso||'sin proceso'}` });
+    toast('Bruckner guardado');
+    clearBrForm();
+    renderAll();
+  }));
+  $('#brClear').addEventListener('click', clearBrForm);
+}
+function clearBrForm() {
+  ['#br_operador','#br_lote','#br_tela','#br_color','#br_kilos','#br_metros','#br_vel','#br_temp','#br_notas']
+    .forEach(s => $(s).value = '');
+  $('#br_fecha').value = todayISO();
+}
+function renderBruckner() {
+  const rows = state.bruck;
+  const today = todayISO();
+  const todayRows = rows.filter(r => r.fecha === today);
+  const totKHoy = todayRows.reduce((a,r)=>a+r.kilos,0);
+  const totMHoy = todayRows.reduce((a,r)=>a+r.metros,0);
+  const totK    = rows.reduce((a,r)=>a+r.kilos,0);
+  $('#br_kpiKilos').textContent  = fmtKg(totKHoy);
+  $('#br_kpiMts').textContent    = fmtKg(totMHoy);
+  $('#br_kpiFichas').textContent = rows.length;
+  $('#br_kpiTot').textContent    = fmtKg(totK);
+
+  const tb = $('#brTbody');
+  if (!rows.length) {
+    tb.innerHTML = '';
+    $('#brEmpty').classList.remove('hidden');
+  } else {
+    $('#brEmpty').classList.add('hidden');
+    tb.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.fecha}</td>
+        <td>${r.turno}</td>
+        <td>${r.lote||'—'}</td>
+        <td>${r.tela||'—'}</td>
+        <td>${r.color||'—'}</td>
+        <td><b>${fmtKg(r.kilos)}</b> kg</td>
+        <td>${fmtKg(r.metros)} m</td>
+        <td>${r.vel||'—'}</td>
+        <td>${r.temp? r.temp+'°':'—'}</td>
+        <td class="text-slate-400 text-sm">${r.proceso||'—'}</td>
+        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteBruck('${r.id}')">✕</button></td>
+      </tr>`).join('');
+  }
+}
+window.deleteBruck = function(id) {
+  if (!confirm('¿Borrar este registro?')) return;
+  const rec = state.bruck.find(r => r.id === id);
+  state.bruck = state.bruck.filter(r => r.id !== id);
+  save(LS_KEYS.bruck, state.bruck);
+  if (rec) logChange({ module:'Bruckner', action:'Borrado', lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg` });
+  renderAll();
+};
+
+/* ---------------------------------------------------------------
+   EXPORT
+--------------------------------------------------------------- */
+function bindExport() {
+  $('#exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({
+      exported: new Date().toISOString(),
+      empresa: 'Tejidos Gaytan de Moroleón S.A. de C.V.',
+      area: 'Tintorería TGM',
+      produccion: state.prod,
+      tiemposMuertos: state.down,
+      bruckner: state.bruck
+    }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tintoreria_tgm_${todayISO()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('Datos exportados ✓');
+  });
+}
+
+/* ---------------------------------------------------------------
+   RENDER ALL
+--------------------------------------------------------------- */
+function renderAll() {
+  renderReport();
+  renderEfficiency();
+  renderDowntime();
+  renderBruckner();
+  renderHistory();
+}
+
+init();
+</script>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  var scrollRaf=0;
+  function emitScroll(){
+    scrollRaf=0;
+    var x=window.scrollX||window.pageXOffset||0;
+    var y=window.scrollY||window.pageYOffset||0;
+    window.parent.postMessage({type:'INLINE_EDIT_SCROLL',scrollX:x,scrollY:y},'*');
+  }
+  window.addEventListener('scroll',function(){
+    if(scrollRaf)return;
+    scrollRaf=requestAnimationFrame(emitScroll);
+  },{passive:true,capture:true});
+  emitScroll();
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
+</html>
