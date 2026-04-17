@@ -5,6 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Tintorería Gaytan - Dashboard Tablet</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ============================================================
+         FIREBASE - sincronización entre dispositivos
+         Mismo diseño de antes, solo agregamos la nube por debajo.
+         ============================================================ -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+      import {
+        getFirestore, collection, doc, setDoc, deleteDoc, getDocs,
+        enableIndexedDbPersistence
+      } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBoVh3YQ_Fv5Ok8U-2M1eNGwdJMViFgXco",
+        authDomain: "tintoreria-tgm.firebaseapp.com",
+        projectId: "tintoreria-tgm",
+        storageBucket: "tintoreria-tgm.firebasestorage.app",
+        messagingSenderId: "430535762279",
+        appId: "1:430535762279:web:038019e8ee40cac0d5cfc2",
+        measurementId: "G-Z88E49EE1S"
+      };
+
+      const fbApp = initializeApp(firebaseConfig);
+      const db = getFirestore(fbApp);
+      // Caché offline: si se pierde internet, la app sigue funcionando
+      try { await enableIndexedDbPersistence(db); } catch(e) {}
+
+      window.TG_FB = {
+        db,
+        collection, doc, setDoc, deleteDoc, getDocs,
+        ready: true
+      };
+      window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; }
         .big-input { font-size: 1.25rem; padding: 16px; }
@@ -13,6 +48,10 @@
             padding: 20px 12px;
             min-height: 80px;
         }
+        .machine-btn.selected {
+            background-color: #0284c7;
+            border-color: #0ea5e9;
+        }
         .btn-save {
             font-size: 1.3rem;
             padding: 20px;
@@ -20,6 +59,11 @@
         .history-item {
             font-size: 0.95rem;
         }
+        @keyframes tg-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+        #sync-icon.spinning { animation: tg-spin 1s linear infinite; }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
@@ -37,7 +81,7 @@
         </div>
         <div class="text-right">
             <p id="today-date" class="text-lg font-medium"></p>
-            <div class="flex items-center gap-3 mt-2">
+            <div class="flex items-center gap-3 mt-2 justify-end">
                 <span class="text-zinc-400 text-sm">Usuario:</span>
                 <span id="current-user" class="font-medium text-emerald-400">Sin usuario</span>
             </div>
@@ -50,7 +94,7 @@
     <!-- Main Form -->
     <div class="bg-zinc-900 rounded-3xl p-6 mb-8">
         <h2 class="text-2xl font-semibold mb-6">Nueva Entrada de Producción</h2>
-        
+
         <div class="grid grid-cols-2 gap-6">
             <div>
                 <label class="text-zinc-400 block mb-2">Lote</label>
@@ -94,11 +138,11 @@
         </div>
 
         <div class="flex gap-4 mt-10">
-            <button onclick="guardarYNuevo()" 
+            <button onclick="guardarYNuevo()"
                     class="flex-1 btn-save bg-emerald-600 hover:bg-emerald-700 rounded-3xl font-semibold">
                 ✅ GUARDAR Y NUEVO
             </button>
-            <button onclick="guardarSolo()" 
+            <button onclick="guardarSolo()"
                     class="flex-1 btn-save bg-sky-600 hover:bg-sky-700 rounded-3xl font-semibold">
                 💾 GUARDAR
             </button>
@@ -107,7 +151,19 @@
 
     <!-- Today's Records -->
     <div class="bg-zinc-900 rounded-3xl p-6 mb-8">
-        <h3 class="text-xl font-semibold mb-4">Registros de Hoy</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">Registros de Hoy</h3>
+            <!-- Botón discreto para bajar lo último de otros dispositivos -->
+            <button onclick="sincronizarAhora()" id="sync-btn"
+                    class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-full py-2 px-4 text-sm"
+                    title="Bajar cambios de otros dispositivos">
+                <svg id="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="w-4 h-4">
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                <span id="sync-label">Sincronizar</span>
+            </button>
+        </div>
         <div id="today-list" class="space-y-4"></div>
     </div>
 
@@ -130,6 +186,106 @@
     const machines = ["THIES-1","THIES-2","THEN-1","THEN-2","THIES-3","THIES-4","OVERFLOW-2","GASTON-2"];
     let selectedMachine = "";
 
+    /* ============================================================
+       FIREBASE SYNC - sincronización entre dispositivos
+       Estrategia:
+       - Guardamos PRIMERO en localStorage (rápido, funciona offline)
+       - Luego se sube a Firestore (fire-and-forget)
+       - Al abrir la app y al presionar "Sincronizar" bajamos lo nuevo
+       ============================================================ */
+    const FB_COLL = { records: "tg_gaytan_records", history: "tg_gaytan_history" };
+
+    function whenFbReady() {
+        return new Promise((resolve) => {
+            if (window.TG_FB && window.TG_FB.ready) return resolve(window.TG_FB);
+            const onReady = () => { window.removeEventListener('firebase-ready', onReady); resolve(window.TG_FB); };
+            window.addEventListener('firebase-ready', onReady);
+            setTimeout(() => { if (!(window.TG_FB && window.TG_FB.ready)) resolve(null); }, 8000);
+        });
+    }
+
+    // Asegura que cada registro tenga un id único (para poder sincronizar)
+    function ensureId(obj) {
+        if (!obj.id) obj.id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+        if (!obj.ts) obj.ts = Date.now();
+        return obj;
+    }
+
+    async function saveToCloud(collKey, record) {
+        try {
+            const FB = await whenFbReady();
+            if (!FB || !record || !record.id) return;
+            await FB.setDoc(FB.doc(FB.db, FB_COLL[collKey], String(record.id)), record);
+        } catch (e) { console.warn('[FB] save error', e); }
+    }
+
+    // Mezcla por id - gana el timestamp más reciente
+    function mergeById(localArr, cloudArr) {
+        const map = new Map();
+        (localArr || []).forEach(r => { if (r && r.id) map.set(r.id, r); });
+        (cloudArr || []).forEach(r => {
+            if (!r || !r.id) return;
+            const existing = map.get(r.id);
+            if (!existing) { map.set(r.id, r); return; }
+            if ((+r.ts || 0) >= (+existing.ts || 0)) map.set(r.id, r);
+        });
+        return Array.from(map.values()).sort((a,b) => (+b.ts||0) - (+a.ts||0));
+    }
+
+    async function loadFromCloud({ silent = false } = {}) {
+        const FB = await whenFbReady();
+        if (!FB) {
+            if (!silent) alert("⚠️ No hay conexión con la nube");
+            return;
+        }
+        try {
+            setSyncSpinning(true);
+            const [recSnap, histSnap] = await Promise.all([
+                FB.getDocs(FB.collection(FB.db, FB_COLL.records)),
+                FB.getDocs(FB.collection(FB.db, FB_COLL.history))
+            ]);
+            const cloudRecords = []; recSnap.forEach(d => cloudRecords.push(d.data()));
+            const cloudHistory = []; histSnap.forEach(d => cloudHistory.push(d.data()));
+
+            const beforeCount = records.length;
+            // Asegurar que los locales tengan id antes de mezclar
+            records = records.map(r => ensureId({ ...r }));
+            history = history.map(h => ensureId({ ...h }));
+
+            records = mergeById(records, cloudRecords);
+            // El historial lo dejamos ordenado por ts desc y limitado a 100
+            history = mergeById(history, cloudHistory).slice(0, 100);
+
+            localStorage.setItem("gaytanRecords", JSON.stringify(records));
+            localStorage.setItem("gaytanHistory", JSON.stringify(history));
+
+            renderTodayList();
+            renderHistory();
+
+            const newCount = records.length - beforeCount;
+            if (!silent) {
+                alert(newCount > 0
+                    ? `✅ Sincronizado · ${newCount} nuevo${newCount===1?'':'s'}`
+                    : `✅ Ya estás al día`);
+            }
+        } catch (e) {
+            console.warn('[FB] load error', e);
+            if (!silent) alert("⚠️ Error al sincronizar");
+        } finally {
+            setSyncSpinning(false);
+        }
+    }
+
+    function setSyncSpinning(on) {
+        const ic = document.getElementById("sync-icon");
+        const lbl = document.getElementById("sync-label");
+        if (!ic) return;
+        if (on) { ic.classList.add("spinning"); if (lbl) lbl.textContent = "Sincronizando…"; }
+        else    { ic.classList.remove("spinning"); if (lbl) lbl.textContent = "Sincronizar"; }
+    }
+
+    function sincronizarAhora() { loadFromCloud({ silent:false }); }
+
     // Create machine buttons
     function createMachineButtons() {
         const container = document.getElementById("machine-buttons");
@@ -140,7 +296,9 @@
             btn.textContent = m;
             btn.onclick = () => {
                 selectedMachine = m;
-                alert(`Máquina seleccionada: ${m}`);
+                // Resalta la seleccionada en lugar de usar alert
+                container.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+                btn.classList.add("selected");
             };
             container.appendChild(btn);
         });
@@ -162,16 +320,17 @@
 
     // Add to history
     function addToHistory(action, machine, lote) {
-        const entry = {
+        const entry = ensureId({
             timestamp: new Date().toLocaleString('es-MX'),
             user: currentUser || "Desconocido",
             action: action,
             machine: machine,
             lote: lote || "-"
-        };
+        });
         history.unshift(entry); // add to top
-        if (history.length > 50) history.pop(); // keep only last 50
+        if (history.length > 100) history = history.slice(0, 100);
         localStorage.setItem("gaytanHistory", JSON.stringify(history));
+        saveToCloud("history", entry); // sube a la nube
         renderHistory();
     }
 
@@ -186,12 +345,12 @@
             div.className = "history-item bg-zinc-800 rounded-2xl p-4 flex justify-between";
             div.innerHTML = `
                 <div>
-                    <span class="font-medium">${item.machine}</span> - ${item.action}
-                    ${item.lote !== "-" ? `(${item.lote})` : ""}
+                    <span class="font-medium">${item.machine || ''}</span> - ${item.action || ''}
+                    ${item.lote && item.lote !== "-" ? `(${item.lote})` : ""}
                 </div>
                 <div class="text-right text-xs text-zinc-400">
-                    ${item.user}<br>
-                    ${item.timestamp}
+                    ${item.user || ''}<br>
+                    ${item.timestamp || ''}
                 </div>
             `;
             container.appendChild(div);
@@ -200,11 +359,10 @@
 
     // Save record
     function saveRecord(clearForm = true) {
-        if (!currentUser) askForUser();
+        if (!currentUser) { askForUser(); if (!currentUser) return; }
 
-        const record = {
+        const record = ensureId({
             date: new Date().toISOString().split('T')[0],
-            turno: document.getElementById("turno").value,
             machine: selectedMachine || "Sin máquina",
             lote: document.getElementById("lote").value,
             tela: document.getElementById("tela").value,
@@ -215,10 +373,11 @@
             proceso: document.getElementById("proceso").value,
             notas: document.getElementById("notas").value,
             user: currentUser
-        };
+        });
 
         records.push(record);
         localStorage.setItem("gaytanRecords", JSON.stringify(records));
+        saveToCloud("records", record); // sube a la nube
 
         addToHistory("Nuevo registro guardado", record.machine, record.lote);
 
@@ -235,6 +394,7 @@
             document.getElementById("proceso").value = "";
             document.getElementById("notas").value = "";
             selectedMachine = "";
+            document.querySelectorAll("#machine-buttons button").forEach(b => b.classList.remove("selected"));
         }
     }
 
@@ -259,11 +419,11 @@
             div.innerHTML = `
                 <div class="flex justify-between">
                     <div>
-                        <span class="font-semibold">${r.machine}</span> • ${r.lote}
+                        <span class="font-semibold">${r.machine}</span> • ${r.lote || ''}
                     </div>
                     <div class="text-emerald-400">${r.kilos} kg</div>
                 </div>
-                <div class="text-sm text-zinc-400 mt-1">${r.tela} • ${r.color}</div>
+                <div class="text-sm text-zinc-400 mt-1">${r.tela || ''} • ${r.color || ''}</div>
             `;
             container.appendChild(div);
         });
@@ -295,6 +455,9 @@
         setTimeout(() => {
             if (!currentUser) askForUser();
         }, 800);
+
+        // Bajar cambios de la nube (silencioso) al abrir
+        setTimeout(() => { loadFromCloud({ silent:true }); }, 400);
     }
 
     window.onload = init;
