@@ -550,19 +550,19 @@
       <div class="card p-5 md:col-span-2">
         <label class="lbl">Proceso</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
-          <!-- Procesos rápidos -->
-          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol">Teñido Pol</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón">Pol + Algodón</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Blanqueo Pol">Blanqueo Pol</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Blanqueo Pol + Algodón">Blanqueo Pol+Alg</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Descrude Pol">Descrude Pol</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Descrude Pol + Algodón">Desc. Pol+Alg</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Matiz Pol">Matiz Pol</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Bajando con Poliéster">Bajando c/ Poliéster</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Despicando Color">Despicando Color</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Lavado de Máquina">Lavado de Máquina</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Suavizado">Suavizado</button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Baño Ciego">Baño Ciego</button>
+          <!-- Procesos rápidos con tiempo estándar (minutos): -->
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Poliéster color">Teñido Pol color <small class="block text-[10px] text-slate-500">7 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Poliéster blanco">Teñido Pol blanco <small class="block text-[10px] text-slate-500">5 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón Oscuro">Pol+Alg Oscuro <small class="block text-[10px] text-slate-500">11 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón Claro">Pol+Alg Claro <small class="block text-[10px] text-slate-500">10 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón Blanco">Pol+Alg Blanco <small class="block text-[10px] text-slate-500">5 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Lavado de Máquina">Lavado Máquina <small class="block text-[10px] text-slate-500">3.5 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Lavado Felpas">Lavado Felpas <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Descrude">Descrude <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Matiz">Matiz <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Despicado">Despicado <small class="block text-[10px] text-slate-500">2 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Baño Ciego">Baño Ciego <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Suavizado">Suavizado <small class="block text-[10px] text-slate-500">2 h</small></button>
         </div>
         <input type="text" id="f_proceso" class="field" placeholder="Proceso (puede editarse o escribir uno nuevo)" />
       </div>
@@ -594,7 +594,7 @@
           <div id="calc_eff" class="kpi-num text-emer-accent">-- %</div>
         </div>
       </div>
-      <p class="text-xs text-slate-500 mt-3">Desempeño = Kilos reales vs capacidad nominal de <span id="benchmarkLbl">— kg</span> de la máquina seleccionada.</p>
+      <p class="text-xs text-slate-500 mt-3">Desempeño = Kilos reales / Producción estimada. Límites de carga: <span id="benchmarkLbl">—</span></p>
     </div>
 
     <!-- Reporte de Estado de Máquinas (texto libre) -->
@@ -1052,17 +1052,85 @@
    - Hoja "EFICIENCIAS DE MAQUINAS DE TINTORERIA"
    - Hoja JETS.xlsx (producción estim.)
 --------------------------------------------------------------- */
+/*
+  Capacidades REALES (abril 2026) - de la hoja de Tintorería Gaytan:
+  - capNominalKg : capacidad de carga nominal de la máquina
+  - cargaPolAlg  : kg típicos que se cargan de Poliéster/Algodón
+  - cargaPolMin  : kg mínimos que se cargan de Poliéster 100%
+  - cargaPolMax  : kg máximos que se cargan de Poliéster 100%
+  - note         : observaciones operativas
+*/
 const MACHINES = [
-  { id: 'THIES-1',    capacityKg: 1600, banos24h: 2.2 }, // 2.2 Baños (24 h) · 1,600 kg
-  { id: 'THIES-2',    capacityKg: 2200, banos24h: 3.7 }, // 3.7 Baños (24 h) · 2,200 kg
-  { id: 'THIES-3',    capacityKg: 2200, banos24h: 3.7 },
-  { id: 'THIES-4',    capacityKg: 3600, banos24h: 4.0 }, // 4.0 Baños (24 h) · 3,600 kg
-  { id: 'THEN-1',     capacityKg: 3800, banos24h: 3.4 }, // 3.4 Baños (24 h) · 3,800 kg
-  { id: 'THEN-2',     capacityKg: 2700, banos24h: 3.4 }, // 3.4 Baños (24 h) · 2,700 kg
-  { id: 'OVERFLOW-1', capacityKg: 2200, banos24h: 3.4 },
-  { id: 'OVERFLOW-2', capacityKg: 2200, banos24h: 3.4 },
-  { id: 'GASTON-2',   capacityKg: 2200, banos24h: 3.7 }, // 3.7 Baños (24 h) · 2,200 kg
+  { id: 'THIES-1',  capNominalKg: 750,  cargaPolAlg: 750,   cargaPolMin: 550,  cargaPolMax: 650, note: '' },
+  { id: 'THIES-2',  capNominalKg: 750,  cargaPolAlg: 750,   cargaPolMin: 550,  cargaPolMax: 650, note: '' },
+  { id: 'THIES-4',  capNominalKg: 900,  cargaPolAlg: 900,   cargaPolMin: 900,  cargaPolMax: 900, note: 'Poliéster 100%: cuerda doble' },
+  { id: 'THEN-1',   capNominalKg: 1800, cargaPolAlg: 1450,  cargaPolMin: 1000, cargaPolMax: 1300, note: '' },
+  { id: 'THEN-2',   capNominalKg: 1200, cargaPolAlg: 1100,  cargaPolMin: 830,  cargaPolMax: 980, note: '' },
+  { id: 'OVERFLOW', capNominalKg: 800,  cargaPolAlg: 780,   cargaPolMin: 650,  cargaPolMax: 650, note: '' },
+  { id: 'GASTON',   capNominalKg: 600,  cargaPolAlg: 630,   cargaPolMin: 630,  cargaPolMax: 630, note: 'Solo poliéster' }
 ];
+
+/*
+  TIEMPOS ESTÁNDAR por proceso (minutos) - según el jefe de tintorería:
+  Teñido poliéster color    → 7 horas   (420 min)
+  Teñido poliéster blanco   → 5 horas   (300 min)
+  Teñido Pol-Alg Oscuro    → 11 horas  (660 min)
+  Teñido Pol-Alg Claro     → 10 horas  (600 min)
+  Teñido Pol-Alg blanco    → 5 horas   (300 min)
+  Lavado máquina           → 3.5 horas (210 min)
+  Lavado Felpas            → 3 horas   (180 min)
+
+  Se matchea con el texto del proceso que se captura en la ficha.
+  Si no matchea nada, se usa DEFAULT_PROC_MIN.
+*/
+const DEFAULT_PROC_MIN = 420; // 7 horas default si no encontramos proceso
+const PROCESOS_CATALOGO = [
+  { key: 'tenido_pol_color',   label: 'Teñido Poliéster color',    minutos: 420, match: [/teñido\s*pol(?!\s*\+)/i, /tiñe\s*pol(?!\+)/i] },
+  { key: 'tenido_pol_blanco',  label: 'Teñido Poliéster blanco',   minutos: 300, match: [/teñido\s*pol.*blanc/i, /blanqueo\s*pol(?!\s*\+)/i] },
+  { key: 'tenido_pa_oscuro',   label: 'Teñido Pol-Alg Oscuro',    minutos: 660, match: [/teñido\s*pol.*\+.*alg.*oscuro/i, /pol.*alg.*oscuro/i] },
+  { key: 'tenido_pa_claro',    label: 'Teñido Pol-Alg Claro',     minutos: 600, match: [/teñido\s*pol.*\+.*alg.*claro/i, /pol.*alg.*claro/i] },
+  { key: 'tenido_pa_blanco',   label: 'Teñido Pol-Alg Blanco',    minutos: 300, match: [/teñido\s*pol.*\+.*alg.*blanc/i, /blanqueo\s*pol.*\+.*alg/i, /pol.*alg.*blanc/i] },
+  { key: 'tenido_pa_general',  label: 'Teñido Pol-Alg (general)', minutos: 600, match: [/teñido\s*pol.*\+.*alg/i, /pol.*\+.*alg/i] },
+  { key: 'lavado_maquina',     label: 'Lavado de Máquina',        minutos: 210, match: [/lavado\s*de?\s*m[aá]quina/i, /lavado\s*m[aá]q/i] },
+  { key: 'lavado_felpas',      label: 'Lavado Felpas',            minutos: 180, match: [/lavado\s*felpa/i, /felpa/i] },
+  { key: 'descrude',           label: 'Descrude',                 minutos: 180, match: [/descrude/i] },
+  { key: 'matiz',              label: 'Matiz',                    minutos: 180, match: [/matiz/i] },
+  { key: 'despicado',          label: 'Despicado',                minutos: 120, match: [/despic/i] },
+  { key: 'bano_ciego',         label: 'Baño Ciego',                minutos: 180, match: [/baño\s*ciego/i] },
+  { key: 'suavizado',          label: 'Suavizado',                minutos: 120, match: [/suavizado/i] },
+  { key: 'bajando_pol',        label: 'Bajando con Poliéster',    minutos: 240, match: [/bajando.*pol/i] }
+];
+
+/** Devuelve minutos planeados para un texto de proceso */
+function minutosProceso(procesoTexto) {
+  if (!procesoTexto) return DEFAULT_PROC_MIN;
+  const t = String(procesoTexto).trim();
+  if (!t) return DEFAULT_PROC_MIN;
+  // Buscamos el primer regex que haga match
+  for (const p of PROCESOS_CATALOGO) {
+    for (const re of p.match) {
+      if (re.test(t)) return p.minutos;
+    }
+  }
+  return DEFAULT_PROC_MIN;
+}
+
+/** Capacidad de carga esperada según tipo de tela/proceso:
+ *  - Si el proceso contiene "pol + alg" usamos cargaPolAlg
+ *  - Si es solo poliéster usamos el promedio de cargaPolMin/Max
+ *  - Default: promedio general
+ */
+function cargaEsperada(machine, procesoTexto) {
+  const m = typeof machine === 'string' ? getMachine(machine) : machine;
+  if (!m) return 0;
+  const t = String(procesoTexto || '').toLowerCase();
+  const esMezcla    = /pol.*\+.*alg|pol\s*\/\s*alg|polyester.*algod|poli\s*alg/.test(t);
+  const esSoloPoly  = !esMezcla && /pol(?!\s*\+)|poli[eé]ster/.test(t);
+  if (esMezcla) return m.cargaPolAlg;
+  if (esSoloPoly) return Math.round((m.cargaPolMin + m.cargaPolMax)/2);
+  // Sin proceso claro: asumimos lo que rinde más (mezcla)
+  return m.cargaPolAlg;
+}
 
 /* ---------------------------------------------------------------
    STORAGE - localStorage
@@ -1307,14 +1375,17 @@ function toast(msg, isErr=false) {
 
 function getMachine(id) { return MACHINES.find(m => m.id === id); }
 
-/** Desempeño (%) = Kilos reales / Capacidad nominal de la máquina * 100
- *  Así coincide con la métrica de la hoja JETS (producción real / producción estimada por carga).
- *  La "ficha" representa un baño; se compara kilos cargados vs capacidad máxima.
+/** Desempeño por ficha = Kilos reales / Carga esperada para esa máquina+proceso * 100
+ *  Refleja tu fórmula de la hoja JETS: Producción Real / Producción Estimada.
+ *  En una ficha, Producción Estimada = carga esperada de la máquina para ese tipo de tela.
+ *  Puede pasar de 100% si se cargan más kilos de lo esperado.
  */
-function calcDesempeno(machineId, kilos) {
+function calcDesempeno(machineId, kilos, procesoTexto) {
   const m = getMachine(machineId);
   if (!m || !kilos) return 0;
-  return Math.round((kilos / m.capacityKg) * 100);
+  const esperada = cargaEsperada(m, procesoTexto);
+  if (!esperada) return 0;
+  return Math.round((kilos / esperada) * 100);
 }
 
 /* ===============================================================
@@ -1540,7 +1611,7 @@ function init() {
   $('#machineGrid').innerHTML = MACHINES.map(m =>
     `<button type="button" class="machine-btn" data-machine="${m.id}">
        <span>${m.id}</span>
-       <small>${m.capacityKg.toLocaleString('es-MX')} kg · ${m.banos24h} baños/24h</small>
+       <small>${m.capNominalKg.toLocaleString('es-MX')} kg nom. · Pol/Alg ${m.cargaPolAlg.toLocaleString('es-MX')} kg</small>
      </button>`
   ).join('');
 
@@ -1656,7 +1727,7 @@ function bindCaptureForm() {
     b.classList.add('active');
     state.selectedMachine = b.dataset.machine;
     const m = getMachine(state.selectedMachine);
-    $('#benchmarkLbl').textContent = m ? m.capacityKg.toLocaleString('es-MX')+' kg' : '—';
+    $('#benchmarkLbl').textContent = m ? `Pol/Alg ${m.cargaPolAlg.toLocaleString('es-MX')} kg · Pol 100% ${m.cargaPolMin.toLocaleString('es-MX')}–${m.cargaPolMax.toLocaleString('es-MX')} kg` : '—';
     recalc();
   });
 
@@ -1691,7 +1762,8 @@ function bindCaptureForm() {
 function recalc() {
   const mins  = durationMinutes($('#f_hEntrada').value, $('#f_hSalida').value);
   const kilos = parseFloat($('#f_kilos').value) || 0;
-  const des   = calcDesempeno(state.selectedMachine, kilos);
+  const proc  = $('#f_proceso').value;
+  const des   = calcDesempeno(state.selectedMachine, kilos, proc);
   $('#calc_dur').textContent = fmtDur(mins);
   $('#calc_kph').textContent = mins > 0 ? (kilos / (mins/60)).toFixed(1) : '--';
   $('#calc_eff').textContent = kilos > 0 && state.selectedMachine ? des + ' %' : '-- %';
@@ -1733,7 +1805,9 @@ function saveProd(andNew) {
     apq:      parseFloat($('#f_apq').value) || 0,
     banos:    parseInt($('#f_banos').value, 10) || 1,
     notas:    $('#f_notas').value.trim(),
-    des:      calcDesempeno(state.selectedMachine, kilos)
+    des:      calcDesempeno(state.selectedMachine, kilos, $('#f_proceso').value),
+    tiempoPlanMin: minutosProceso($('#f_proceso').value),
+    cargaEstim:    cargaEsperada(state.selectedMachine, $('#f_proceso').value)
   };
 
   state.prod.unshift(rec);
@@ -1898,29 +1972,44 @@ function renderEfficiency() {
 
   // Agregados por máquina
   const agg = {};
-  MACHINES.forEach(m => agg[m.id] = { kilos:0, estim:0, banos:0, downMin:0, problems:{}, des:0, desN:0 });
-
-  // ESTIMADA = Capacidad * baños/24h * días con datos
-  // Usar días reales con fichas hace que la comparación sea justa
-  // aún si el rango es más amplio que la ventana de datos capturados.
-  const diasBase = distinctDaysWithData(rows);
-  MACHINES.forEach(m => {
-    agg[m.id].estim = Math.round(m.capacityKg * m.banos24h * diasBase);
+  MACHINES.forEach(m => agg[m.id] = {
+    kilos:0,        // Producción Real (kg)
+    estim:0,        // Producción Estimada (kg) = suma de cargaEstim por ficha (tu fórmula JETS)
+    banos:0,
+    tRealMin:0,     // Tiempo Real (min) trabajado
+    tPlanMin:0,     // Tiempo Planeado (min) según proceso
+    downMin:0,      // Tiempos Muertos (min)
+    problems:{}     // desglose de paros por categoría
   });
 
+  // TU FÓRMULA (hoja JETS):
+  //   Desempeño % = Producción Real / Producción Estimada
+  //
+  // Producción Estimada por ficha = cargaEsperada(máquina, proceso)
+  //   - Pol/Alg → máximo cargable en esa máquina
+  //   - Pol 100% → promedio de mínimo/máximo cargable
+  //
+  // Disponibilidad % = Tiempo Real / Tiempo Planeado
+  //   - Tiempo Planeado = minutos estándar del proceso
+  //   - Tiempo Real     = minutos efectivos trabajados (entre horas entrada/salida)
   rows.forEach(r => {
     if (!agg[r.machine]) return;
-    agg[r.machine].kilos += r.kilos;
-    agg[r.machine].banos += (r.banos||1);
-    agg[r.machine].des   += r.des;
-    agg[r.machine].desN  += 1;
+    const g = agg[r.machine];
+    g.kilos    += r.kilos || 0;
+    g.banos    += (r.banos || 1);
+    g.tRealMin += (r.duracionMin || 0);
+    // Backfill para fichas viejas que aún no tenían estos campos calculados:
+    const estimFicha = r.cargaEstim || cargaEsperada(r.machine, r.proceso);
+    const planMinFicha = r.tiempoPlanMin || minutosProceso(r.proceso);
+    g.estim    += estimFicha;
+    g.tPlanMin += planMinFicha;
   });
 
   downs.forEach(d => {
     if (!agg[d.machine]) return;
     agg[d.machine].downMin += d.duracionMin;
-    agg[d.machine].problems[d.categoria || d.motivo || 'Otro'] =
-      (agg[d.machine].problems[d.categoria || d.motivo || 'Otro']||0) + d.duracionMin;
+    const cat = d.categoria || d.motivo || 'Otro';
+    agg[d.machine].problems[cat] = (agg[d.machine].problems[cat]||0) + d.duracionMin;
   });
 
   // KPIs globales
@@ -1965,20 +2054,20 @@ function renderEfficiency() {
     }
   });
 
-  // Tabla tipo JETS
+  // Tabla tipo JETS Excel (columnas iguales a tu hoja)
   $('#effTbody').innerHTML = MACHINES.map(m => {
     const g = agg[m.id];
+    // Desempeño % = Real / Estimada (tu fórmula)
     const desempeno = g.estim > 0 ? Math.round((g.kilos/g.estim)*100) : 0;
-    // Disponibilidad % = (tiempo total - tiempo muerto) / tiempo total * 100
-    const totalMin = diasBase*24*60;
-    const disp = Math.max(0, Math.round(((totalMin - g.downMin)/totalMin)*100));
+    // Disponibilidad % = Tiempo Real / Tiempo Planeado (tu fórmula)
+    const disp = g.tPlanMin > 0 ? Math.round((g.tRealMin/g.tPlanMin)*100) : 0;
     const topProb = Object.entries(g.problems).sort((a,b)=>b[1]-a[1])[0];
-    const desClass = desempeno >= 80 ? 'chip-ok' : desempeno >= 55 ? 'chip-warn' : desempeno > 0 ? 'chip-bad' : 'chip-info';
-    const dispClass = disp >= 90 ? 'chip-ok' : disp >= 75 ? 'chip-warn' : 'chip-bad';
+    const desClass = desempeno >= 90 ? 'chip-ok' : desempeno >= 70 ? 'chip-warn' : desempeno > 0 ? 'chip-bad' : 'chip-info';
+    const dispClass = disp >= 90 ? 'chip-ok' : disp >= 70 ? 'chip-warn' : disp > 0 ? 'chip-bad' : 'chip-info';
     return `
       <tr>
         <td><b class="text-sky-accent">${m.id}</b></td>
-        <td>${m.capacityKg.toLocaleString('es-MX')}</td>
+        <td>${m.capNominalKg.toLocaleString('es-MX')}</td>
         <td>${g.banos}</td>
         <td>${fmtKg(g.estim)}</td>
         <td><b>${fmtKg(g.kilos)}</b></td>
@@ -1989,37 +2078,44 @@ function renderEfficiency() {
       </tr>`;
   }).join('');
 
-  // Tarjetas por máquina
+  // Tarjetas por máquina (visuales)
   $('#effCards').innerHTML = MACHINES.map(m => {
     const g = agg[m.id];
     const des = g.estim > 0 ? Math.round((g.kilos/g.estim)*100) : 0;
-    const fill  = des >= 80 ? '#10b981' : des >= 55 ? '#f59e0b' : '#ef4444';
-    const color = des >= 80 ? 'emer-accent' : des >= 55 ? 'warn' : 'danger';
-    const status = des >= 80 ? { chip:'chip-ok', label:'Óptima' }
-                 : des >= 55 ? { chip:'chip-warn', label:'Regular' }
+    const disp = g.tPlanMin > 0 ? Math.round((g.tRealMin/g.tPlanMin)*100) : 0;
+    const fill  = des >= 90 ? '#10b981' : des >= 70 ? '#f59e0b' : '#ef4444';
+    const color = des >= 90 ? 'emer-accent' : des >= 70 ? 'warn' : 'danger';
+    const status = des >= 90 ? { chip:'chip-ok', label:'Óptima' }
+                 : des >= 70 ? { chip:'chip-warn', label:'Regular' }
                  : g.kilos  ? { chip:'chip-bad', label:'Baja' }
                             : { chip:'chip-info', label:'Sin datos' };
+    const limits = `Pol/Alg ${m.cargaPolAlg.toLocaleString('es-MX')} kg · Pol 100% ${m.cargaPolMin.toLocaleString('es-MX')}–${m.cargaPolMax.toLocaleString('es-MX')} kg`;
     return `
       <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
           <div>
             <div class="text-xl font-black text-white">${m.id}</div>
-            <div class="text-xs text-slate-500">Capacidad ${m.capacityKg.toLocaleString('es-MX')} kg · ${m.banos24h} baños/24h</div>
+            <div class="text-xs text-slate-500">Nominal ${m.capNominalKg.toLocaleString('es-MX')} kg · ${limits}</div>
+            ${m.note ? `<div class="text-xs text-sky-accent mt-0.5">▸ ${m.note}</div>` : ''}
           </div>
           <span class="chip ${status.chip}">${status.label}</span>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="grid grid-cols-4 gap-3 mb-4">
           <div>
             <div class="kpi-lbl">Real</div>
-            <div class="text-2xl font-black text-sky-accent">${fmtKg(g.kilos)}</div>
+            <div class="text-xl font-black text-sky-accent">${fmtKg(g.kilos)}</div>
           </div>
           <div>
             <div class="kpi-lbl">Estim.</div>
-            <div class="text-2xl font-black text-slate-400">${fmtKg(g.estim)}</div>
+            <div class="text-xl font-black text-slate-400">${fmtKg(g.estim)}</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Dispon.</div>
+            <div class="text-xl font-black text-white">${disp}%</div>
           </div>
           <div>
             <div class="kpi-lbl">T. Muerto</div>
-            <div class="text-2xl font-black text-warn">${(g.downMin/60).toFixed(1)}h</div>
+            <div class="text-xl font-black text-warn">${(g.downMin/60).toFixed(1)}h</div>
           </div>
         </div>
         <div class="flex items-center justify-between mb-1 text-sm">
