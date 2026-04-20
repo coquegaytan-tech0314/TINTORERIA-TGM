@@ -798,8 +798,48 @@
       </div>
     </div>
 
+    <!-- Sugerencias automáticas (gaps entre fichas) -->
+    <div class="card p-5 mb-4 border border-amber-500/30 bg-amber-500/5">
+      <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <div>
+          <h3 class="text-lg font-black text-amber-300">🔍 Sugerencias automáticas (gaps entre fichas)</h3>
+          <p class="text-slate-400 text-sm">Detecta huecos entre <b>Hr. Salida</b> y la siguiente <b>Hr. Entrada</b> en la misma máquina.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="lbl !mb-0">Gap mínimo:</label>
+          <select id="sugMinGap" class="field !py-1 !text-sm">
+            <option value="30">30 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="90">90 min</option>
+            <option value="120">2 h</option>
+            <option value="180">3 h</option>
+          </select>
+          <select id="sugRange" class="field !py-1 !text-sm">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="all">Todo</option>
+          </select>
+          <button id="sugRefresh" class="btn btn-secondary !py-1 !px-3 text-sm">Recalcular</button>
+        </div>
+      </div>
+      <div id="sugStats" class="text-sm text-slate-400 mb-2">—</div>
+      <div id="sugList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+      <div id="sugEmpty" class="hidden text-center py-6 text-slate-500 text-sm">No hay sugerencias para los filtros actuales.</div>
+    </div>
+
     <!-- Lista -->
     <div class="card overflow-hidden">
+      <div class="flex items-center justify-between p-3 border-b border-slate-700/50">
+        <h3 class="text-base font-bold text-white">Tiempos muertos registrados</h3>
+        <div class="flex items-center gap-2">
+          <input type="text" id="dtFilterText" class="field !py-1 !text-sm" placeholder="Filtrar por máquina/categoría/notas…" style="max-width:260px" />
+          <select id="dtFilterEditable" class="field !py-1 !text-sm">
+            <option value="all">Todos</option>
+            <option value="editable">Solo sin fecha (editables)</option>
+            <option value="auto">Solo detectados automáticamente</option>
+          </select>
+        </div>
+      </div>
       <div class="scroll-x">
         <table class="tbl">
           <thead>
@@ -1037,6 +1077,47 @@
     <div class="grid grid-cols-2 gap-3 mt-4">
       <button id="userModalSkip" class="btn btn-secondary touch-lg">Ahora no</button>
       <button id="userModalOk" class="btn btn-primary touch-lg">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- MODAL: EDITAR FICHA (desde Reporte)                          -->
+<!-- ============================================================= -->
+<div id="editFichaModal" class="hidden fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+  <div class="card p-5 w-full max-w-3xl my-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-xl font-black text-white">Editar Ficha</h3>
+        <p class="text-sm text-slate-400" id="editFichaSub">—</p>
+      </div>
+      <button id="editFichaClose" class="btn btn-secondary !py-1 !px-3">✕</button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div><label class="lbl">Máquina</label><select id="ef_machine" class="field"></select></div>
+      <div><label class="lbl">Fecha</label><input type="date" id="ef_fecha" class="field" /></div>
+      <div><label class="lbl">Turno</label>
+        <select id="ef_shift" class="field">
+          <option>1º</option><option>2º</option><option>3º</option>
+        </select>
+      </div>
+      <div><label class="lbl">Operador</label><input type="text" id="ef_operador" class="field" /></div>
+      <div><label class="lbl">Lote</label><input type="text" id="ef_lote" class="field" /></div>
+      <div><label class="lbl">Tela</label><input type="text" id="ef_tela" class="field" /></div>
+      <div><label class="lbl">Color</label><input type="text" id="ef_color" class="field" /></div>
+      <div><label class="lbl">Diseño</label><input type="text" id="ef_diseno" class="field" /></div>
+      <div><label class="lbl">Pedido</label><input type="text" id="ef_pedido" class="field" /></div>
+      <div><label class="lbl">Kilos</label><input type="number" step="0.01" min="0" id="ef_kilos" class="field" /></div>
+      <div><label class="lbl">Hr. Entrada</label><input type="time" id="ef_hEntrada" class="field" /></div>
+      <div><label class="lbl">Hr. Salida</label><input type="time" id="ef_hSalida" class="field" /></div>
+      <div class="sm:col-span-2"><label class="lbl">Proceso</label><input type="text" id="ef_proceso" class="field" /></div>
+      <div><label class="lbl">APQ (MXN/kg)</label><input type="number" step="0.01" min="0" id="ef_apq" class="field" /></div>
+      <div><label class="lbl">Baños</label><input type="number" step="1" min="1" id="ef_banos" class="field" /></div>
+      <div class="sm:col-span-2"><label class="lbl">Notas</label><textarea id="ef_notas" rows="2" class="field"></textarea></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mt-5">
+      <button id="editFichaCancel" class="btn btn-secondary touch-lg">Cancelar</button>
+      <button id="editFichaSave" class="btn btn-primary touch-lg">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -1781,8 +1862,15 @@ function init() {
   bindUserModal();
   bindHistoryTab();
   bindCloudSync();
+  bindEditFichaModal();
   updateUserPill();
   startAutosave();
+  // Filtros y sugerencias en Tiempos Muertos
+  $('#sugMinGap')?.addEventListener('change', renderSugerencias);
+  $('#sugRange')?.addEventListener('change', renderSugerencias);
+  $('#sugRefresh')?.addEventListener('click', renderSugerencias);
+  $('#dtFilterText')?.addEventListener('input', renderDowntime);
+  $('#dtFilterEditable')?.addEventListener('change', renderDowntime);
   $('#reportDate').addEventListener('change', renderReport);
   // Botón "Último día": salta a la fecha más reciente con fichas
   $('#jumpLatest')?.addEventListener('click', () => {
@@ -2069,7 +2157,10 @@ function renderReport() {
                   <td>${r.apq? fmtKg(r.apq):'—'}</td>
                   <td class="text-slate-400 text-sm">${r.operador||'—'}</td>
                   <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
-                  <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteProd('${r.id}')">✕</button></td>
+                  <td class="whitespace-nowrap">
+                    <button class="btn btn-secondary !py-1 !px-2 text-xs mr-1" title="Editar ficha" onclick="openEditFicha('${r.id}')">✎</button>
+                    <button class="btn btn-secondary !py-1 !px-2 text-xs" title="Borrar ficha" onclick="deleteProd('${r.id}')">✕</button>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2336,10 +2427,29 @@ function clearDtForm() {
   $('#dt_fecha').value = todayISO();
 }
 function renderDowntime() {
-  const rows = state.down;
   const today = todayISO();
-  const todayRows = rows.filter(r => r.fecha === today);
+  const todayRows = state.down.filter(r => r.fecha === today);
   $('#dtCount').textContent = `${todayRows.length} paro${todayRows.length===1?'':'s'} hoy`;
+
+  const filterText = ($('#dtFilterText')?.value || '').toLowerCase().trim();
+  const filterMode = $('#dtFilterEditable')?.value || 'all';
+
+  let rows = state.down.slice();
+  if (filterMode === 'editable') rows = rows.filter(r => !r.fecha || r._editable);
+  if (filterMode === 'auto')     rows = rows.filter(r => r._auto);
+  if (filterText) {
+    rows = rows.filter(r => {
+      const blob = `${r.machine||''} ${r.categoria||''} ${r.motivo||''} ${r.notas||''} ${r.fecha||''}`.toLowerCase();
+      return blob.includes(filterText);
+    });
+  }
+  // Ordenar: sin fecha primero, luego por fecha desc, luego por hora desc
+  rows.sort((a,b) => {
+    if (!a.fecha && b.fecha) return -1;
+    if (a.fecha && !b.fecha) return 1;
+    if (a.fecha !== b.fecha) return (b.fecha||'').localeCompare(a.fecha||'');
+    return (b.hIni||'').localeCompare(a.hIni||'');
+  });
 
   const tb = $('#dtTbody');
   if (!rows.length) {
@@ -2352,22 +2462,299 @@ function renderDowntime() {
         'Mecánico': 'chip-bad',
         'Eléctrico': 'chip-warn',
         'Programación': 'chip-info',
-        'Operación': 'chip-ok'
+        'Operación': 'chip-ok',
+        'Limpieza':  'chip-info'
       }[r.categoria] || 'chip-info';
+      const fechaCell = r.fecha
+        ? r.fecha
+        : `<input type="date" class="field !py-1 !px-2 !text-xs" style="max-width:140px" onchange="setDowntimeFecha('${r.id}', this.value)" placeholder="Asignar fecha" />`;
+      const autoBadge = r._auto ? `<span class="chip chip-warn" style="font-size:9px" title="Detectado automáticamente">AUTO</span> ` : '';
       return `
       <tr>
-        <td>${r.fecha}</td>
+        <td>${fechaCell}</td>
         <td><b class="text-sky-accent">${r.machine}</b></td>
-        <td>${r.hIni}</td>
-        <td>${r.hFin}</td>
-        <td><b>${r.duracionMin}</b> min</td>
-        <td><span class="chip ${catColor}">${r.categoria||'—'}</span></td>
-        <td>${r.motivo}</td>
+        <td>${r.hIni||'—'}</td>
+        <td>${r.hFin||'—'}</td>
+        <td><b>${r.duracionMin||0}</b> min</td>
+        <td>${autoBadge}<span class="chip ${catColor}">${r.categoria||'—'}</span></td>
+        <td>${r.motivo||'—'}</td>
         <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
-        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteDowntime('${r.id}')">✕</button></td>
+        <td class="whitespace-nowrap">
+          <button class="btn btn-secondary !py-1 !px-2 text-xs mr-1" title="Editar" onclick="openEditDowntime('${r.id}')">✎</button>
+          <button class="btn btn-secondary !py-1 !px-2 text-xs" title="Borrar" onclick="deleteDowntime('${r.id}')">✕</button>
+        </td>
       </tr>`;
     }).join('');
   }
+  // Re-render también las sugerencias si hay
+  if (typeof renderSugerencias === 'function') renderSugerencias();
+}
+window.setDowntimeFecha = function(id, fecha) {
+  if (!fecha) return;
+  const rec = state.down.find(r => r.id === id);
+  if (!rec) return;
+  rec.fecha = fecha;
+  rec._editable = false;
+  save(LS_KEYS.down, state.down);
+  saveToCloud('down', rec);
+  logChange({ module:'Tiempo Muerto', action:'Fecha asignada', machine:rec.machine, detail:`${fecha} · ${rec.categoria||''}` });
+  toast('Fecha asignada');
+  renderDowntime();
+};
+window.openEditDowntime = function(id) {
+  const r = state.down.find(x => x.id === id);
+  if (!r) return;
+  const nuevaFecha = prompt('Fecha (YYYY-MM-DD, vacío = sin fecha):', r.fecha || '');
+  if (nuevaFecha === null) return;
+  const nuevaCat = prompt('Categoría (Mecánico/Eléctrico/Programación/Operación/Limpieza):', r.categoria || '');
+  if (nuevaCat === null) return;
+  const nuevoMotivo = prompt('Motivo:', r.motivo || '');
+  if (nuevoMotivo === null) return;
+  const nuevoHIni = prompt('Hora inicio (HH:MM):', r.hIni || '');
+  if (nuevoHIni === null) return;
+  const nuevoHFin = prompt('Hora fin (HH:MM):', r.hFin || '');
+  if (nuevoHFin === null) return;
+  const nuevasNotas = prompt('Notas:', r.notas || '');
+  if (nuevasNotas === null) return;
+  r.fecha = nuevaFecha.trim();
+  r.categoria = nuevaCat.trim();
+  r.motivo = nuevoMotivo.trim();
+  r.hIni = nuevoHIni.trim();
+  r.hFin = nuevoHFin.trim();
+  r.notas = nuevasNotas.trim();
+  if (r.hIni && r.hFin) r.duracionMin = durationMinutes(r.hIni, r.hFin);
+  if (r.fecha) r._editable = false;
+  save(LS_KEYS.down, state.down);
+  saveToCloud('down', r);
+  logChange({ module:'Tiempo Muerto', action:'Editado', machine:r.machine, detail:`${r.categoria} · ${r.duracionMin} min` });
+  toast('Tiempo muerto actualizado');
+  renderAll();
+};
+
+/* ---------------------------------------------------------------
+   SUGERENCIAS AUTOMÁTICAS DE TIEMPOS MUERTOS
+   Detecta gaps entre Hr.Salida → Hr.Entrada en la misma máquina/día.
+--------------------------------------------------------------- */
+function toMinutes(hhmm) {
+  if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+function calcularSugerenciasGaps() {
+  const minGap = parseInt($('#sugMinGap')?.value || '60', 10);
+  const range  = $('#sugRange')?.value || '30';
+  const cutoff = (range === 'all') ? 0 : Date.now() - parseInt(range,10)*86400000;
+
+  // Agrupar fichas por (máquina, fecha)
+  const groups = {};
+  state.prod.forEach(f => {
+    if (!f.fecha || !f.machine || !f.hEntrada || !f.hSalida) return;
+    if (f.ts && f.ts < cutoff) return;
+    const key = f.machine + '|' + f.fecha;
+    (groups[key] = groups[key] || []).push(f);
+  });
+
+  const sugerencias = [];
+  Object.keys(groups).forEach(key => {
+    const items = groups[key].slice().sort((a,b) => (a.hEntrada||'').localeCompare(b.hEntrada||''));
+    for (let i = 0; i < items.length - 1; i++) {
+      const cur  = items[i];
+      const next = items[i+1];
+      const tFin = toMinutes(cur.hSalida);
+      const tIni = toMinutes(next.hEntrada);
+      if (tFin == null || tIni == null) continue;
+      // Si hay cruce de medianoche o salida posterior, ignoramos
+      if (tIni <= tFin) continue;
+      const gap = tIni - tFin;
+      if (gap < minGap) continue;
+
+      // Verificar que NO exista ya un downtime que cubra este gap
+      const yaExiste = state.down.some(d => {
+        if (d.machine !== cur.machine || d.fecha !== cur.fecha) return false;
+        const dIni = toMinutes(d.hIni);
+        const dFin = toMinutes(d.hFin);
+        if (dIni == null || dFin == null) return false;
+        // overlap >= 50% del gap detectado
+        const overlap = Math.max(0, Math.min(dFin, tIni) - Math.max(dIni, tFin));
+        return overlap >= gap * 0.5;
+      });
+      if (yaExiste) continue;
+
+      sugerencias.push({
+        id: `SUG|${cur.machine}|${cur.fecha}|${cur.hSalida}|${next.hEntrada}`,
+        machine: cur.machine,
+        fecha: cur.fecha,
+        hIni: cur.hSalida,
+        hFin: next.hEntrada,
+        duracionMin: gap,
+        prevLote: cur.lote, prevColor: cur.color,
+        nextLote: next.lote, nextColor: next.color
+      });
+    }
+  });
+  // Ordenar por fecha desc + duración desc
+  sugerencias.sort((a,b) => (b.fecha.localeCompare(a.fecha)) || (b.duracionMin - a.duracionMin));
+  return sugerencias;
+}
+function renderSugerencias() {
+  const list = $('#sugList');
+  const empty = $('#sugEmpty');
+  const stats = $('#sugStats');
+  if (!list) return;
+
+  const sugs = calcularSugerenciasGaps();
+  const totalMin = sugs.reduce((a,s) => a + s.duracionMin, 0);
+  stats.innerHTML = sugs.length
+    ? `<b class="text-amber-300">${sugs.length}</b> gap${sugs.length===1?'':'s'} detectado${sugs.length===1?'':'s'} · <b>${(totalMin/60).toFixed(1)} h</b> totales sin actividad`
+    : 'Sin gaps por encima del umbral.';
+
+  if (!sugs.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = sugs.map(s => `
+    <div class="flex items-center justify-between gap-3 p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="chip chip-info">${s.machine}</span>
+          <span class="text-slate-300 text-sm">${s.fecha}</span>
+          <span class="text-white font-bold">${s.hIni} → ${s.hFin}</span>
+          <span class="chip chip-warn">${s.duracionMin} min (${(s.duracionMin/60).toFixed(1)} h)</span>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">
+          Anterior: ${s.prevLote||'—'} ${s.prevColor||''} → Siguiente: ${s.nextLote||'—'} ${s.nextColor||''}
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <select class="field !py-1 !text-xs" id="sugCat_${btoa(s.id).replace(/=/g,'')}">
+          <option>Operación</option>
+          <option>Mecánico</option>
+          <option>Eléctrico</option>
+          <option>Programación</option>
+          <option>Limpieza</option>
+        </select>
+        <button class="btn btn-primary !py-1 !px-3 text-xs" onclick="aceptarSugerencia('${s.id}')">✓ Aceptar</button>
+      </div>
+    </div>
+  `).join('');
+}
+window.aceptarSugerencia = function(sugId) {
+  const sugs = calcularSugerenciasGaps();
+  const s = sugs.find(x => x.id === sugId);
+  if (!s) return toast('Sugerencia ya no válida (quizá ya fue aceptada)', true);
+  const sel = document.getElementById('sugCat_' + btoa(sugId).replace(/=/g,''));
+  const cat = sel ? sel.value : 'Operación';
+  const rec = {
+    id: 'AUTO|' + s.machine + '|' + s.fecha + '|' + s.hIni + '|' + s.hFin,
+    ts: Date.now(),
+    machine: s.machine,
+    fecha: s.fecha,
+    hIni: s.hIni,
+    hFin: s.hFin,
+    duracionMin: s.duracionMin,
+    categoria: cat,
+    motivo: 'Detectado automáticamente (gap entre fichas)',
+    notas: `Anterior: ${s.prevLote||'—'} → Siguiente: ${s.nextLote||'—'}`,
+    _auto: true
+  };
+  // Evitar duplicados
+  if (state.down.some(d => d.id === rec.id)) return toast('Ya existe ese tiempo muerto', true);
+  state.down.unshift(rec);
+  save(LS_KEYS.down, state.down);
+  saveToCloud('down', rec);
+  logChange({ module:'Tiempo Muerto', action:'Auto-detectado', machine:rec.machine, detail:`${rec.duracionMin} min · ${cat}` });
+  toast('Tiempo muerto registrado');
+  renderAll();
+};
+
+/* ---------------------------------------------------------------
+   EDITAR FICHA (modal desde Reporte)
+--------------------------------------------------------------- */
+let editingFichaId = null;
+function populateEditFichaMachineSelect() {
+  const sel = $('#ef_machine');
+  if (sel.options.length === 0) {
+    sel.innerHTML = MACHINES.map(m => `<option>${m.id}</option>`).join('');
+  }
+}
+window.openEditFicha = function(id) {
+  const f = state.prod.find(r => r.id === id);
+  if (!f) return toast('Ficha no encontrada', true);
+  editingFichaId = id;
+  populateEditFichaMachineSelect();
+  $('#editFichaSub').textContent = `${f.machine} · ${f.fecha} · Lote ${f.lote||'—'}`;
+  $('#ef_machine').value  = f.machine || '';
+  $('#ef_fecha').value    = f.fecha || todayISO();
+  $('#ef_shift').value    = f.shift || '1º';
+  $('#ef_operador').value = f.operador || '';
+  $('#ef_lote').value     = f.lote || '';
+  $('#ef_tela').value     = f.tela || '';
+  $('#ef_color').value    = f.color || '';
+  $('#ef_diseno').value   = f.diseno || '';
+  $('#ef_pedido').value   = f.pedido || '';
+  $('#ef_kilos').value    = f.kilos || '';
+  $('#ef_hEntrada').value = f.hEntrada || '';
+  $('#ef_hSalida').value  = f.hSalida || '';
+  $('#ef_proceso').value  = f.proceso || '';
+  $('#ef_apq').value      = f.apq || '';
+  $('#ef_banos').value    = f.banos || 1;
+  $('#ef_notas').value    = f.notas || '';
+  $('#editFichaModal').classList.remove('hidden');
+};
+function closeEditFichaModal() {
+  editingFichaId = null;
+  $('#editFichaModal').classList.add('hidden');
+}
+function saveEditedFicha() {
+  if (!editingFichaId) return;
+  const f = state.prod.find(r => r.id === editingFichaId);
+  if (!f) return toast('Ficha no encontrada', true);
+
+  const kilos = parseFloat($('#ef_kilos').value);
+  if (!(kilos > 0)) return toast('Captura los kilos', true);
+  if (!$('#ef_hEntrada').value || !$('#ef_hSalida').value) return toast('Captura horas entrada y salida', true);
+
+  const machine = $('#ef_machine').value;
+  const proceso = $('#ef_proceso').value.trim();
+  f.machine  = machine;
+  f.fecha    = $('#ef_fecha').value || f.fecha;
+  f.shift    = $('#ef_shift').value;
+  f.operador = $('#ef_operador').value.trim();
+  f.lote     = $('#ef_lote').value.trim();
+  f.tela     = $('#ef_tela').value.trim();
+  f.color    = $('#ef_color').value.trim();
+  f.diseno   = $('#ef_diseno').value.trim();
+  f.pedido   = $('#ef_pedido').value.trim();
+  f.kilos    = kilos;
+  f.hEntrada = $('#ef_hEntrada').value;
+  f.hSalida  = $('#ef_hSalida').value;
+  f.proceso  = proceso;
+  f.apq      = parseFloat($('#ef_apq').value) || 0;
+  f.banos    = parseInt($('#ef_banos').value, 10) || 1;
+  f.notas    = $('#ef_notas').value.trim();
+  // Recalcular derivados
+  f.duracionMin   = durationMinutes(f.hEntrada, f.hSalida);
+  f.des           = calcDesempeno(machine, kilos, proceso);
+  f.tiempoPlanMin = minutosProceso(proceso);
+  f.cargaEstim    = cargaEsperada(machine, proceso);
+  f._editedAt     = Date.now();
+
+  save(LS_KEYS.prod, state.prod);
+  saveToCloud('prod', f);
+  logChange({ module:'Ficha', action:'Editada', machine:f.machine, lote:f.lote, detail:`${fmtKg(f.kilos)} kg · ${f.color||''}`.trim() });
+  toast('Ficha actualizada');
+  closeEditFichaModal();
+  renderAll();
+}
+function bindEditFichaModal() {
+  $('#editFichaClose').addEventListener('click', closeEditFichaModal);
+  $('#editFichaCancel').addEventListener('click', closeEditFichaModal);
+  $('#editFichaSave').addEventListener('click', saveEditedFicha);
+  $('#editFichaModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editFichaModal') closeEditFichaModal();
+  });
 }
 window.deleteDowntime = function(id) {
   if (!confirm('¿Borrar este paro?')) return;
