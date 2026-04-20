@@ -633,6 +633,8 @@
         <input type="date" id="reportDate" class="field !py-2 !text-base" />
         <button id="jumpLatest" type="button" class="btn btn-ghost text-xs" title="Saltar al último día con datos">Último día</button>
         <span id="reportTotal" class="chip chip-ok">0 kg</span>
+        <span id="reportCostQ" class="chip chip-warn" title="Costo químico estimado: Σ (kilos × APQ)">$0 MXN</span>
+        <button id="reportSetMeta" type="button" class="btn btn-ghost text-xs" title="Definir meta diaria por máquina">🎯 Metas</button>
       </div>
     </div>
 
@@ -829,9 +831,10 @@
 
     <!-- Lista -->
     <div class="card overflow-hidden">
-      <div class="flex items-center justify-between p-3 border-b border-slate-700/50">
+      <div class="flex items-center justify-between p-3 border-b border-slate-700/50 flex-wrap gap-2">
         <h3 class="text-base font-bold text-white">Tiempos muertos registrados</h3>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="dtBulkFecha" class="btn btn-secondary !py-1 !px-3 text-xs" title="Asignar fecha en bloque a t.muertos sin fecha">📅 Asignar fecha en bloque</button>
           <input type="text" id="dtFilterText" class="field !py-1 !text-sm" placeholder="Filtrar por máquina/categoría/notas…" style="max-width:260px" />
           <select id="dtFilterEditable" class="field !py-1 !text-sm">
             <option value="all">Todos</option>
@@ -1123,6 +1126,57 @@
 </div>
 
 <!-- ============================================================= -->
+<!-- MODAL: METAS DIARIAS POR MÁQUINA                              -->
+<!-- ============================================================= -->
+<div id="metasModal" class="hidden fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+  <div class="card p-5 w-full max-w-xl my-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-xl font-black text-white">🎯 Metas diarias de producción</h3>
+        <p class="text-sm text-slate-400">Kilos objetivo por máquina al día. Se muestra el % de avance en el Reporte.</p>
+      </div>
+      <button id="metasClose" class="btn btn-secondary !py-1 !px-3">✕</button>
+    </div>
+    <div id="metasList" class="space-y-2"></div>
+    <div class="flex items-center gap-2 mt-4 p-3 bg-slate-900/50 rounded-lg">
+      <span class="text-xs text-slate-400 flex-1">Sugerencia: usar carga Pol/Alg × baños típicos por día.</span>
+      <button id="metasAutoFill" class="btn btn-secondary !py-1 !px-3 text-xs">Auto-llenar (carga × 1.5)</button>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mt-5">
+      <button id="metasCancel" class="btn btn-secondary touch-lg">Cancelar</button>
+      <button id="metasSave" class="btn btn-primary touch-lg">Guardar metas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- MODAL: ASIGNAR FECHA EN BLOQUE A T.MUERTOS SIN FECHA          -->
+<!-- ============================================================= -->
+<div id="bulkFechaModal" class="hidden fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+  <div class="card p-5 w-full max-w-2xl my-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-xl font-black text-white">📅 Asignar fecha en bloque</h3>
+        <p class="text-sm text-slate-400">Tiempos muertos sin fecha. Marca los que quieras y asigna una fecha común.</p>
+      </div>
+      <button id="bulkFechaClose" class="btn btn-secondary !py-1 !px-3">✕</button>
+    </div>
+    <div class="flex items-center gap-3 mb-3 p-3 bg-slate-900/50 rounded-lg flex-wrap">
+      <label class="lbl !mb-0">Fecha:</label>
+      <input type="date" id="bulkFechaInput" class="field !py-1 !text-sm" style="max-width:170px" />
+      <button id="bulkFechaSelectAll" class="btn btn-secondary !py-1 !px-3 text-xs">Seleccionar todos</button>
+      <button id="bulkFechaSelectNone" class="btn btn-secondary !py-1 !px-3 text-xs">Ninguno</button>
+      <span id="bulkFechaCount" class="text-xs text-slate-400 ml-auto">0 seleccionados</span>
+    </div>
+    <div id="bulkFechaList" class="space-y-1 max-h-96 overflow-y-auto"></div>
+    <div class="grid grid-cols-2 gap-3 mt-5">
+      <button id="bulkFechaCancel" class="btn btn-secondary touch-lg">Cancelar</button>
+      <button id="bulkFechaApply" class="btn btn-primary touch-lg">Aplicar fecha</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
 <!-- JS · LÓGICA                                                   -->
 <!-- ============================================================= -->
 <script>
@@ -1225,7 +1279,8 @@ const LS_KEYS = {
   prod:    'tg_tint_prod_v2',    // fichas de producción
   down:    'tg_tint_down_v2',    // tiempos muertos
   bruck:   'tg_tint_bruck_v2',   // Bruckner
-  history: 'tg_tint_history_v2'  // bitácora de cambios
+  history: 'tg_tint_history_v2', // bitácora de cambios
+  metas:   'tg_tint_metas_v2'    // metas diarias por máquina (kg)
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -1863,6 +1918,8 @@ function init() {
   bindHistoryTab();
   bindCloudSync();
   bindEditFichaModal();
+  bindMetasModal();
+  bindBulkFechaModal();
   updateUserPill();
   startAutosave();
   // Filtros y sugerencias en Tiempos Muertos
@@ -2098,7 +2155,9 @@ function renderReport() {
   const rows = state.prod.filter(r => r.fecha === date);
 
   const totalK = rows.reduce((a,r)=>a+r.kilos, 0);
+  const totalCostQ = rows.reduce((a,r)=>a + (r.kilos||0)*(r.apq||0), 0);
   $('#reportTotal').textContent = fmtKg(totalK) + ' kg';
+  $('#reportCostQ').textContent = '$' + Math.round(totalCostQ).toLocaleString('es-MX') + ' MXN quím.';
   $('#reportSub').textContent = rows.length
     ? `${rows.length} ficha${rows.length===1?'':'s'} · ${new Date(date+'T12:00:00').toLocaleDateString('es-MX',{weekday:'long', day:'2-digit', month:'long', year:'numeric'})}`
     : `Sin fichas para esta fecha`;
@@ -2113,15 +2172,26 @@ function renderReport() {
   const byM = {};
   rows.forEach(r => { (byM[r.machine] = byM[r.machine] || []).push(r); });
 
+  // Cargar metas diarias por máquina (si existen)
+  const metas = JSON.parse(localStorage.getItem(LS_KEYS.metas) || '{}');
+
   // Solo mostramos las máquinas que tienen fichas (más limpio)
   container.innerHTML = order.filter(id => byM[id]).map(id => {
     const items = byM[id];
     const totM = items.reduce((a,r)=>a+r.kilos, 0);
+    const totCQ = items.reduce((a,r)=>a + (r.kilos||0)*(r.apq||0), 0);
+    const meta  = parseFloat(metas[id]) || 0;
+    const pct   = meta > 0 ? Math.min(150, Math.round(totM*100/meta)) : null;
+    const pctColor = pct == null ? '' : (pct >= 100 ? 'text-emerald-400' : pct >= 75 ? 'text-amber-300' : 'text-rose-400');
+    const metaBadge = meta > 0
+      ? ` · <span class="${pctColor} font-bold">${pct}% de meta (${fmtKg(meta)} kg)</span>`
+      : '';
+    const cqBadge = totCQ > 0 ? ` · $${Math.round(totCQ).toLocaleString('es-MX')} MXN quím.` : '';
     return `
       <div class="card overflow-hidden">
         <div class="group-header">
           <span class="m-name">${id}</span>
-          <span class="m-tot">Total: ${fmtKg(totM)} kg · ${items.length} ficha${items.length===1?'':'s'}</span>
+          <span class="m-tot">Total: ${fmtKg(totM)} kg · ${items.length} ficha${items.length===1?'':'s'}${cqBadge}${metaBadge}</span>
         </div>
         <div class="scroll-x">
           <table class="tbl">
@@ -2137,6 +2207,7 @@ function renderReport() {
                 <th>Hr. Ent.</th>
                 <th>Hr. Sal.</th>
                 <th>APQ</th>
+                <th>Costo Q.</th>
                 <th>Operador</th>
                 <th>Notas</th>
                 <th></th>
@@ -2154,7 +2225,8 @@ function renderReport() {
                   <td class="text-slate-300">${r.proceso||'—'}</td>
                   <td class="text-slate-400">${r.hEntrada||'—'}</td>
                   <td class="text-slate-400">${r.hSalida||'—'}</td>
-                  <td>${r.apq? fmtKg(r.apq):'—'}</td>
+                  <td>${r.apq ? `<span class="${r.apq>=15?'text-amber-400 font-bold':''}" title="${r.apq>=15?'APQ alto (químico costoso)':''}">${fmtKg(r.apq)}${r.apq>=15?' ⚠':''}</span>` : '—'}</td>
+                  <td class="text-slate-300">${(r.apq && r.kilos) ? '$'+Math.round(r.apq*r.kilos).toLocaleString('es-MX') : '—'}</td>
                   <td class="text-slate-400 text-sm">${r.operador||'—'}</td>
                   <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
                   <td class="whitespace-nowrap">
@@ -2754,6 +2826,120 @@ function bindEditFichaModal() {
   $('#editFichaSave').addEventListener('click', saveEditedFicha);
   $('#editFichaModal').addEventListener('click', (e) => {
     if (e.target.id === 'editFichaModal') closeEditFichaModal();
+  });
+}
+
+/* ---------------------------------------------------------------
+   METAS DIARIAS POR MÁQUINA
+--------------------------------------------------------------- */
+function openMetasModal() {
+  const metas = JSON.parse(localStorage.getItem(LS_KEYS.metas) || '{}');
+  const list = $('#metasList');
+  list.innerHTML = MACHINES.map(m => `
+    <div class="flex items-center gap-3 p-2 bg-slate-900/40 rounded-lg">
+      <span class="chip chip-info" style="min-width:100px">${m.id}</span>
+      <span class="text-xs text-slate-500 flex-1">Carga típica: ${m.cargaPolAlg} kg / baño</span>
+      <input type="number" step="10" min="0" data-machine="${m.id}" class="field meta-input !py-1 !text-sm" style="max-width:120px" placeholder="0" value="${metas[m.id]||''}" />
+      <span class="text-xs text-slate-400">kg/día</span>
+    </div>
+  `).join('');
+  $('#metasModal').classList.remove('hidden');
+}
+function closeMetasModal() { $('#metasModal').classList.add('hidden'); }
+function saveMetas() {
+  const metas = {};
+  $$('#metasList input.meta-input').forEach(inp => {
+    const v = parseFloat(inp.value);
+    if (v > 0) metas[inp.dataset.machine] = v;
+  });
+  localStorage.setItem(LS_KEYS.metas, JSON.stringify(metas));
+  logChange({ module:'Metas', action:'Actualizadas', detail: Object.keys(metas).length + ' máquinas configuradas' });
+  toast('Metas guardadas');
+  closeMetasModal();
+  renderReport();
+}
+function autoFillMetas() {
+  $$('#metasList input.meta-input').forEach(inp => {
+    const m = MACHINES.find(x => x.id === inp.dataset.machine);
+    if (m) inp.value = Math.round(m.cargaPolAlg * 1.5);
+  });
+}
+function bindMetasModal() {
+  $('#reportSetMeta')?.addEventListener('click', openMetasModal);
+  $('#metasClose')?.addEventListener('click', closeMetasModal);
+  $('#metasCancel')?.addEventListener('click', closeMetasModal);
+  $('#metasSave')?.addEventListener('click', saveMetas);
+  $('#metasAutoFill')?.addEventListener('click', autoFillMetas);
+  $('#metasModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'metasModal') closeMetasModal();
+  });
+}
+
+/* ---------------------------------------------------------------
+   ASIGNAR FECHA EN BLOQUE A T.MUERTOS SIN FECHA
+--------------------------------------------------------------- */
+function openBulkFechaModal() {
+  const sinFecha = state.down.filter(d => !d.fecha);
+  if (!sinFecha.length) {
+    toast('No hay tiempos muertos sin fecha', false);
+    return;
+  }
+  $('#bulkFechaInput').value = todayISO();
+  const list = $('#bulkFechaList');
+  list.innerHTML = sinFecha.map(d => `
+    <label class="flex items-center gap-3 p-2 bg-slate-900/40 rounded-lg cursor-pointer hover:bg-slate-800/60">
+      <input type="checkbox" class="bulk-fecha-chk" data-id="${d.id}" />
+      <span class="chip chip-info" style="min-width:90px">${d.machine||'—'}</span>
+      <span class="text-slate-300 text-sm">${d.hIni||'—'} → ${d.hFin||'—'}</span>
+      <span class="chip chip-warn" style="font-size:10px">${d.duracionMin||0} min</span>
+      <span class="text-slate-400 text-xs flex-1 truncate">${d.categoria||''} · ${d.motivo||''} · ${d.notas||''}</span>
+    </label>
+  `).join('');
+  updateBulkFechaCount();
+  $('#bulkFechaModal').classList.remove('hidden');
+}
+function closeBulkFechaModal() { $('#bulkFechaModal').classList.add('hidden'); }
+function updateBulkFechaCount() {
+  const n = $$('#bulkFechaList input.bulk-fecha-chk:checked').length;
+  $('#bulkFechaCount').textContent = n + ' seleccionado' + (n===1?'':'s');
+}
+function applyBulkFecha() {
+  const fecha = $('#bulkFechaInput').value;
+  if (!fecha) return toast('Selecciona una fecha', true);
+  const ids = $$('#bulkFechaList input.bulk-fecha-chk:checked').map(c => c.dataset.id);
+  if (!ids.length) return toast('No seleccionaste ningún registro', true);
+  let count = 0;
+  ids.forEach(id => {
+    const r = state.down.find(d => d.id === id);
+    if (r && !r.fecha) {
+      r.fecha = fecha;
+      r._editable = false;
+      saveToCloud('down', r);
+      count++;
+    }
+  });
+  save(LS_KEYS.down, state.down);
+  logChange({ module:'Tiempo Muerto', action:'Bulk fecha', detail: count + ' registros → ' + fecha });
+  toast(count + ' tiempos muertos asignados a ' + fecha);
+  closeBulkFechaModal();
+  renderAll();
+}
+function bindBulkFechaModal() {
+  $('#dtBulkFecha')?.addEventListener('click', openBulkFechaModal);
+  $('#bulkFechaClose')?.addEventListener('click', closeBulkFechaModal);
+  $('#bulkFechaCancel')?.addEventListener('click', closeBulkFechaModal);
+  $('#bulkFechaApply')?.addEventListener('click', applyBulkFecha);
+  $('#bulkFechaSelectAll')?.addEventListener('click', () => {
+    $$('#bulkFechaList input.bulk-fecha-chk').forEach(c => c.checked = true);
+    updateBulkFechaCount();
+  });
+  $('#bulkFechaSelectNone')?.addEventListener('click', () => {
+    $$('#bulkFechaList input.bulk-fecha-chk').forEach(c => c.checked = false);
+    updateBulkFechaCount();
+  });
+  $('#bulkFechaList')?.addEventListener('change', updateBulkFechaCount);
+  $('#bulkFechaModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'bulkFechaModal') closeBulkFechaModal();
   });
 }
 window.deleteDowntime = function(id) {
