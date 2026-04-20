@@ -629,8 +629,9 @@
         <h2 class="text-2xl font-black text-white">Reporte de Producción Tintorería</h2>
         <p class="text-slate-400 text-sm" id="reportSub">Fichas agrupadas por máquina</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <input type="date" id="reportDate" class="field !py-2 !text-base" />
+        <button id="jumpLatest" type="button" class="btn btn-ghost text-xs" title="Saltar al último día con datos">Último día</button>
         <span id="reportTotal" class="chip chip-ok">0 kg</span>
       </div>
     </div>
@@ -1754,11 +1755,23 @@ function init() {
   $('#dt_machine').innerHTML = '<option value="">-- Selecciona --</option>' +
     MACHINES.map(m => `<option>${m.id}</option>`).join('');
 
-  // Fechas por defecto = hoy
+  // Fechas por defecto = hoy, EXCEPTO el Reporte que salta al último día con datos
   $('#f_fecha').value    = todayISO();
   $('#dt_fecha').value   = todayISO();
   $('#br_fecha').value   = todayISO();
-  $('#reportDate').value = todayISO();
+  // Para el Reporte: si hoy no tiene fichas, usar la fecha más reciente con datos
+  (function setReportDateToLatest(){
+    const today = todayISO();
+    try {
+      const prod = JSON.parse(localStorage.getItem(LS_KEYS.prod) || '[]');
+      const fechasConDatos = [...new Set(prod.map(f => f.fecha).filter(Boolean))].sort();
+      const hoyTieneDatos = fechasConDatos.includes(today);
+      const latest = fechasConDatos[fechasConDatos.length - 1];
+      $('#reportDate').value = hoyTieneDatos ? today : (latest || today);
+    } catch(e) {
+      $('#reportDate').value = today;
+    }
+  })();
 
   bindTabs();
   bindCaptureForm();
@@ -1771,6 +1784,16 @@ function init() {
   updateUserPill();
   startAutosave();
   $('#reportDate').addEventListener('change', renderReport);
+  // Botón "Último día": salta a la fecha más reciente con fichas
+  $('#jumpLatest')?.addEventListener('click', () => {
+    try {
+      const prod = JSON.parse(localStorage.getItem(LS_KEYS.prod) || '[]');
+      const fechas = [...new Set(prod.map(f => f.fecha).filter(Boolean))].sort();
+      const latest = fechas[fechas.length - 1];
+      if (latest) { $('#reportDate').value = latest; renderReport(); }
+      else { alert('No hay fichas registradas todavía.'); }
+    } catch(e) { console.error(e); }
+  });
   $('#effRange').addEventListener('change', renderEfficiency);
 
   renderAll();
