@@ -571,8 +571,8 @@
       </div>
 
       <div class="card p-5">
-        <label class="lbl">Kilos Aprobados</label>
-        <input type="number" step="0.01" min="0" id="f_apq" class="field" placeholder="0.00 kg" inputmode="decimal" />
+        <label class="lbl">Químico / kg <span class="text-slate-500 normal-case text-xs">(costo en MXN por kilo)</span></label>
+        <input type="number" step="0.01" min="0" id="f_apq" class="field" placeholder="$0.00 MXN/kg" inputmode="decimal" />
       </div>
 
       <div class="card p-5">
@@ -636,7 +636,7 @@
         <input type="date" id="reportDate" class="field !py-2 !text-base" />
         <button id="jumpLatest" type="button" class="btn btn-ghost text-xs" title="Saltar al último día con datos">Último día</button>
         <span id="reportTotal" class="chip chip-ok">0 kg</span>
-        <span id="reportCostQ" class="chip chip-warn" title="Costo químico estimado: Σ (kilos × Kilos Aprobados)">$0 MXN</span>
+        <span id="reportCostQ" class="chip chip-warn" title="Costo químico estimado: Σ (kilos × Químico/kg)">$0 MXN</span>
         <button id="reportSetMeta" type="button" class="btn btn-ghost text-xs" title="Definir meta diaria por máquina">🎯 Metas</button>
       </div>
     </div>
@@ -1146,7 +1146,7 @@
         </div>
         <input type="text" id="ef_proceso" class="field" placeholder="Proceso (puede editarse o escribir uno nuevo)" />
       </div>
-      <div><label class="lbl">Kilos Aprobados</label><input type="number" step="0.01" min="0" id="ef_apq" class="field" /></div>
+      <div><label class="lbl">Químico / kg <span class="text-slate-500 normal-case text-xs">(MXN/kg)</span></label><input type="number" step="0.01" min="0" id="ef_apq" class="field" placeholder="$0.00 MXN/kg" /></div>
       <div><label class="lbl">Baños</label><input type="number" step="1" min="1" id="ef_banos" class="field" /></div>
       <div class="sm:col-span-2"><label class="lbl">Notas</label><textarea id="ef_notas" rows="2" class="field"></textarea></div>
     </div>
@@ -2272,8 +2272,8 @@ function renderReport() {
                 <th>Proceso</th>
                 <th>Hr. Ent.</th>
                 <th>Hr. Sal.</th>
+                <th>Químico/kg</th>
                 <th>Costo Químico</th>
-                <th>Costo Q.</th>
                 <th>Operador</th>
                 <th>Notas</th>
                 <th></th>
@@ -2291,7 +2291,7 @@ function renderReport() {
                   <td class="text-slate-300">${r.proceso||'—'}</td>
                   <td class="text-slate-400">${r.hEntrada||'—'}</td>
                   <td class="text-slate-400">${r.hSalida||'—'}</td>
-                  <td>${r.apq ? `<span class="${r.apq>=15?'text-amber-400 font-bold':''}" title="${r.apq>=15?'Kilos aprobados alto':''}">${fmtKg(r.apq)}${r.apq>=15?' ⚠':''}</span>` : '—'}</td>
+                  <td>${r.apq ? `<span class="${r.apq>=15?'text-amber-400 font-bold':''}" title="${r.apq>=15?'Costo químico por kilo alto':''}">$${r.apq.toFixed(2)}${r.apq>=15?' ⚠':''}</span>` : '—'}</td>
                   <td class="text-slate-300">${(r.apq && r.kilos) ? '$'+Math.round(r.apq*r.kilos).toLocaleString('es-MX') : '—'}</td>
                   <td class="text-slate-400 text-sm">${r.operador||'—'}</td>
                   <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
