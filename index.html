@@ -641,6 +641,52 @@
       </div>
     </div>
 
+    <!-- Tarjeta Rama (Bruckner + Monforts) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" id="repRamaSection">
+      <!-- Bruckner -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-black text-white text-base">🧵 Bruckner</h3>
+          <span class="chip chip-ok">Activa</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <div class="kpi-lbl">Kilos</div>
+            <div id="rep_bruck_k" class="text-xl font-black text-sky-accent">0</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Metros</div>
+            <div id="rep_bruck_m" class="text-xl font-black text-emer-accent">0</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Fichas</div>
+            <div id="rep_bruck_f" class="text-xl font-black text-white">0</div>
+          </div>
+        </div>
+      </div>
+      <!-- Monforts -->
+      <div class="card p-5 opacity-50">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-black text-white text-base">🧵 Monforts</h3>
+          <span class="chip chip-warn">En montaje</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <div class="kpi-lbl">Kilos</div>
+            <div id="rep_monf_k" class="text-xl font-black text-slate-500">0</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Metros</div>
+            <div id="rep_monf_m" class="text-xl font-black text-slate-500">0</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Fichas</div>
+            <div id="rep_monf_f" class="text-xl font-black text-slate-500">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Reporte agrupado por máquina (imita el papel "REPORTE DE PRODUCCIÓN TINTORERÍA") -->
     <div id="reportGroups" class="space-y-3">
       <!-- renderizado dinámico -->
@@ -740,6 +786,69 @@
 
     <!-- Tarjetas por máquina (visuales) -->
     <div id="effCards" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+
+    <!-- Rama · Acabados KPIs -->
+    <div class="mt-6 mb-2">
+      <h3 class="text-lg font-black text-white mb-3">Rama · Acabados</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Bruckner -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="text-xl font-black text-white">🧵 Bruckner</div>
+              <div class="text-xs text-slate-500">Rama en operación</div>
+            </div>
+            <span class="chip chip-ok">Activa</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <div class="kpi-lbl">Kilos</div>
+              <div id="eff_bruck_k" class="text-xl font-black text-sky-accent">0</div>
+            </div>
+            <div>
+              <div class="kpi-lbl">Metros</div>
+              <div id="eff_bruck_m" class="text-xl font-black text-emer-accent">0</div>
+            </div>
+            <div>
+              <div class="kpi-lbl">Fichas</div>
+              <div id="eff_bruck_f" class="text-xl font-black text-white">0</div>
+            </div>
+            <div>
+              <div class="kpi-lbl">Vel. prom.</div>
+              <div id="eff_bruck_v" class="text-xl font-black text-warn">— m/min</div>
+            </div>
+          </div>
+        </div>
+        <!-- Monforts -->
+        <div class="card p-5 opacity-50">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="text-xl font-black text-white">🧵 Monforts</div>
+              <div class="text-xs text-slate-500">En montaje — no disponible aún</div>
+            </div>
+            <span class="chip chip-warn">En montaje</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <div class="kpi-lbl">Kilos</div>
+              <div id="eff_monf_k" class="text-xl font-black text-slate-500">0</div>
+            </div>
+            <div>
+              <div class="kpi-lbl">Metros</div>
+              <div id="eff_monf_m" class="text-xl font-black text-slate-500">0</div>
+            </div>
+            <div>
+              <div class="kpi-lbl">Fichas</div>
+              <div id="eff_monf_f" class="text-xl font-black text-slate-500">0</div>
+            </div>
+            <div>
+              <div class="kpi-lbl">Vel. prom.</div>
+              <div id="eff_monf_v" class="text-xl font-black text-slate-500">— m/min</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ========================================= -->
@@ -752,6 +861,184 @@
         <p class="text-slate-400 text-sm">Registro de paros de máquina</p>
       </div>
       <span id="dtCount" class="chip chip-warn">0 paros hoy</span>
+    </div>
+
+    <!-- 📊 ANÁLISIS DE TIEMPOS MUERTOS -->
+    <div class="card p-5 mb-4 border border-sky-accent/20">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h3 class="text-lg font-black text-white">📊 Análisis de Tiempos Muertos</h3>
+        <select id="dtAnalyticsRange" class="field !py-1 !text-sm" style="max-width:220px">
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="today">Hoy</option>
+          <option value="7">Últimos 7 días</option>
+          <option value="week">Semana actual</option>
+          <option value="month">Mes actual</option>
+          <option value="all">Todo el historial</option>
+        </select>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="dtAnalyticsKpis">
+        <div class="card p-4">
+          <div class="kpi-lbl">Total horas paro</div>
+          <div id="dta_kpi_hrs" class="kpi-num text-danger mt-1">0 h</div>
+        </div>
+        <div class="card p-4">
+          <div class="kpi-lbl"># de paros</div>
+          <div id="dta_kpi_cnt" class="kpi-num text-warn mt-1">0</div>
+        </div>
+        <div class="card p-4">
+          <div class="kpi-lbl">Promedio / paro</div>
+          <div id="dta_kpi_avg" class="kpi-num text-sky-accent mt-1">0 min</div>
+        </div>
+        <div class="card p-4">
+          <div class="kpi-lbl">Día con más paros</div>
+          <div id="dta_kpi_day" class="text-lg font-black text-white mt-1">—</div>
+        </div>
+      </div>
+
+      <!-- Charts row 1 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Top motivos (horas perdidas)</h4>
+          <div style="height:300px"><canvas id="dtChartMotivos"></canvas></div>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Categorías</h4>
+          <div style="height:280px"><canvas id="dtChartCategorias"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Charts row 2 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Ranking por máquina</h4>
+          <div style="height:300px"><canvas id="dtChartMachines"></canvas></div>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Tendencia diaria (horas de paro)</h4>
+          <div style="height:280px"><canvas id="dtChartTrend"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Heatmap -->
+      <div class="mb-4">
+        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Heatmap: turno × día de semana</h4>
+        <div id="dtHeatmap" class="overflow-x-auto"></div>
+        <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
+          <span>Leyenda:</span>
+          <span class="inline-block w-4 h-4 rounded" style="background:#1e293b"></span> 0 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> &lt;2 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#f59e0b"></span> 2–5 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> &gt;5 h
+        </div>
+      </div>
+
+      <!-- Smart insights -->
+      <div id="dtInsights" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+    </div>
+
+    <!-- 🧵 TIEMPOS MUERTOS RAMA (Bruckner / Monforts) -->
+    <div class="card p-5 mb-4 border border-emerald-500/20">
+      <details>
+        <summary class="cursor-pointer select-none">
+          <h3 class="inline text-lg font-black text-white">🧵 Tiempos Muertos — Rama (Bruckner / Monforts)</h3>
+        </summary>
+        <div class="mt-4">
+          <!-- Mini KPIs Rama -->
+          <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="card p-4">
+              <div class="kpi-lbl">Total horas rama</div>
+              <div id="dtr_kpi_hrs" class="kpi-num text-emer-accent mt-1">0 h</div>
+            </div>
+            <div class="card p-4">
+              <div class="kpi-lbl"># paros rama</div>
+              <div id="dtr_kpi_cnt" class="kpi-num text-warn mt-1">0</div>
+            </div>
+            <div class="card p-4">
+              <div class="kpi-lbl">Motivo top</div>
+              <div id="dtr_kpi_mot" class="text-sm font-bold text-white mt-1">—</div>
+            </div>
+          </div>
+          <!-- Mini form -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="lbl">Rama</label>
+              <select id="dtr_rama" class="field">
+                <option value="Bruckner">Bruckner</option>
+                <option value="Monforts">Monforts ⚠️ (en montaje)</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl">Fecha</label>
+              <input type="date" id="dtr_fecha" class="field" />
+            </div>
+            <div>
+              <label class="lbl">Hora inicio</label>
+              <input type="time" id="dtr_hIni" class="field" />
+            </div>
+            <div>
+              <label class="lbl">Hora fin</label>
+              <input type="time" id="dtr_hFin" class="field" />
+            </div>
+            <div>
+              <label class="lbl">Categoría</label>
+              <select id="dtr_cat" class="field">
+                <option value="Mecánico">Mecánico</option>
+                <option value="Eléctrico">Eléctrico</option>
+                <option value="Programación">Programación</option>
+                <option value="Operación">Operación</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl">Motivo</label>
+              <select id="dtr_motivo" class="field">
+                <option value="">-- Selecciona --</option>
+                <option>Lavado de máquina</option>
+                <option>Cambio de guía / descontaminar</option>
+                <option>Mantenimiento preventivo</option>
+                <option>Falla eléctrica</option>
+                <option>Falta de material</option>
+                <option>Falta de vapor</option>
+                <option>Falla mecánica</option>
+                <option>Atorón</option>
+                <option>Problema en válvula</option>
+                <option>Configuración de parámetros</option>
+                <option>Mantenimiento de cinta</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="lbl">Descripción</label>
+              <textarea id="dtr_notas" rows="2" class="field" placeholder="Descripción breve..."></textarea>
+            </div>
+          </div>
+          <div class="flex gap-3 mb-5">
+            <button id="dtrSave" class="btn btn-primary touch-lg">Registrar Paro Rama</button>
+            <button id="dtrClear" class="btn btn-secondary touch-lg">Limpiar</button>
+          </div>
+          <!-- Tabla rama downtimes -->
+          <div class="overflow-x-auto">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Rama</th>
+                  <th>Fecha</th>
+                  <th>Inicio</th>
+                  <th>Fin</th>
+                  <th>Duración</th>
+                  <th>Categoría</th>
+                  <th>Motivo</th>
+                  <th>Notas</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dtrTbody"></tbody>
+            </table>
+          </div>
+          <div id="dtrEmpty" class="hidden text-center py-8 text-slate-500 text-sm">Sin paros de rama registrados.</div>
+        </div>
+      </details>
     </div>
 
     <!-- Formulario -->
@@ -889,7 +1176,7 @@
   <section id="tab-bruckner" class="tab-panel hidden">
     <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="text-2xl font-black text-white">Rama Bruckner · Acabados</h2>
+        <h2 class="text-2xl font-black text-white">Rama · Acabados (Bruckner + Monforts)</h2>
         <p class="text-slate-400 text-sm">Suavizado y termofijado</p>
       </div>
     </div>
@@ -900,6 +1187,13 @@
         <div>
           <label class="lbl">Fecha</label>
           <input type="date" id="br_fecha" class="field" />
+        </div>
+        <div>
+          <label class="lbl">Rama</label>
+          <select id="br_rama" class="field">
+            <option value="Bruckner">Bruckner</option>
+            <option value="Monforts">Monforts</option>
+          </select>
         </div>
         <div>
           <label class="lbl">Turno</label>
@@ -988,6 +1282,7 @@
           <thead>
             <tr>
               <th>Fecha</th>
+              <th>Rama</th>
               <th>Turno</th>
               <th>Lote</th>
               <th>Tela</th>
@@ -1317,7 +1612,8 @@ const LS_KEYS = {
   down:    'tg_tint_down_v2',    // tiempos muertos
   bruck:   'tg_tint_bruck_v2',   // Bruckner
   history: 'tg_tint_history_v2', // bitácora de cambios
-  metas:   'tg_tint_metas_v2'    // metas diarias por máquina (kg)
+  metas:   'tg_tint_metas_v2',   // metas diarias por máquina (kg)
+  rd:      'tg_tint_ramadown_v2' // tiempos muertos de rama (Bruckner/Monforts)
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -1633,6 +1929,7 @@ let state = {
   down:    load(LS_KEYS.down),
   bruck:   load(LS_KEYS.bruck),
   history: load(LS_KEYS.history),
+  rd:      load(LS_KEYS.rd),
   selectedMachine: null,
   selectedShift:   null,
   selectedDtCat:   null,
@@ -1874,6 +2171,7 @@ function runAutosave(reason='Programado') {
   save(LS_KEYS.down,    state.down);
   save(LS_KEYS.bruck,   state.bruck);
   save(LS_KEYS.history, state.history);
+  save(LS_KEYS.rd,      state.rd);
 
   // Registrar evento de autoguardado solo si hay datos
   const total = state.prod.length + state.down.length + state.bruck.length;
@@ -1906,6 +2204,7 @@ function startAutosave() {
     save(LS_KEYS.down,    state.down);
     save(LS_KEYS.bruck,   state.bruck);
     save(LS_KEYS.history, state.history);
+    save(LS_KEYS.rd,      state.rd);
   });
 }
 
@@ -1932,6 +2231,7 @@ function init() {
   $('#f_fecha').value    = todayISO();
   $('#dt_fecha').value   = todayISO();
   $('#br_fecha').value   = todayISO();
+  $('#dtr_fecha').value  = todayISO();
   // Para el Reporte: si hoy no tiene fichas, usar la fecha más reciente con datos
   (function setReportDateToLatest(){
     const today = todayISO();
@@ -1949,6 +2249,7 @@ function init() {
   bindTabs();
   bindCaptureForm();
   bindDowntimeForm();
+  bindRamaDowntimeForm();
   bindBrucknerForm();
   bindExport();
   bindUserModal();
@@ -1965,6 +2266,7 @@ function init() {
   $('#sugRefresh')?.addEventListener('click', renderSugerencias);
   $('#dtFilterText')?.addEventListener('input', renderDowntime);
   $('#dtFilterEditable')?.addEventListener('change', renderDowntime);
+  $('#dtAnalyticsRange')?.addEventListener('change', renderDowntime);
   $('#reportDate').addEventListener('change', renderReport);
   // Botón "Último día": salta a la fecha más reciente con fichas
   $('#jumpLatest')?.addEventListener('click', () => {
@@ -2227,6 +2529,17 @@ function renderReport() {
   $('#reportSub').textContent = rows.length
     ? `${rows.length} ficha${rows.length===1?'':'s'} · ${new Date(date+'T12:00:00').toLocaleDateString('es-MX',{weekday:'long', day:'2-digit', month:'long', year:'numeric'})}`
     : `Sin fichas para esta fecha`;
+
+  // Rama cards (always rendered regardless of prod rows)
+  const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && r.fecha === date);
+  const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && r.fecha === date);
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('rep_bruck_k', fmtKg(bruckRows.reduce((a,r)=>a+r.kilos,0)));
+  setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+r.metros,0)));
+  setEl('rep_bruck_f', bruckRows.length);
+  setEl('rep_monf_k',  fmtKg(monfRows.reduce((a,r)=>a+r.kilos,0)));
+  setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+r.metros,0)));
+  setEl('rep_monf_f',  monfRows.length);
 
   const container = $('#reportGroups');
   const empty = $('#reportEmpty');
@@ -2500,6 +2813,25 @@ function renderEfficiency() {
       </tr>`;
   }).join('');
 
+  // Rama · Acabados KPIs (Bruckner + Monforts)
+  {
+    const brRecs = state.bruck.filter(r => (r.rama||'Bruckner') === 'Bruckner' && inRange(r));
+    const mfRecs = state.bruck.filter(r => (r.rama||'Bruckner') === 'Monforts'  && inRange(r));
+    const velAvg = (recs) => {
+      const withVel = recs.filter(r => r.vel > 0);
+      return withVel.length ? (withVel.reduce((a,r)=>a+r.vel,0)/withVel.length).toFixed(1) : '—';
+    };
+    const setEl2 = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl2('eff_bruck_k', fmtKg(brRecs.reduce((a,r)=>a+r.kilos,0)));
+    setEl2('eff_bruck_m', fmtKg(brRecs.reduce((a,r)=>a+r.metros,0)));
+    setEl2('eff_bruck_f', brRecs.length);
+    setEl2('eff_bruck_v', velAvg(brRecs) + (velAvg(brRecs) !== '—' ? ' m/min' : ''));
+    setEl2('eff_monf_k',  fmtKg(mfRecs.reduce((a,r)=>a+r.kilos,0)));
+    setEl2('eff_monf_m',  fmtKg(mfRecs.reduce((a,r)=>a+r.metros,0)));
+    setEl2('eff_monf_f',  mfRecs.length);
+    setEl2('eff_monf_v',  velAvg(mfRecs) + (velAvg(mfRecs) !== '—' ? ' m/min' : ''));
+  }
+
   // Tarjetas por máquina (visuales)
   $('#effCards').innerHTML = MACHINES.map(m => {
     const g = agg[m.id];
@@ -2550,6 +2882,357 @@ function renderEfficiency() {
       </div>`;
   }).join('');
 }
+
+/* ---------------------------------------------------------------
+   TIEMPOS MUERTOS - ANÁLISIS
+--------------------------------------------------------------- */
+// Chart instances for downtime analytics
+let dtChartMotivosInst = null;
+let dtChartCategoriasInst = null;
+let dtChartMachinesInst = null;
+let dtChartTrendInst = null;
+
+const CAT_COLORS = {
+  'Mecánico':   '#ef4444',
+  'Eléctrico':  '#f59e0b',
+  'Programación': '#0ea5e9',
+  'Operación':  '#10b981',
+  'Limpieza':   '#8b5cf6',
+  'Otro':       '#64748b'
+};
+
+function getDowntimeRange() {
+  const rangeVal = ($('#dtAnalyticsRange') || {}).value || '30';
+  if (rangeVal === 'today') {
+    const d = new Date(); d.setHours(0,0,0,0);
+    return { from: d.getTime(), to: d.getTime() + 86400000 - 1 };
+  }
+  if (rangeVal === 'week') {
+    const d = new Date();
+    const diff = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - diff); d.setHours(0,0,0,0);
+    return { from: d.getTime(), to: Date.now() };
+  }
+  if (rangeVal === 'month') {
+    const d = new Date(); d.setDate(1); d.setHours(0,0,0,0);
+    return { from: d.getTime(), to: Date.now() };
+  }
+  if (rangeVal === 'all') return { from: 0, to: Number.MAX_SAFE_INTEGER };
+  const n = parseInt(rangeVal, 10) || 30;
+  return { from: Date.now() - n * 86400000, to: Date.now() };
+}
+
+function heatmapColor(h) {
+  if (h <= 0) return '#1e293b';
+  if (h < 2)  return '#10b981';
+  if (h <= 5) return '#f59e0b';
+  return '#ef4444';
+}
+
+function detectTurno(hIni) {
+  if (!hIni) return null;
+  const [h] = hIni.split(':').map(Number);
+  if (h >= 6 && h < 14)  return '1°';
+  if (h >= 14 && h < 22) return '2°';
+  return '3°';
+}
+
+function renderDowntimeAnalytics() {
+  const { from, to } = getDowntimeRange();
+  const dtInRange = (r) => {
+    if (r.fecha) {
+      const ft = new Date(r.fecha + 'T12:00:00').getTime();
+      return ft >= from && ft <= to;
+    }
+    return (r.ts || 0) >= from && (r.ts || 0) <= to;
+  };
+  const rows = state.down.filter(dtInRange);
+
+  // --- KPIs ---
+  const totalMin = rows.reduce((a,r)=>a+(r.duracionMin||0),0);
+  const avgMin   = rows.length ? Math.round(totalMin / rows.length) : 0;
+  // Day with most paros
+  const byDay = {};
+  rows.forEach(r => { if (r.fecha) { byDay[r.fecha] = (byDay[r.fecha]||0) + 1; } });
+  const topDay = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('dta_kpi_hrs').textContent = (totalMin/60).toFixed(1) + ' h';
+  document.getElementById('dta_kpi_cnt').textContent = rows.length;
+  document.getElementById('dta_kpi_avg').textContent = avgMin + ' min';
+  document.getElementById('dta_kpi_day').textContent = topDay ? topDay[0] : '—';
+
+  // --- Chart 1: Top motivos (horizontal bar) ---
+  const byMotivo = {};
+  rows.forEach(r => { const k = r.motivo || 'Otro'; byMotivo[k] = (byMotivo[k]||0) + (r.duracionMin||0); });
+  const motivosSorted = Object.entries(byMotivo).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if (dtChartMotivosInst) { dtChartMotivosInst.destroy(); dtChartMotivosInst = null; }
+  const ctxM = document.getElementById('dtChartMotivos')?.getContext('2d');
+  if (ctxM && motivosSorted.length) {
+    dtChartMotivosInst = new Chart(ctxM, {
+      type: 'bar',
+      data: {
+        labels: motivosSorted.map(e=>e[0]),
+        datasets: [{ label: 'Horas perdidas', data: motivosSorted.map(e=>+(e[1]/60).toFixed(2)),
+          backgroundColor: '#ef4444', borderRadius: 6 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { backgroundColor:'#0b0f16', borderColor:'#253149', borderWidth:1,
+            callbacks: { label: c => `${c.parsed.x.toFixed(1)} h` } } },
+        scales: {
+          x: { ticks: { color:'#94a3b8' }, grid: { color:'#1a2232' }, beginAtZero: true },
+          y: { ticks: { color:'#cbd5e1', font:{size:11} }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // --- Chart 2: Categorias doughnut ---
+  const byCat = {};
+  rows.forEach(r => { const k = r.categoria || 'Otro'; byCat[k] = (byCat[k]||0) + (r.duracionMin||0); });
+  const catEntries = Object.entries(byCat);
+  if (dtChartCategoriasInst) { dtChartCategoriasInst.destroy(); dtChartCategoriasInst = null; }
+  const ctxC = document.getElementById('dtChartCategorias')?.getContext('2d');
+  if (ctxC && catEntries.length) {
+    dtChartCategoriasInst = new Chart(ctxC, {
+      type: 'doughnut',
+      data: {
+        labels: catEntries.map(e=>e[0]),
+        datasets: [{ data: catEntries.map(e=>+(e[1]/60).toFixed(2)),
+          backgroundColor: catEntries.map(e=>CAT_COLORS[e[0]]||'#64748b'),
+          borderColor: '#0b0f16', borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color:'#cbd5e1', font:{weight:'700'} } },
+          tooltip: { backgroundColor:'#0b0f16', borderColor:'#253149', borderWidth:1,
+            callbacks: { label: c => `${c.label}: ${c.parsed.toFixed(1)} h` } } }
+      }
+    });
+  }
+
+  // --- Chart 3: Ranking por máquina (horizontal bar) ---
+  const byMachine = {};
+  MACHINES.forEach(m => byMachine[m.id] = { min: 0, cats: {} });
+  rows.forEach(r => {
+    if (!r.machine) return;
+    const g = byMachine[r.machine] = byMachine[r.machine] || { min: 0, cats: {} };
+    g.min += (r.duracionMin||0);
+    const cat = r.categoria || 'Otro';
+    g.cats[cat] = (g.cats[cat]||0) + (r.duracionMin||0);
+  });
+  const machineSorted = Object.entries(byMachine).sort((a,b)=>b[1].min-a[1].min).filter(e=>e[1].min>0);
+  if (dtChartMachinesInst) { dtChartMachinesInst.destroy(); dtChartMachinesInst = null; }
+  const ctxMach = document.getElementById('dtChartMachines')?.getContext('2d');
+  if (ctxMach && machineSorted.length) {
+    dtChartMachinesInst = new Chart(ctxMach, {
+      type: 'bar',
+      data: {
+        labels: machineSorted.map(e=>e[0]),
+        datasets: [{ label: 'Horas paro', data: machineSorted.map(e=>+(e[1].min/60).toFixed(2)),
+          backgroundColor: '#0ea5e9', borderRadius: 6 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { backgroundColor:'#0b0f16', borderColor:'#253149', borderWidth:1,
+            callbacks: {
+              label: (c) => {
+                const top = Object.entries(machineSorted[c.dataIndex][1].cats).sort((a,b)=>b[1]-a[1])[0];
+                return `${c.parsed.x.toFixed(1)} h${top?' · '+top[0]:''}`;
+              }
+            } } },
+        scales: {
+          x: { ticks: { color:'#94a3b8' }, grid: { color:'#1a2232' }, beginAtZero: true },
+          y: { ticks: { color:'#cbd5e1' }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // --- Chart 4: Tendencia diaria (line) ---
+  const byDate = {};
+  rows.forEach(r => { if (r.fecha) { byDate[r.fecha] = (byDate[r.fecha]||0) + (r.duracionMin||0); } });
+  const datesSorted = Object.keys(byDate).sort();
+  if (dtChartTrendInst) { dtChartTrendInst.destroy(); dtChartTrendInst = null; }
+  const ctxT = document.getElementById('dtChartTrend')?.getContext('2d');
+  if (ctxT && datesSorted.length) {
+    dtChartTrendInst = new Chart(ctxT, {
+      type: 'line',
+      data: {
+        labels: datesSorted,
+        datasets: [{ label: 'Horas de paro', data: datesSorted.map(d=>+(byDate[d]/60).toFixed(2)),
+          borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)',
+          borderWidth: 2, pointRadius: 3, fill: true, tension: 0.3 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { backgroundColor:'#0b0f16', borderColor:'#253149', borderWidth:1,
+            callbacks: { label: c => `${c.parsed.y.toFixed(1)} h` } } },
+        scales: {
+          x: { ticks: { color:'#94a3b8', maxTicksLimit: 10 }, grid: { color:'#1a2232' } },
+          y: { ticks: { color:'#64748b' }, grid: { color:'#1a2232' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // --- Heatmap turno × día semana ---
+  const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const turnos = ['1°','2°','3°'];
+  const heatData = {};
+  dias.forEach(d => { heatData[d] = {}; turnos.forEach(t => { heatData[d][t] = 0; }); });
+  rows.forEach(r => {
+    if (!r.fecha || !r.hIni) return;
+    const dow = new Date(r.fecha + 'T12:00:00').getDay(); // 0=Sun
+    const diaIdx = (dow + 6) % 7; // 0=Mon..6=Sun
+    const diaStr = dias[diaIdx];
+    const turno = detectTurno(r.hIni);
+    if (turno && heatData[diaStr]) heatData[diaStr][turno] += (r.duracionMin||0);
+  });
+  let heatHtml = '<table style="border-collapse:separate;border-spacing:4px;width:100%;">';
+  heatHtml += '<thead><tr><th style="color:#64748b;font-size:11px;padding:4px 8px">Día</th>';
+  turnos.forEach(t => { heatHtml += `<th style="color:#64748b;font-size:11px;padding:4px 8px;text-align:center">${t}</th>`; });
+  heatHtml += '</tr></thead><tbody>';
+  dias.forEach(d => {
+    heatHtml += `<tr><td style="color:#94a3b8;font-size:12px;font-weight:700;padding:4px 8px;white-space:nowrap">${d}</td>`;
+    turnos.forEach(t => {
+      const h = heatData[d][t] / 60;
+      const bg = heatmapColor(h);
+      const txt = h > 0 ? h.toFixed(1)+'h' : '—';
+      heatHtml += `<td style="background:${bg};border-radius:8px;padding:8px 12px;text-align:center;font-size:13px;font-weight:700;color:${h>0?'#fff':'#475569'};min-width:60px">${txt}</td>`;
+    });
+    heatHtml += '</tr>';
+  });
+  heatHtml += '</tbody></table>';
+  const heatEl = document.getElementById('dtHeatmap');
+  if (heatEl) heatEl.innerHTML = heatHtml;
+
+  // --- Smart Insights ---
+  const topMachine = machineSorted[0];
+  const topMotivo  = motivosSorted[0];
+  const dowCounts  = {}; // horas de paro por día de semana
+  dias.forEach(d => { dowCounts[d] = 0; });
+  rows.forEach(r => {
+    if (!r.fecha) return;
+    const dow = new Date(r.fecha + 'T12:00:00').getDay();
+    const diaStr = dias[(dow + 6) % 7];
+    dowCounts[diaStr] += (r.duracionMin||0);
+  });
+  const dowSorted = Object.entries(dowCounts).sort((a,b)=>b[1]-a[1]);
+  const peorDia = dowSorted[0];
+  const mejorDia = dowSorted[dowSorted.length-1];
+  const insightsEl = document.getElementById('dtInsights');
+  if (insightsEl) {
+    const chips = [
+      { icon: '🔴', title: 'Cuello de botella', text: topMachine ? `${topMachine[0]} · ${(topMachine[1].min/60).toFixed(1)} h de paro` : 'Sin datos', color: '#ef4444' },
+      { icon: '🔍', title: 'Causa raíz más frecuente', text: topMotivo ? `${topMotivo[0]} · ${(topMotivo[1]/60).toFixed(1)} h` : 'Sin datos', color: '#f59e0b' },
+      { icon: '📅', title: 'Peor día / Mejor día', text: peorDia && mejorDia ? `Peor: ${peorDia[0]} · Mejor: ${mejorDia[0]}` : 'Sin datos', color: '#0ea5e9' }
+    ];
+    insightsEl.innerHTML = chips.map(c => `
+      <div class="card p-4 border" style="border-color:${c.color}33">
+        <div class="text-2xl mb-1">${c.icon}</div>
+        <div class="text-xs font-bold uppercase tracking-wider mb-1" style="color:${c.color}">${c.title}</div>
+        <div class="text-sm font-bold text-white">${c.text}</div>
+      </div>`).join('');
+  }
+}
+
+/* ---------------------------------------------------------------
+   TIEMPOS MUERTOS RAMA - bindRamaDowntime
+--------------------------------------------------------------- */
+function bindRamaDowntimeForm() {
+  $('#dtrSave')?.addEventListener('click', () => requireUserThen(() => {
+    const rama   = $('#dtr_rama').value;
+    const fecha  = $('#dtr_fecha').value || todayISO();
+    const hIni   = $('#dtr_hIni').value;
+    const hFin   = $('#dtr_hFin').value;
+    const cat    = $('#dtr_cat').value;
+    const motivo = $('#dtr_motivo').value;
+    if (!hIni || !hFin) return toast('Captura horas de inicio y fin', true);
+    const mins = durationMinutes(hIni, hFin);
+    const rec = {
+      id: uid(), ts: Date.now(),
+      rama, fecha, hIni, hFin,
+      duracionMin: mins,
+      categoria: cat,
+      motivo: motivo,
+      notas: ($('#dtr_notas').value || '').trim()
+    };
+    state.rd.unshift(rec);
+    save(LS_KEYS.rd, state.rd);
+    logChange({ module:'Rama T.M.', action:'Nuevo registro', detail:`${rama} · ${cat} · ${mins} min` });
+    toast('Paro de rama registrado');
+    clearDtrForm();
+    renderRamaDowntime();
+  }));
+  $('#dtrClear')?.addEventListener('click', clearDtrForm);
+}
+
+function clearDtrForm() {
+  ['#dtr_hIni','#dtr_hFin','#dtr_notas'].forEach(s => { const el = $(s); if (el) el.value = ''; });
+  const fd = $('#dtr_fecha'); if (fd) fd.value = todayISO();
+  const rm = $('#dtr_rama'); if (rm) rm.value = 'Bruckner';
+  const ct = $('#dtr_cat'); if (ct) ct.value = 'Mecánico';
+  const mv = $('#dtr_motivo'); if (mv) mv.value = '';
+}
+
+function renderRamaDowntime() {
+  // Mini KPIs scoped to same analytics range
+  const { from, to } = getDowntimeRange();
+  const dtInRange = (r) => {
+    if (r.fecha) return new Date(r.fecha + 'T12:00:00').getTime() >= from && new Date(r.fecha + 'T12:00:00').getTime() <= to;
+    return (r.ts||0) >= from && (r.ts||0) <= to;
+  };
+  const scoped = state.rd.filter(dtInRange);
+  const totalHrs = scoped.reduce((a,r)=>a+(r.duracionMin||0),0) / 60;
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('dtr_kpi_hrs', totalHrs.toFixed(1) + ' h');
+  setEl('dtr_kpi_cnt', scoped.length);
+  const byMot = {};
+  scoped.forEach(r => { byMot[r.motivo||'Otro'] = (byMot[r.motivo||'Otro']||0)+1; });
+  const topMot = Object.entries(byMot).sort((a,b)=>b[1]-a[1])[0];
+  setEl('dtr_kpi_mot', topMot ? topMot[0] : '—');
+
+  // Table
+  const tb = document.getElementById('dtrTbody');
+  const em = document.getElementById('dtrEmpty');
+  if (!tb) return;
+  const rows = state.rd.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'') || (b.hIni||'').localeCompare(a.hIni||''));
+  if (!rows.length) {
+    tb.innerHTML = '';
+    if (em) em.classList.remove('hidden');
+  } else {
+    if (em) em.classList.add('hidden');
+    tb.innerHTML = rows.map(r => {
+      const isMonforts = r.rama === 'Monforts';
+      const ramaBadge = isMonforts ? ` <span class="chip chip-warn" style="font-size:9px">Monforts (prep)</span>` : '';
+      const catColor = { 'Mecánico':'chip-bad','Eléctrico':'chip-warn','Programación':'chip-info','Operación':'chip-ok' }[r.categoria] || 'chip-info';
+      return `<tr>
+        <td><b class="text-emer-accent">${r.rama||'Bruckner'}</b>${ramaBadge}</td>
+        <td>${r.fecha||'—'}</td>
+        <td>${r.hIni||'—'}</td>
+        <td>${r.hFin||'—'}</td>
+        <td><b>${r.duracionMin||0}</b> min</td>
+        <td><span class="chip ${catColor}">${r.categoria||'—'}</span></td>
+        <td>${r.motivo||'—'}</td>
+        <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
+        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteRamaDowntime('${r.id}')">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+window.deleteRamaDowntime = function(id) {
+  if (!confirm('¿Borrar este paro de rama?')) return;
+  const rec = state.rd.find(r => r.id === id);
+  state.rd = state.rd.filter(r => r.id !== id);
+  save(LS_KEYS.rd, state.rd);
+  if (rec) logChange({ module:'Rama T.M.', action:'Borrado', detail:`${rec.rama||''} · ${rec.categoria||''} · ${rec.duracionMin||0} min`.trim() });
+  renderRamaDowntime();
+  toast('Paro de rama borrado');
+};
 
 /* ---------------------------------------------------------------
    TIEMPOS MUERTOS
@@ -2661,6 +3344,9 @@ function renderDowntime() {
   }
   // Re-render también las sugerencias si hay
   if (typeof renderSugerencias === 'function') renderSugerencias();
+  // Analytics + Rama
+  renderDowntimeAnalytics();
+  renderRamaDowntime();
 }
 window.setDowntimeFecha = function(id, fecha) {
   if (!fecha) return;
@@ -3074,6 +3760,7 @@ function bindBrucknerForm() {
     if (!k) return toast('Captura los kilos', true);
     const rec = {
       id: uid(), ts: Date.now(),
+      rama:     $('#br_rama').value || 'Bruckner',
       fecha:    $('#br_fecha').value || todayISO(),
       turno:    $('#br_turno').value,
       operador: $('#br_operador').value.trim(),
@@ -3123,6 +3810,7 @@ function renderBruckner() {
     tb.innerHTML = rows.map(r => `
       <tr>
         <td>${r.fecha}</td>
+        <td><span class="chip ${(r.rama||'Bruckner')==='Monforts'?'chip-warn':'chip-info'}">${r.rama||'Bruckner'}</span></td>
         <td>${r.turno}</td>
         <td>${r.lote||'—'}</td>
         <td>${r.tela||'—'}</td>
@@ -3175,7 +3863,7 @@ function bindExport() {
 function renderAll() {
   renderReport();
   renderEfficiency();
-  renderDowntime();
+  renderDowntime(); // already calls renderDowntimeAnalytics + renderRamaDowntime
   renderBruckner();
   renderHistory();
 }
