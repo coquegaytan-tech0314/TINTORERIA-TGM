@@ -556,13 +556,15 @@
           <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón Oscuro">Pol+Alg Oscuro <small class="block text-[10px] text-slate-500">11 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón Claro">Pol+Alg Claro <small class="block text-[10px] text-slate-500">10 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Teñido Pol + Algodón Blanco">Pol+Alg Blanco <small class="block text-[10px] text-slate-500">5 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Poliéster Blanco">Poliéster Blanco <small class="block text-[10px] text-slate-500">4.5 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Poliéster Medio">Poliéster Medio <small class="block text-[10px] text-slate-500">6.5 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Poliéster Obscuro">Poliéster Obscuro <small class="block text-[10px] text-slate-500">8 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Lavado de Máquina">Lavado Máquina <small class="block text-[10px] text-slate-500">3.5 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Lavado Felpas">Lavado Felpas <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn proceso-btn" data-p="Lavado Telas">Lavado Telas <small class="block text-[10px] text-slate-500">3 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Descrude">Descrude <small class="block text-[10px] text-slate-500">3 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Matiz">Matiz <small class="block text-[10px] text-slate-500">3 h</small></button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Despicado">Despicado <small class="block text-[10px] text-slate-500">2 h</small></button>
           <button type="button" class="cat-btn proceso-btn" data-p="Baño Ciego">Baño Ciego <small class="block text-[10px] text-slate-500">3 h</small></button>
-          <button type="button" class="cat-btn proceso-btn" data-p="Suavizado">Suavizado <small class="block text-[10px] text-slate-500">2 h</small></button>
         </div>
         <input type="text" id="f_proceso" class="field" placeholder="Proceso (puede editarse o escribir uno nuevo)" />
       </div>
@@ -1125,7 +1127,26 @@
       <div><label class="lbl">Kilos</label><input type="number" step="0.01" min="0" id="ef_kilos" class="field" /></div>
       <div><label class="lbl">Hr. Entrada</label><input type="time" id="ef_hEntrada" class="field" /></div>
       <div><label class="lbl">Hr. Salida</label><input type="time" id="ef_hSalida" class="field" /></div>
-      <div class="sm:col-span-2"><label class="lbl">Proceso</label><input type="text" id="ef_proceso" class="field" /></div>
+      <div class="sm:col-span-2">
+        <label class="lbl">Proceso</label>
+        <div class="chips-grid mb-2" id="efProcesoChips">
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Teñido Poliéster color">Teñido Pol color <small class="block text-[10px] text-slate-500">7 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Teñido Poliéster blanco">Teñido Pol blanco <small class="block text-[10px] text-slate-500">5 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Teñido Pol + Algodón Oscuro">Pol+Alg Oscuro <small class="block text-[10px] text-slate-500">11 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Teñido Pol + Algodón Claro">Pol+Alg Claro <small class="block text-[10px] text-slate-500">10 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Teñido Pol + Algodón Blanco">Pol+Alg Blanco <small class="block text-[10px] text-slate-500">5 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Poliéster Blanco">Poliéster Blanco <small class="block text-[10px] text-slate-500">4.5 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Poliéster Medio">Poliéster Medio <small class="block text-[10px] text-slate-500">6.5 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Poliéster Obscuro">Poliéster Obscuro <small class="block text-[10px] text-slate-500">8 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Lavado de Máquina">Lavado Máquina <small class="block text-[10px] text-slate-500">3.5 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Lavado Felpas">Lavado Felpas <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Lavado Telas">Lavado Telas <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Descrude">Descrude <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Matiz">Matiz <small class="block text-[10px] text-slate-500">3 h</small></button>
+          <button type="button" class="cat-btn ef-proceso-btn" data-p="Baño Ciego">Baño Ciego <small class="block text-[10px] text-slate-500">3 h</small></button>
+        </div>
+        <input type="text" id="ef_proceso" class="field" placeholder="Proceso (puede editarse o escribir uno nuevo)" />
+      </div>
       <div><label class="lbl">APQ (MXN/kg)</label><input type="number" step="0.01" min="0" id="ef_apq" class="field" /></div>
       <div><label class="lbl">Baños</label><input type="number" step="1" min="1" id="ef_banos" class="field" /></div>
       <div class="sm:col-span-2"><label class="lbl">Notas</label><textarea id="ef_notas" rows="2" class="field"></textarea></div>
@@ -1233,6 +1254,11 @@ const MACHINES = [
 */
 const DEFAULT_PROC_MIN = 420; // 7 horas default si no encontramos proceso
 const PROCESOS_CATALOGO = [
+  // Matches específicos primero
+  { key: 'pol_blanco',         label: 'Poliéster Blanco',         minutos: 270, match: [/poli[eé]ster\s*blanc/i] },        // 4.5 h
+  { key: 'pol_medio',          label: 'Poliéster Medio',          minutos: 390, match: [/poli[eé]ster\s*medio/i] },        // 6.5 h
+  { key: 'pol_obscuro',        label: 'Poliéster Obscuro',        minutos: 480, match: [/poli[eé]ster\s*(obscur|oscur)/i] }, // 8 h
+  { key: 'lavado_telas',       label: 'Lavado Telas',             minutos: 180, match: [/lavado\s*telas?/i] },             // 3 h
   { key: 'tenido_pol_color',   label: 'Teñido Poliéster color',    minutos: 420, match: [/teñido\s*pol(?!\s*\+)/i, /tiñe\s*pol(?!\+)/i] },
   { key: 'tenido_pol_blanco',  label: 'Teñido Poliéster blanco',   minutos: 300, match: [/teñido\s*pol.*blanc/i, /blanqueo\s*pol(?!\s*\+)/i] },
   { key: 'tenido_pa_oscuro',   label: 'Teñido Pol-Alg Oscuro',    minutos: 660, match: [/teñido\s*pol.*\+.*alg.*oscuro/i, /pol.*alg.*oscuro/i] },
@@ -1243,9 +1269,9 @@ const PROCESOS_CATALOGO = [
   { key: 'lavado_felpas',      label: 'Lavado Felpas',            minutos: 180, match: [/lavado\s*felpa/i, /felpa/i] },
   { key: 'descrude',           label: 'Descrude',                 minutos: 180, match: [/descrude/i] },
   { key: 'matiz',              label: 'Matiz',                    minutos: 180, match: [/matiz/i] },
-  { key: 'despicado',          label: 'Despicado',                minutos: 120, match: [/despic/i] },
+  { key: 'despicado',          label: 'Despicado',                minutos: 120, match: [/despic/i] },       // legacy: mantiene cálculo para fichas históricas
   { key: 'bano_ciego',         label: 'Baño Ciego',                minutos: 180, match: [/baño\s*ciego/i] },
-  { key: 'suavizado',          label: 'Suavizado',                minutos: 120, match: [/suavizado/i] },
+  { key: 'suavizado',          label: 'Suavizado',                minutos: 120, match: [/suavizado/i] },   // legacy: mantiene cálculo para fichas históricas
   { key: 'bajando_pol',        label: 'Bajando con Poliéster',    minutos: 240, match: [/bajando.*pol/i] }
 ];
 
@@ -2247,7 +2273,7 @@ function renderReport() {
                 <th>Proceso</th>
                 <th>Hr. Ent.</th>
                 <th>Hr. Sal.</th>
-                <th>APQ</th>
+                <th>Kilos Aprobados</th>
                 <th>Costo Q.</th>
                 <th>Operador</th>
                 <th>Notas</th>
@@ -2266,7 +2292,7 @@ function renderReport() {
                   <td class="text-slate-300">${r.proceso||'—'}</td>
                   <td class="text-slate-400">${r.hEntrada||'—'}</td>
                   <td class="text-slate-400">${r.hSalida||'—'}</td>
-                  <td>${r.apq ? `<span class="${r.apq>=15?'text-amber-400 font-bold':''}" title="${r.apq>=15?'APQ alto (químico costoso)':''}">${fmtKg(r.apq)}${r.apq>=15?' ⚠':''}</span>` : '—'}</td>
+                  <td>${r.apq ? `<span class="${r.apq>=15?'text-amber-400 font-bold':''}" title="${r.apq>=15?'Kilos aprobados alto':''}">${fmtKg(r.apq)}${r.apq>=15?' ⚠':''}</span>` : '—'}</td>
                   <td class="text-slate-300">${(r.apq && r.kilos) ? '$'+Math.round(r.apq*r.kilos).toLocaleString('es-MX') : '—'}</td>
                   <td class="text-slate-400 text-sm">${r.operador||'—'}</td>
                   <td class="text-slate-400 text-sm">${r.notas||'—'}</td>
@@ -2846,6 +2872,10 @@ window.openEditFicha = function(id) {
   $('#ef_hEntrada').value = f.hEntrada || '';
   $('#ef_hSalida').value  = f.hSalida || '';
   $('#ef_proceso').value  = f.proceso || '';
+  // Highlight matching chip in edit modal
+  $$('#efProcesoChips .ef-proceso-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.p === (f.proceso||''));
+  });
   $('#ef_apq').value      = f.apq || '';
   $('#ef_banos').value    = f.banos || 1;
   $('#ef_notas').value    = f.notas || '';
@@ -2902,6 +2932,14 @@ function bindEditFichaModal() {
   $('#editFichaSave').addEventListener('click', saveEditedFicha);
   $('#editFichaModal').addEventListener('click', (e) => {
     if (e.target.id === 'editFichaModal') closeEditFichaModal();
+  });
+  // Chip click handlers — edit modal proceso buttons
+  $$('#efProcesoChips .ef-proceso-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#efProcesoChips .ef-proceso-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      $('#ef_proceso').value = b.dataset.p;
+    });
   });
 }
 
