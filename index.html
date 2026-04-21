@@ -863,79 +863,132 @@
       <span id="dtCount" class="chip chip-warn">0 paros hoy</span>
     </div>
 
-    <!-- 📊 ANÁLISIS DE TIEMPOS MUERTOS -->
-    <div class="card p-5 mb-4 border border-sky-accent/20">
-      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 class="text-lg font-black text-white">📊 Análisis de Tiempos Muertos</h3>
-        <select id="dtAnalyticsRange" class="field !py-1 !text-sm" style="max-width:220px">
-          <option value="30" selected>Últimos 30 días</option>
-          <option value="today">Hoy</option>
-          <option value="7">Últimos 7 días</option>
-          <option value="week">Semana actual</option>
-          <option value="month">Mes actual</option>
-          <option value="all">Todo el historial</option>
-        </select>
-      </div>
-
-      <!-- KPI cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="dtAnalyticsKpis">
-        <div class="card p-4">
-          <div class="kpi-lbl">Total horas paro</div>
-          <div id="dta_kpi_hrs" class="kpi-num text-danger mt-1">0 h</div>
-        </div>
-        <div class="card p-4">
-          <div class="kpi-lbl"># de paros</div>
-          <div id="dta_kpi_cnt" class="kpi-num text-warn mt-1">0</div>
-        </div>
-        <div class="card p-4">
-          <div class="kpi-lbl">Promedio / paro</div>
-          <div id="dta_kpi_avg" class="kpi-num text-sky-accent mt-1">0 min</div>
-        </div>
-        <div class="card p-4">
-          <div class="kpi-lbl">Día con más paros</div>
-          <div id="dta_kpi_day" class="text-lg font-black text-white mt-1">—</div>
-        </div>
-      </div>
-
-      <!-- Charts row 1 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <!-- Formulario -->
+    <div class="card p-5 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Top motivos (horas perdidas)</h4>
-          <div style="height:300px"><canvas id="dtChartMotivos"></canvas></div>
+          <label class="lbl">Máquina</label>
+          <select id="dt_machine" class="field">
+            <option value="">-- Selecciona --</option>
+          </select>
         </div>
         <div>
-          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Categorías</h4>
-          <div style="height:280px"><canvas id="dtChartCategorias"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Charts row 2 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Ranking por máquina</h4>
-          <div style="height:300px"><canvas id="dtChartMachines"></canvas></div>
+          <label class="lbl">Fecha</label>
+          <input type="date" id="dt_fecha" class="field" />
         </div>
         <div>
-          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Tendencia diaria (horas de paro)</h4>
-          <div style="height:280px"><canvas id="dtChartTrend"></canvas></div>
+          <label class="lbl">Hora inicio</label>
+          <input type="time" id="dt_hIni" class="field" />
+        </div>
+        <div>
+          <label class="lbl">Hora fin</label>
+          <input type="time" id="dt_hFin" class="field" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Categoría</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Mecánico">Mecánico</button>
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Eléctrico">Eléctrico</button>
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Programación">Programación</button>
+            <button type="button" class="cat-btn dt-cat-btn" data-cat="Operación">Operación</button>
+          </div>
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Motivo específico</label>
+          <select id="dt_motivo" class="field">
+            <option value="">-- Selecciona --</option>
+            <option>Lavado de máquina</option>
+            <option>Cambio de guía / descontaminar</option>
+            <option>Mantenimiento preventivo</option>
+            <option>Falla eléctrica</option>
+            <option>Falta de material</option>
+            <option>Falta de vapor</option>
+            <option>Falta de agua</option>
+            <option>Falla mecánica</option>
+            <option>Atorón</option>
+            <option>Problema en válvula</option>
+            <option>Checar tono</option>
+            <option>Descargar / Cargar</option>
+            <option>Día festivo</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Descripción del problema</label>
+          <textarea id="dt_notas" rows="2" class="field" placeholder="Descripción breve del problema..."></textarea>
         </div>
       </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+        <button id="dtSave" class="btn btn-primary touch-xl">Registrar Paro</button>
+        <button id="dtClear" class="btn btn-secondary touch-xl">Limpiar</button>
+      </div>
+    </div>
 
-      <!-- Heatmap -->
-      <div class="mb-4">
-        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Heatmap: turno × día de semana</h4>
-        <div id="dtHeatmap" class="overflow-x-auto"></div>
-        <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
-          <span>Leyenda:</span>
-          <span class="inline-block w-4 h-4 rounded" style="background:#1e293b"></span> 0 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> &lt;2 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#f59e0b"></span> 2–5 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> &gt;5 h
+    <!-- Sugerencias automáticas (gaps entre fichas) -->
+    <div class="card p-5 mb-4 border border-amber-500/30 bg-amber-500/5">
+      <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <div>
+          <h3 class="text-lg font-black text-amber-300">🔍 Sugerencias automáticas (gaps entre fichas)</h3>
+          <p class="text-slate-400 text-sm">Detecta huecos entre <b>Hr. Salida</b> y la siguiente <b>Hr. Entrada</b> en la misma máquina.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="lbl !mb-0">Gap mínimo:</label>
+          <select id="sugMinGap" class="field !py-1 !text-sm">
+            <option value="30">30 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="90">90 min</option>
+            <option value="120">2 h</option>
+            <option value="180">3 h</option>
+          </select>
+          <select id="sugRange" class="field !py-1 !text-sm">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="all">Todo</option>
+          </select>
+          <button id="sugRefresh" class="btn btn-secondary !py-1 !px-3 text-sm">Recalcular</button>
         </div>
       </div>
+      <div id="sugStats" class="text-sm text-slate-400 mb-2">—</div>
+      <div id="sugList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+      <div id="sugEmpty" class="hidden text-center py-6 text-slate-500 text-sm">No hay sugerencias para los filtros actuales.</div>
+    </div>
 
-      <!-- Smart insights -->
-      <div id="dtInsights" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+    <!-- Lista -->
+    <div class="card overflow-hidden mb-4">
+      <div class="flex items-center justify-between p-3 border-b border-slate-700/50 flex-wrap gap-2">
+        <h3 class="text-base font-bold text-white">Tiempos muertos registrados</h3>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="dtBulkFecha" class="btn btn-secondary !py-1 !px-3 text-xs" title="Asignar fecha en bloque a t.muertos sin fecha">📅 Asignar fecha en bloque</button>
+          <input type="text" id="dtFilterText" class="field !py-1 !text-sm" placeholder="Filtrar por máquina/categoría/notas…" style="max-width:260px" />
+          <select id="dtFilterEditable" class="field !py-1 !text-sm">
+            <option value="all">Todos</option>
+            <option value="editable">Solo sin fecha (editables)</option>
+            <option value="auto">Solo detectados automáticamente</option>
+          </select>
+        </div>
+      </div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Máquina</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Duración</th>
+              <th>Categoría</th>
+              <th>Motivo</th>
+              <th>Descripción</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dtTbody"></tbody>
+        </table>
+      </div>
+      <div id="dtEmpty" class="hidden text-center py-16 px-6">
+        <div class="text-6xl mb-3 opacity-40">⏱️</div>
+        <p class="text-slate-400 font-semibold">Sin tiempos muertos registrados.</p>
+      </div>
     </div>
 
     <!-- 🧵 TIEMPOS MUERTOS RAMA (Bruckner / Monforts) -->
@@ -1040,133 +1093,92 @@
         </div>
       </details>
     </div>
+  </section>
 
-    <!-- Formulario -->
-    <div class="card p-5 mb-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="lbl">Máquina</label>
-          <select id="dt_machine" class="field">
-            <option value="">-- Selecciona --</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl">Fecha</label>
-          <input type="date" id="dt_fecha" class="field" />
-        </div>
-        <div>
-          <label class="lbl">Hora inicio</label>
-          <input type="time" id="dt_hIni" class="field" />
-        </div>
-        <div>
-          <label class="lbl">Hora fin</label>
-          <input type="time" id="dt_hFin" class="field" />
-        </div>
-        <div class="md:col-span-2">
-          <label class="lbl">Categoría</label>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button type="button" class="cat-btn dt-cat-btn" data-cat="Mecánico">Mecánico</button>
-            <button type="button" class="cat-btn dt-cat-btn" data-cat="Eléctrico">Eléctrico</button>
-            <button type="button" class="cat-btn dt-cat-btn" data-cat="Programación">Programación</button>
-            <button type="button" class="cat-btn dt-cat-btn" data-cat="Operación">Operación</button>
-          </div>
-        </div>
-        <div class="md:col-span-2">
-          <label class="lbl">Motivo específico</label>
-          <select id="dt_motivo" class="field">
-            <option value="">-- Selecciona --</option>
-            <option>Lavado de máquina</option>
-            <option>Cambio de guía / descontaminar</option>
-            <option>Mantenimiento preventivo</option>
-            <option>Falla eléctrica</option>
-            <option>Falta de material</option>
-            <option>Falta de vapor</option>
-            <option>Falta de agua</option>
-            <option>Falla mecánica</option>
-            <option>Atorón</option>
-            <option>Problema en válvula</option>
-            <option>Checar tono</option>
-            <option>Descargar / Cargar</option>
-            <option>Día festivo</option>
-            <option>Otro</option>
-          </select>
-        </div>
-        <div class="md:col-span-2">
-          <label class="lbl">Descripción del problema</label>
-          <textarea id="dt_notas" rows="2" class="field" placeholder="Descripción breve del problema..."></textarea>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
-        <button id="dtSave" class="btn btn-primary touch-xl">Registrar Paro</button>
-        <button id="dtClear" class="btn btn-secondary touch-xl">Limpiar</button>
+  <!-- ========================================================== -->
+  <!-- TAB: ANÁLISIS T.M. (analytics moved from tab-downtime)     -->
+  <!-- ========================================================== -->
+  <section id="tab-downtime-analytics" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-black text-white">Análisis de Tiempos Muertos</h2>
+        <p class="text-slate-400 text-sm">Identifica cuellos de botella y causas raíz de paros en producción</p>
       </div>
     </div>
 
-    <!-- Sugerencias automáticas (gaps entre fichas) -->
-    <div class="card p-5 mb-4 border border-amber-500/30 bg-amber-500/5">
-      <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
-        <div>
-          <h3 class="text-lg font-black text-amber-300">🔍 Sugerencias automáticas (gaps entre fichas)</h3>
-          <p class="text-slate-400 text-sm">Detecta huecos entre <b>Hr. Salida</b> y la siguiente <b>Hr. Entrada</b> en la misma máquina.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="lbl !mb-0">Gap mínimo:</label>
-          <select id="sugMinGap" class="field !py-1 !text-sm">
-            <option value="30">30 min</option>
-            <option value="60" selected>60 min</option>
-            <option value="90">90 min</option>
-            <option value="120">2 h</option>
-            <option value="180">3 h</option>
-          </select>
-          <select id="sugRange" class="field !py-1 !text-sm">
-            <option value="7">Últimos 7 días</option>
-            <option value="30" selected>Últimos 30 días</option>
-            <option value="all">Todo</option>
-          </select>
-          <button id="sugRefresh" class="btn btn-secondary !py-1 !px-3 text-sm">Recalcular</button>
-        </div>
+    <!-- 📊 ANALYTICS BLOCK -->
+    <div class="card p-5 mb-4 border border-sky-accent/20">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h3 class="text-lg font-black text-white">📊 Análisis de Tiempos Muertos</h3>
+        <select id="dtAnalyticsRange" class="field !py-1 !text-sm" style="max-width:220px">
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="today">Hoy</option>
+          <option value="7">Últimos 7 días</option>
+          <option value="week">Semana actual</option>
+          <option value="month">Mes actual</option>
+          <option value="all">Todo el historial</option>
+        </select>
       </div>
-      <div id="sugStats" class="text-sm text-slate-400 mb-2">—</div>
-      <div id="sugList" class="space-y-2 max-h-96 overflow-y-auto"></div>
-      <div id="sugEmpty" class="hidden text-center py-6 text-slate-500 text-sm">No hay sugerencias para los filtros actuales.</div>
-    </div>
 
-    <!-- Lista -->
-    <div class="card overflow-hidden">
-      <div class="flex items-center justify-between p-3 border-b border-slate-700/50 flex-wrap gap-2">
-        <h3 class="text-base font-bold text-white">Tiempos muertos registrados</h3>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button id="dtBulkFecha" class="btn btn-secondary !py-1 !px-3 text-xs" title="Asignar fecha en bloque a t.muertos sin fecha">📅 Asignar fecha en bloque</button>
-          <input type="text" id="dtFilterText" class="field !py-1 !text-sm" placeholder="Filtrar por máquina/categoría/notas…" style="max-width:260px" />
-          <select id="dtFilterEditable" class="field !py-1 !text-sm">
-            <option value="all">Todos</option>
-            <option value="editable">Solo sin fecha (editables)</option>
-            <option value="auto">Solo detectados automáticamente</option>
-          </select>
+      <!-- KPI cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="dtAnalyticsKpis">
+        <div class="card p-4">
+          <div class="kpi-lbl">Total horas paro</div>
+          <div id="dta_kpi_hrs" class="kpi-num text-danger mt-1">0 h</div>
+        </div>
+        <div class="card p-4">
+          <div class="kpi-lbl"># de paros</div>
+          <div id="dta_kpi_cnt" class="kpi-num text-warn mt-1">0</div>
+        </div>
+        <div class="card p-4">
+          <div class="kpi-lbl">Promedio / paro</div>
+          <div id="dta_kpi_avg" class="kpi-num text-sky-accent mt-1">0 min</div>
+        </div>
+        <div class="card p-4">
+          <div class="kpi-lbl">Día con más paros</div>
+          <div id="dta_kpi_day" class="text-lg font-black text-white mt-1">—</div>
         </div>
       </div>
-      <div class="scroll-x">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Máquina</th>
-              <th>Inicio</th>
-              <th>Fin</th>
-              <th>Duración</th>
-              <th>Categoría</th>
-              <th>Motivo</th>
-              <th>Descripción</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="dtTbody"></tbody>
-        </table>
+
+      <!-- Charts row 1 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Top motivos (horas perdidas)</h4>
+          <div style="height:300px"><canvas id="dtChartMotivos"></canvas></div>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Categorías</h4>
+          <div style="height:280px"><canvas id="dtChartCategorias"></canvas></div>
+        </div>
       </div>
-      <div id="dtEmpty" class="hidden text-center py-16 px-6">
-        <div class="text-6xl mb-3 opacity-40">⏱️</div>
-        <p class="text-slate-400 font-semibold">Sin tiempos muertos registrados.</p>
+
+      <!-- Charts row 2 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Ranking por máquina</h4>
+          <div style="height:300px"><canvas id="dtChartMachines"></canvas></div>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Tendencia diaria (horas de paro)</h4>
+          <div style="height:280px"><canvas id="dtChartTrend"></canvas></div>
+        </div>
       </div>
+
+      <!-- Heatmap -->
+      <div class="mb-4">
+        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Heatmap: turno × día de semana</h4>
+        <div id="dtHeatmap" class="overflow-x-auto"></div>
+        <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
+          <span>Leyenda:</span>
+          <span class="inline-block w-4 h-4 rounded" style="background:#1e293b"></span> 0 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> &lt;2 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#f59e0b"></span> 2–5 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> &gt;5 h
+        </div>
+      </div>
+
+      <!-- Smart insights -->
+      <div id="dtInsights" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
     </div>
   </section>
 
@@ -1355,6 +1367,10 @@
     <button class="tab-btn" data-tab="tab-downtime">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span>T. Muerto</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-downtime-analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+      <span>Análisis</span>
     </button>
     <button class="tab-btn" data-tab="tab-bruckner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -2357,6 +2373,10 @@ function bindTabs() {
     $$('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
     $$('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== tab));
     renderAll();
+    // Re-render analytics charts after tab becomes visible (Chart.js needs visible canvas)
+    if (tab === 'tab-downtime-analytics') {
+      requestAnimationFrame(() => renderDowntimeAnalytics());
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
