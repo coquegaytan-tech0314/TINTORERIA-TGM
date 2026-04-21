@@ -659,13 +659,25 @@
         <h2 class="text-2xl font-black text-white">Eficiencia por Máquina</h2>
         <p class="text-slate-400 text-sm">Disponibilidad · Desempeño · Producción real vs estimada</p>
       </div>
-      <select id="effRange" class="field !py-2 !text-base max-w-[200px]">
-        <option value="today">Hoy</option>
-        <option value="7" selected>Últimos 7 días</option>
-        <option value="30">Últimos 30 días</option>
-        <option value="week">Semana actual</option>
-        <option value="all">Todo</option>
-      </select>
+      <div class="flex items-center gap-2 flex-wrap">
+        <select id="effRange" class="field !py-2 !text-base max-w-[220px]">
+          <option value="today">Hoy</option>
+          <option value="7" selected>Últimos 7 días</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="week">Semana actual</option>
+          <option value="month">Mes actual</option>
+          <option value="all">Todo</option>
+          <option value="custom">📅 Rango personalizado…</option>
+        </select>
+        <div id="effCustomRange" class="hidden items-center gap-2 flex-wrap" style="display:none">
+          <label class="lbl !mb-0">De:</label>
+          <input type="date" id="effFrom" class="field !py-2 !text-sm" style="max-width:160px" />
+          <label class="lbl !mb-0">A:</label>
+          <input type="date" id="effTo" class="field !py-2 !text-sm" style="max-width:160px" />
+          <button id="effApplyCustom" class="btn btn-primary !py-1 !px-3 text-xs">Aplicar</button>
+          <button id="effPresetMar" class="btn btn-ghost !py-1 !px-3 text-xs" title="Todo marzo 2026">Marzo 2026</button>
+        </div>
+      </div>
     </div>
 
     <!-- Resumen total -->
@@ -1939,7 +1951,36 @@ function init() {
       else { alert('No hay fichas registradas todavía.'); }
     } catch(e) { console.error(e); }
   });
-  $('#effRange').addEventListener('change', renderEfficiency);
+  $('#effRange').addEventListener('change', () => {
+    const isCustom = $('#effRange').value === 'custom';
+    const box = $('#effCustomRange');
+    box.style.display = isCustom ? 'flex' : 'none';
+    if (isCustom) {
+      // Pre-llenar con los últimos 30 días con datos por defecto
+      if (!$('#effFrom').value || !$('#effTo').value) {
+        const fechas = [...new Set(state.prod.map(f => f.fecha).filter(Boolean))].sort();
+        if (fechas.length) {
+          $('#effTo').value   = fechas[fechas.length - 1];
+          $('#effFrom').value = fechas[Math.max(0, fechas.length - 30)];
+        } else {
+          $('#effTo').value   = todayISO();
+          const d = new Date(); d.setDate(d.getDate() - 30);
+          $('#effFrom').value = d.toISOString().slice(0,10);
+        }
+      }
+    }
+    renderEfficiency();
+  });
+  $('#effApplyCustom')?.addEventListener('click', renderEfficiency);
+  $('#effFrom')?.addEventListener('change', () => { if ($('#effRange').value === 'custom') renderEfficiency(); });
+  $('#effTo')?.addEventListener('change', () => { if ($('#effRange').value === 'custom') renderEfficiency(); });
+  $('#effPresetMar')?.addEventListener('click', () => {
+    $('#effFrom').value = '2026-03-01';
+    $('#effTo').value   = '2026-03-31';
+    $('#effRange').value = 'custom';
+    $('#effCustomRange').style.display = 'flex';
+    renderEfficiency();
+  });
 
   renderAll();
 
@@ -2259,18 +2300,46 @@ let chartKilos = null;
 
 function getDateRange(range) {
   const now = new Date();
-  if (range === 'today') return { from: new Date().setHours(0,0,0,0), days: 1 };
+  if (range === 'today') {
+    const d = new Date(); d.setHours(0,0,0,0);
+    return { from: d.getTime(), to: d.getTime() + 86400000 - 1, days: 1 };
+  }
   if (range === 'week') {
     const d = new Date();
     const day = d.getDay(); // 0=Dom, 1=Lun...
-    const diffToMon = (day + 6) % 7; // días desde lunes
+    const diffToMon = (day + 6) % 7;
     d.setDate(d.getDate() - diffToMon);
     d.setHours(0,0,0,0);
-    return { from: d.getTime(), days: diffToMon + 1 };
+    return { from: d.getTime(), to: now.getTime(), days: diffToMon + 1 };
   }
-  if (range === 'all') return { from: 0, days: null };
+  if (range === 'month') {
+    const d = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: d.getTime(), to: now.getTime(), days: now.getDate() };
+  }
+  if (range === 'all') return { from: 0, to: Number.MAX_SAFE_INTEGER, days: null };
+  if (range === 'custom') {
+    // Lee los inputs; si faltan, usa los últimos 30 días
+    const fromStr = (document.getElementById('effFrom')||{}).value;
+    const toStr   = (document.getElementById('effTo')||{}).value;
+    if (fromStr && toStr) {
+      const fromT = new Date(fromStr + 'T00:00:00').getTime();
+      const toT   = new Date(toStr   + 'T23:59:59').getTime();
+      const days  = Math.max(1, Math.round((toT - fromT)/86400000));
+      return { from: fromT, to: toT, days };
+    }
+    return { from: now.getTime() - 30*86400000, to: now.getTime(), days: 30 };
+  }
   const n = Number(range);
-  return { from: now.getTime() - n*24*60*60*1000, days: n };
+  return { from: now.getTime() - n*86400000, to: now.getTime(), days: n };
+}
+function formatRangeChip(range) {
+  if (range === 'custom') {
+    const f = (document.getElementById('effFrom')||{}).value;
+    const t = (document.getElementById('effTo')||{}).value;
+    if (f && t) return `${f} → ${t}`;
+    return 'Rango personalizado';
+  }
+  return { today:'Hoy', '7':'Últimos 7 días', '30':'Últimos 30 días', week:'Semana actual', month:'Mes actual', all:'Todo' }[range] || range;
 }
 
 /** Devuelve el # de días distintos con fichas dentro del rango;
@@ -2284,12 +2353,19 @@ function distinctDaysWithData(rows) {
 
 function renderEfficiency() {
   const range = $('#effRange').value;
-  const { from, days } = getDateRange(range);
-  const chipText = { today:'Hoy', '7':'Últimos 7 días', '30':'Últimos 30 días', week:'Semana actual', all:'Todo' }[range];
-  $('#effRangeChip').textContent = chipText;
+  const { from, to, days } = getDateRange(range);
+  $('#effRangeChip').textContent = formatRangeChip(range);
 
-  const rows = state.prod.filter(r => r.ts >= from);
-  const downs = state.down.filter(d => d.ts >= from);
+  // Filtrar por fecha de producción (r.fecha) si existe; caer a ts si no
+  const inRange = (r) => {
+    if (r.fecha) {
+      const ft = new Date(r.fecha + 'T12:00:00').getTime();
+      return ft >= from && ft <= to;
+    }
+    return (r.ts||0) >= from && (r.ts||0) <= to;
+  };
+  const rows  = state.prod.filter(inRange);
+  const downs = state.down.filter(inRange);
 
   // Agregados por máquina
   const agg = {};
