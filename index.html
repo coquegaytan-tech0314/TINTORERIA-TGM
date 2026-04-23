@@ -649,7 +649,7 @@
           <h3 class="font-black text-white text-base">🧵 Bruckner</h3>
           <span class="chip chip-ok">Activa</span>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-3 gap-3 mb-3">
           <div>
             <div class="kpi-lbl">Kilos</div>
             <div id="rep_bruck_k" class="text-xl font-black text-sky-accent">0</div>
@@ -663,6 +663,22 @@
             <div id="rep_bruck_f" class="text-xl font-black text-white">0</div>
           </div>
         </div>
+        <!-- Meta y progreso -->
+        <div class="mb-2">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs text-slate-400">Meta: <span id="rep_bruck_meta" class="text-slate-300">15,000 kg</span></span>
+            <span id="rep_bruck_pct" class="chip chip-info text-xs">0% de meta</span>
+          </div>
+          <div class="h-2 bg-slate-800 rounded">
+            <div id="rep_bruck_bar" class="h-2 rounded transition-all duration-300" style="width:0%;background:#10b981"></div>
+          </div>
+        </div>
+        <!-- Desglose por proceso -->
+        <div class="flex flex-wrap gap-1 mt-2">
+          <span id="rep_bruck_emp"  class="chip text-xs" style="background:#0c4a6e;color:#7dd3fc">Empacado: — kg</span>
+          <span id="rep_bruck_term" class="chip text-xs" style="background:#451a03;color:#fcd34d">Termofijado: — kg</span>
+          <span id="rep_bruck_suav" class="chip text-xs" style="background:#064e3b;color:#6ee7b7">Suavizado: — kg</span>
+        </div>
       </div>
       <!-- Monforts -->
       <div class="card p-5 opacity-50">
@@ -670,7 +686,7 @@
           <h3 class="font-black text-white text-base">🧵 Monforts</h3>
           <span class="chip chip-warn">En montaje</span>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-3 gap-3 mb-3">
           <div>
             <div class="kpi-lbl">Kilos</div>
             <div id="rep_monf_k" class="text-xl font-black text-slate-500">0</div>
@@ -683,6 +699,12 @@
             <div class="kpi-lbl">Fichas</div>
             <div id="rep_monf_f" class="text-xl font-black text-slate-500">0</div>
           </div>
+        </div>
+        <!-- Desglose por proceso Monforts -->
+        <div class="flex flex-wrap gap-1 mt-2">
+          <span id="rep_monf_emp"  class="chip text-xs" style="background:#1e293b;color:#94a3b8">Empacado: — kg</span>
+          <span id="rep_monf_term" class="chip text-xs" style="background:#1e293b;color:#94a3b8">Termofijado: — kg</span>
+          <span id="rep_monf_suav" class="chip text-xs" style="background:#1e293b;color:#94a3b8">Suavizado: — kg</span>
         </div>
       </div>
     </div>
@@ -817,6 +839,11 @@
               <div class="kpi-lbl">Vel. prom.</div>
               <div id="eff_bruck_v" class="text-xl font-black text-warn">— m/min</div>
             </div>
+          </div>
+          <!-- % Cumplimiento Meta -->
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400">% Cumplimiento Meta</span>
+            <span id="eff_bruck_pct" class="chip chip-info text-xs">0%</span>
           </div>
         </div>
         <!-- Monforts -->
@@ -1236,7 +1263,11 @@
           <input type="number" step="0.01" min="0" id="br_kilos" class="field" inputmode="decimal" />
         </div>
         <div>
-          <label class="lbl">Metros</label>
+          <label class="lbl">Rendimiento (m/kg)</label>
+          <input type="number" step="0.01" min="0" id="br_rend" class="field" inputmode="decimal" placeholder="2.10" />
+        </div>
+        <div>
+          <label class="lbl">Metros <span class="text-slate-500 text-xs font-normal">(auto-calc)</span></label>
           <input type="number" step="0.1" min="0" id="br_metros" class="field" inputmode="decimal" />
         </div>
         <div>
@@ -1249,12 +1280,15 @@
         </div>
         <div class="md:col-span-2">
           <label class="lbl">Proceso</label>
-          <select id="br_proceso" class="field">
-            <option value="Suavizado">Suavizado</option>
-            <option value="Termofijado">Termofijado</option>
-            <option value="Suavizado y Termofijado">Suavizado y Termofijado</option>
-            <option value="Secado">Secado</option>
-          </select>
+          <!-- Hidden input stores the selected value -->
+          <input type="hidden" id="br_proceso" value="Empacado" />
+          <div id="brProcesoChips" class="flex flex-wrap gap-2 mt-1">
+            <button type="button" class="chip chip-ok br-proc-btn active" data-p="Empacado">Empacado</button>
+            <button type="button" class="chip chip-info br-proc-btn" data-p="Termofijado">Termofijado</button>
+            <button type="button" class="chip chip-info br-proc-btn" data-p="Suavizado">Suavizado</button>
+            <button type="button" class="chip chip-info br-proc-btn" data-p="Secado">Secado</button>
+            <button type="button" class="chip chip-info br-proc-btn" data-p="Suavizado y Termofijado">Suavizado + Termofijado</button>
+          </div>
         </div>
         <div class="md:col-span-2">
           <label class="lbl">Notas</label>
@@ -1301,6 +1335,7 @@
               <th>Color</th>
               <th>Kilos</th>
               <th>Metros</th>
+              <th>Rend.</th>
               <th>Vel.</th>
               <th>Temp.</th>
               <th>Proceso</th>
@@ -1479,6 +1514,13 @@
         <p class="text-sm text-slate-400">Kilos objetivo por máquina al día. Se muestra el % de avance en el Reporte.</p>
       </div>
       <button id="metasClose" class="btn btn-secondary !py-1 !px-3">✕</button>
+    </div>
+    <!-- Meta Rama Bruckner (especial) -->
+    <div class="flex items-center gap-3 p-2 bg-sky-950/40 rounded-lg border border-sky-900/40 mb-3">
+      <span class="chip chip-info" style="min-width:140px">Rama Bruckner</span>
+      <span class="text-xs text-slate-400 flex-1">Meta diaria rama (kg)</span>
+      <input type="number" step="100" min="0" id="metaRamaBruckner" class="field !py-1 !text-sm" style="max-width:120px" placeholder="15000" value="" />
+      <span class="text-xs text-slate-400">kg/día</span>
     </div>
     <div id="metasList" class="space-y-2"></div>
     <div class="flex items-center gap-2 mt-4 p-3 bg-slate-900/50 rounded-lg">
@@ -2554,12 +2596,45 @@ function renderReport() {
   const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && r.fecha === date);
   const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && r.fecha === date);
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setEl('rep_bruck_k', fmtKg(bruckRows.reduce((a,r)=>a+r.kilos,0)));
+  const bruckKg = bruckRows.reduce((a,r)=>a+r.kilos,0);
+  setEl('rep_bruck_k', fmtKg(bruckKg));
   setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+r.metros,0)));
   setEl('rep_bruck_f', bruckRows.length);
-  setEl('rep_monf_k',  fmtKg(monfRows.reduce((a,r)=>a+r.kilos,0)));
+
+  // Meta + progreso Bruckner
+  const ramaMeta = getRamaMeta();
+  const brPct = ramaMeta > 0 ? Math.round(bruckKg * 100 / ramaMeta) : 0;
+  const brBarColor = brPct >= 90 ? '#10b981' : brPct >= 60 ? '#f59e0b' : '#ef4444';
+  const brChipCls  = brPct >= 90 ? 'chip-ok' : brPct >= 60 ? 'chip-warn' : 'chip-bad';
+  setEl('rep_bruck_meta', fmtKg(ramaMeta) + ' kg');
+  const pctEl = document.getElementById('rep_bruck_pct');
+  if (pctEl) { pctEl.textContent = brPct + '% de meta'; pctEl.className = 'chip ' + brChipCls + ' text-xs'; }
+  const barEl = document.getElementById('rep_bruck_bar');
+  if (barEl) { barEl.style.width = Math.min(brPct,100) + '%'; barEl.style.background = brBarColor; }
+
+  // Desglose por proceso — Bruckner
+  function desgloseChip(rows, idEmp, idTerm, idSuav) {
+    const totKg = rows.reduce((a,r)=>a+r.kilos,0);
+    const byP = {};
+    rows.forEach(r => { const p = (r.proceso||'Otro').trim(); byP[p] = (byP[p]||0) + r.kilos; });
+    function fmt(id, key, label) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const kg = byP[key] || 0;
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    }
+    fmt(idEmp,  'Empacado',   'Empacado');
+    fmt(idTerm, 'Termofijado','Termofijado');
+    fmt(idSuav, 'Suavizado',  'Suavizado');
+  }
+  desgloseChip(bruckRows, 'rep_bruck_emp', 'rep_bruck_term', 'rep_bruck_suav');
+
+  const monfKg = monfRows.reduce((a,r)=>a+r.kilos,0);
+  setEl('rep_monf_k',  fmtKg(monfKg));
   setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+r.metros,0)));
   setEl('rep_monf_f',  monfRows.length);
+  desgloseChip(monfRows, 'rep_monf_emp', 'rep_monf_term', 'rep_monf_suav');
 
   const container = $('#reportGroups');
   const empty = $('#reportEmpty');
@@ -2842,10 +2917,20 @@ function renderEfficiency() {
       return withVel.length ? (withVel.reduce((a,r)=>a+r.vel,0)/withVel.length).toFixed(1) : '—';
     };
     const setEl2 = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setEl2('eff_bruck_k', fmtKg(brRecs.reduce((a,r)=>a+r.kilos,0)));
+    const brTotKg = brRecs.reduce((a,r)=>a+r.kilos,0);
+    setEl2('eff_bruck_k', fmtKg(brTotKg));
     setEl2('eff_bruck_m', fmtKg(brRecs.reduce((a,r)=>a+r.metros,0)));
     setEl2('eff_bruck_f', brRecs.length);
     setEl2('eff_bruck_v', velAvg(brRecs) + (velAvg(brRecs) !== '—' ? ' m/min' : ''));
+    // % Cumplimiento Meta Rama Bruckner
+    const ramaMeta = getRamaMeta();
+    const numDays  = Math.max(days, 1);
+    const brEffPct = ramaMeta > 0 ? Math.round(brTotKg * 100 / (ramaMeta * numDays)) : 0;
+    const brEffEl  = document.getElementById('eff_bruck_pct');
+    if (brEffEl) {
+      brEffEl.textContent = brEffPct + '%';
+      brEffEl.className = 'chip text-xs ' + (brEffPct >= 90 ? 'chip-ok' : brEffPct >= 60 ? 'chip-warn' : 'chip-bad');
+    }
     setEl2('eff_monf_k',  fmtKg(mfRecs.reduce((a,r)=>a+r.kilos,0)));
     setEl2('eff_monf_m',  fmtKg(mfRecs.reduce((a,r)=>a+r.metros,0)));
     setEl2('eff_monf_f',  mfRecs.length);
@@ -3662,20 +3747,34 @@ function openMetasModal() {
       <span class="text-xs text-slate-400">kg/día</span>
     </div>
   `).join('');
+  // Pre-fill Meta Rama Bruckner
+  const ramaInput = $('#metaRamaBruckner');
+  if (ramaInput) ramaInput.value = metas['RAMA_BRUCKNER'] || 15000;
   $('#metasModal').classList.remove('hidden');
 }
 function closeMetasModal() { $('#metasModal').classList.add('hidden'); }
+/* Helper: devuelve la meta diaria de Bruckner (default 15,000 kg) */
+function getRamaMeta() {
+  const metas = JSON.parse(localStorage.getItem(LS_KEYS.metas) || '{}');
+  return parseFloat(metas['RAMA_BRUCKNER']) || 15000;
+}
+
 function saveMetas() {
   const metas = {};
   $$('#metasList input.meta-input').forEach(inp => {
     const v = parseFloat(inp.value);
     if (v > 0) metas[inp.dataset.machine] = v;
   });
+  // Guardar Meta Rama Bruckner
+  const ramaInput = $('#metaRamaBruckner');
+  const ramaV = ramaInput ? parseFloat(ramaInput.value) : 0;
+  if (ramaV > 0) metas['RAMA_BRUCKNER'] = ramaV;
   localStorage.setItem(LS_KEYS.metas, JSON.stringify(metas));
   logChange({ module:'Metas', action:'Actualizadas', detail: Object.keys(metas).length + ' máquinas configuradas' });
   toast('Metas guardadas');
   closeMetasModal();
   renderReport();
+  renderEfficiency();
 }
 function autoFillMetas() {
   $$('#metasList input.meta-input').forEach(inp => {
@@ -3788,6 +3887,7 @@ function bindBrucknerForm() {
       tela:     $('#br_tela').value.trim(),
       color:    $('#br_color').value.trim(),
       kilos:    k,
+      rend:     parseFloat($('#br_rend').value) || 0,
       metros:   parseFloat($('#br_metros').value) || 0,
       vel:      parseFloat($('#br_vel').value) || 0,
       temp:     parseFloat($('#br_temp').value) || 0,
@@ -3803,11 +3903,48 @@ function bindBrucknerForm() {
     renderAll();
   }));
   $('#brClear').addEventListener('click', clearBrForm);
+  bindBrAutoCalc();
 }
 function clearBrForm() {
-  ['#br_operador','#br_lote','#br_tela','#br_color','#br_kilos','#br_metros','#br_vel','#br_temp','#br_notas']
+  ['#br_operador','#br_lote','#br_tela','#br_color','#br_kilos','#br_rend','#br_metros','#br_vel','#br_temp','#br_notas']
     .forEach(s => $(s).value = '');
   $('#br_fecha').value = todayISO();
+  // Reset proceso chips to default (Empacado)
+  $$('#brProcesoChips .br-proc-btn').forEach(b => {
+    b.classList.remove('active','chip-ok');
+    b.classList.add('chip-info');
+  });
+  const defBtn = $('#brProcesoChips .br-proc-btn[data-p="Empacado"]');
+  if (defBtn) { defBtn.classList.remove('chip-info'); defBtn.classList.add('chip-ok','active'); }
+  $('#br_proceso').value = 'Empacado';
+}
+
+/* Auto-calc metros from kg × rend */
+function bindBrAutoCalc() {
+  function recalcMetros() {
+    const k = parseFloat($('#br_kilos').value);
+    const r = parseFloat($('#br_rend').value);
+    if (k > 0 && r > 0) {
+      const mEl = $('#br_metros');
+      // Only auto-fill if user hasn't manually typed something different
+      mEl.value = (k * r).toFixed(0);
+    }
+  }
+  $('#br_kilos').addEventListener('input', recalcMetros);
+  $('#br_rend').addEventListener('input', recalcMetros);
+
+  // Proceso chip handlers
+  $$('#brProcesoChips .br-proc-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#brProcesoChips .br-proc-btn').forEach(x => {
+        x.classList.remove('active','chip-ok');
+        x.classList.add('chip-info');
+      });
+      b.classList.remove('chip-info');
+      b.classList.add('chip-ok','active');
+      $('#br_proceso').value = b.dataset.p;
+    });
+  });
 }
 function renderBruckner() {
   const rows = state.bruck;
@@ -3837,6 +3974,7 @@ function renderBruckner() {
         <td>${r.color||'—'}</td>
         <td><b>${fmtKg(r.kilos)}</b> kg</td>
         <td>${fmtKg(r.metros)} m</td>
+        <td>${r.rend ? r.rend.toFixed(2)+' m/kg' : '—'}</td>
         <td>${r.vel||'—'}</td>
         <td>${r.temp? r.temp+'°':'—'}</td>
         <td class="text-slate-400 text-sm">${r.proceso||'—'}</td>
