@@ -775,6 +775,63 @@
       </div>
     </div>
 
+    <!-- ▼▼▼ NUEVO: UTILIZACIÓN REAL (24 h × máquina) ▼▼▼ -->
+    <div class="card p-5 mb-4" style="border-left: 4px solid #f59e0b;">
+      <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h3 class="font-black text-white text-lg">⏱️ Utilización Real <span class="text-warn">(24 h × máquina)</span></h3>
+          <p class="text-slate-400 text-xs mt-1">¿Cuánto del turno disponible la máquina <b>realmente estuvo produciendo</b>?<br>Si producción + tiempo muerto no llenan el día, el resto es <b class="text-danger">tiempo no contabilizado</b> — el problema oculto que ningún reporte muestra.</p>
+        </div>
+        <div class="text-right">
+          <div class="kpi-lbl">Utilización global</div>
+          <div id="eff_util_global" class="kpi-num text-warn mt-1">0%</div>
+          <div id="eff_util_global_sub" class="text-xs text-slate-500 mt-1">— h productivas de — h disponibles</div>
+        </div>
+      </div>
+
+      <!-- Tres KPIs grandes que SIEMPRE suman 100% -->
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="p-3 rounded-lg" style="background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25)">
+          <div class="text-xs text-emer-accent font-bold uppercase">🟢 Produciendo</div>
+          <div id="eff_util_prod_pct" class="text-2xl font-black text-emer-accent mt-1">0%</div>
+          <div id="eff_util_prod_h" class="text-xs text-slate-400">0 h</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:rgba(245,158,11,0.10); border:1px solid rgba(245,158,11,0.25)">
+          <div class="text-xs text-warn font-bold uppercase">🔴 Tiempo muerto registrado</div>
+          <div id="eff_util_dead_pct" class="text-2xl font-black text-warn mt-1">0%</div>
+          <div id="eff_util_dead_h" class="text-xs text-slate-400">0 h</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.25)">
+          <div class="text-xs text-danger font-bold uppercase">⚪ No contabilizado</div>
+          <div id="eff_util_unacc_pct" class="text-2xl font-black text-danger mt-1">0%</div>
+          <div id="eff_util_unacc_h" class="text-xs text-slate-400">0 h</div>
+        </div>
+      </div>
+
+      <!-- Barras apiladas por máquina -->
+      <div class="text-xs text-slate-500 font-bold uppercase mb-2">Desglose por máquina</div>
+      <div id="eff_util_bars" class="space-y-2"></div>
+
+      <div class="mt-3 text-xs text-slate-500">
+        <span class="chip chip-info text-xs">i</span>
+        <b>Cómo leerlo:</b> Cada barra es el 100% del turno disponible (24 h × días en rango).
+        Si la barra verde es chica pero no hay rojo, significa que <b>no se reportaron paros</b> — el papel se quedó corto.
+      </div>
+    </div>
+
+    <!-- ▼▼▼ NUEVO: PARETO DE TIEMPOS MUERTOS ▼▼▼ -->
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <div>
+          <h3 class="font-black text-white">📊 Pareto de paros — ¿qué causa más pérdida?</h3>
+          <p class="text-slate-400 text-xs">El 80% del tiempo perdido suele venir de 2-3 causas. Atácalas primero.</p>
+        </div>
+        <span id="eff_pareto_total" class="chip chip-warn text-xs">0 h totales</span>
+      </div>
+      <div style="height: 280px;"><canvas id="chartPareto"></canvas></div>
+    </div>
+    <!-- ▲▲▲ FIN BLOQUES NUEVOS ▲▲▲ -->
+
     <!-- Gráfica -->
     <div class="card p-5 mb-4">
       <div class="flex items-center justify-between mb-2">
@@ -2867,6 +2924,7 @@ window.deleteProd = function(id) {
    EFICIENCIA - tipo JETS Excel
 --------------------------------------------------------------- */
 let chartKilos = null;
+let chartPareto = null;
 
 function getDateRange(range) {
   const now = new Date();
@@ -3123,6 +3181,166 @@ function renderEfficiency() {
         </div>
       </div>`;
   }).join('');
+
+  // ====================================================
+  // ▼▼▼ UTILIZACIÓN REAL (24 h × máquina) ▼▼▼
+  // ====================================================
+  // Para cada máquina, el turno disponible es 24 h × días en rango.
+  // Producing = tiempo real trabajado (de las fichas).
+  // Dead      = tiempo muerto registrado.
+  // Unaccounted = lo que falta para llenar el turno (ni se trabajó ni se reportó como paro).
+  const SHIFT_MIN_PER_DAY = 24 * 60; // 1440 min
+  // Si days es null (rango 'all' o 'custom'), calcular el lapso real con base en las fichas presentes
+  let numDaysUtil = days;
+  if (!numDaysUtil || numDaysUtil < 1) {
+    if (rows.length > 0) {
+      const fechas = [...new Set(rows.map(r => r.fecha).filter(Boolean))].sort();
+      if (fechas.length >= 2) {
+        const dA = new Date(fechas[0] + 'T12:00:00').getTime();
+        const dB = new Date(fechas[fechas.length-1] + 'T12:00:00').getTime();
+        numDaysUtil = Math.max(1, Math.round((dB - dA) / 86400000) + 1);
+      } else {
+        numDaysUtil = Math.max(1, fechas.length);
+      }
+    } else {
+      numDaysUtil = 1;
+    }
+  }
+  const availPerMachine = numDaysUtil * SHIFT_MIN_PER_DAY;
+
+  let totProd = 0, totDead = 0, totAvail = 0;
+  const utilRows = MACHINES.map(m => {
+    const g = agg[m.id];
+    const prod = Math.min(g.tRealMin, availPerMachine);   // clamp por seguridad
+    const dead = Math.min(g.downMin, Math.max(0, availPerMachine - prod));
+    const unacc = Math.max(0, availPerMachine - prod - dead);
+    totProd  += prod;
+    totDead  += dead;
+    totAvail += availPerMachine;
+    return { id: m.id, prod, dead, unacc, avail: availPerMachine };
+  });
+  const totUnacc = Math.max(0, totAvail - totProd - totDead);
+  const pct = (n) => totAvail > 0 ? Math.round((n / totAvail) * 100) : 0;
+  const hrs = (mins) => (mins / 60).toFixed(0);
+  const utilGlobal = pct(totProd);
+
+  // KPIs grandes
+  const setT = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setT('eff_util_global',     utilGlobal + '%');
+  setT('eff_util_global_sub', `${hrs(totProd)} h productivas de ${hrs(totAvail)} h disponibles · ${numDaysUtil} día${numDaysUtil>1?'s':''}`);
+  // Color del global
+  const utilGlobalEl = document.getElementById('eff_util_global');
+  if (utilGlobalEl) {
+    utilGlobalEl.className = 'kpi-num mt-1 ' + (utilGlobal >= 70 ? 'text-emer-accent' : utilGlobal >= 40 ? 'text-warn' : 'text-danger');
+  }
+  setT('eff_util_prod_pct',  pct(totProd) + '%');
+  setT('eff_util_prod_h',    hrs(totProd) + ' h');
+  setT('eff_util_dead_pct',  pct(totDead) + '%');
+  setT('eff_util_dead_h',    hrs(totDead) + ' h');
+  setT('eff_util_unacc_pct', pct(totUnacc) + '%');
+  setT('eff_util_unacc_h',   hrs(totUnacc) + ' h');
+
+  // Barras apiladas por máquina
+  const barsHtml = utilRows.map(r => {
+    const pP = r.avail > 0 ? (r.prod / r.avail * 100) : 0;
+    const pD = r.avail > 0 ? (r.dead / r.avail * 100) : 0;
+    const pU = Math.max(0, 100 - pP - pD);
+    return `
+      <div>
+        <div class="flex items-center justify-between text-xs mb-1">
+          <span class="font-bold text-sky-accent">${r.id}</span>
+          <span class="text-slate-400">
+            <span class="text-emer-accent font-bold">${hrs(r.prod)}h prod</span> ·
+            <span class="text-warn font-bold">${hrs(r.dead)}h muerto</span> ·
+            <span class="text-danger font-bold">${hrs(r.unacc)}h sin contar</span>
+            <span class="text-slate-500">/ ${hrs(r.avail)}h</span>
+          </span>
+        </div>
+        <div style="display:flex; height:18px; border-radius:6px; overflow:hidden; background:#0b0f16; border:1px solid #1a2232">
+          <div title="Produciendo ${hrs(r.prod)}h"   style="width:${pP}%; background:#10b981"></div>
+          <div title="Tiempo muerto ${hrs(r.dead)}h" style="width:${pD}%; background:#f59e0b"></div>
+          <div title="No contabilizado ${hrs(r.unacc)}h" style="width:${pU}%; background:#ef4444; opacity:0.55"></div>
+        </div>
+      </div>`;
+  }).join('');
+  const barsEl = document.getElementById('eff_util_bars');
+  if (barsEl) barsEl.innerHTML = barsHtml;
+
+  // ====================================================
+  // ▼▼▼ PARETO DE PAROS ▼▼▼
+  // ====================================================
+  const causeMap = {};
+  downs.forEach(d => {
+    const cat = d.categoria || d.motivo || 'Otro';
+    causeMap[cat] = (causeMap[cat] || 0) + (d.duracionMin || 0);
+  });
+  const causes = Object.entries(causeMap)
+    .map(([cat, mins]) => ({ cat, mins }))
+    .sort((a, b) => b.mins - a.mins)
+    .slice(0, 10); // top 10
+  const totCauseMin = causes.reduce((a, c) => a + c.mins, 0);
+  setT('eff_pareto_total', (totCauseMin / 60).toFixed(1) + ' h totales');
+
+  // Acumulado para línea Pareto
+  let acum = 0;
+  const cumPct = causes.map(c => { acum += c.mins; return totCauseMin > 0 ? Math.round((acum / totCauseMin) * 100) : 0; });
+  const ctxP = document.getElementById('chartPareto');
+  if (ctxP && typeof Chart !== 'undefined') {
+    if (chartPareto) { try { chartPareto.destroy(); } catch(e){} }
+    if (causes.length === 0) {
+      // limpiar canvas si no hay datos
+      const ctxClear = ctxP.getContext('2d');
+      ctxClear.clearRect(0, 0, ctxP.width, ctxP.height);
+    } else {
+      chartPareto = new Chart(ctxP.getContext('2d'), {
+        data: {
+          labels: causes.map(c => c.cat),
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Horas perdidas',
+              data: causes.map(c => +(c.mins / 60).toFixed(1)),
+              backgroundColor: '#f59e0b',
+              borderRadius: 6,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: '% Acumulado',
+              data: cumPct,
+              borderColor: '#0ea5e9',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 4,
+              pointBackgroundColor: '#0ea5e9',
+              tension: 0.2,
+              yAxisID: 'y2'
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#cbd5e1', font: { weight: '700' } } },
+            tooltip: {
+              backgroundColor: '#0b0f16', borderColor: '#253149', borderWidth: 1,
+              titleColor: '#e2e8f0', bodyColor: '#e2e8f0', padding: 10,
+              callbacks: {
+                label: c => c.dataset.yAxisID === 'y2'
+                  ? `${c.dataset.label}: ${c.parsed.y}%`
+                  : `${c.dataset.label}: ${c.parsed.y} h`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { weight: '600' } }, grid: { display: false } },
+            y:  { position: 'left',  ticks: { color: '#64748b' }, grid: { color: '#1a2232' }, title: { display: true, text: 'Horas perdidas', color: '#94a3b8' }, beginAtZero: true },
+            y2: { position: 'right', ticks: { color: '#0ea5e9', callback: v => v + '%' }, grid: { display: false }, min: 0, max: 100, title: { display: true, text: '% Acumulado', color: '#0ea5e9' } }
+          }
+        }
+      });
+    }
+  }
 }
 
 /* ---------------------------------------------------------------
