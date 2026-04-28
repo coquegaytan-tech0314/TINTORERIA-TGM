@@ -779,7 +779,7 @@
     <div class="card p-5 mb-4" style="border-left: 4px solid #f59e0b;">
       <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
         <div>
-          <h3 class="font-black text-white text-lg">⏱️ Utilización Real <span class="text-warn">(24 h × máquina)</span></h3>
+          <h3 class="font-black text-white text-lg">⏱️ Utilización Real <span class="text-warn">(turnos disponibles × máquina)</span></h3>
           <p class="text-slate-400 text-xs mt-1">¿Cuánto del turno disponible la máquina <b>realmente estuvo produciendo</b>?<br>Si producción + tiempo muerto no llenan el día, el resto es <b class="text-danger">tiempo no contabilizado</b> — el problema oculto que ningún reporte muestra.</p>
         </div>
         <div class="text-right">
@@ -814,7 +814,7 @@
 
       <div class="mt-3 text-xs text-slate-500">
         <span class="chip chip-info text-xs">i</span>
-        <b>Cómo leerlo:</b> Cada barra es el 100% del turno disponible (24 h × días en rango).
+        <b>Cómo leerlo:</b> Cada barra es el 100% del turno disponible (16 h en enero 2026, 24 h de febrero en adelante).
         Si la barra verde es chica pero no hay rojo, significa que <b>no se reportaron paros</b> — el papel se quedó corto.
       </div>
     </div>
@@ -3189,24 +3189,47 @@ function renderEfficiency() {
   // Producing = tiempo real trabajado (de las fichas).
   // Dead      = tiempo muerto registrado.
   // Unaccounted = lo que falta para llenar el turno (ni se trabajó ni se reportó como paro).
-  const SHIFT_MIN_PER_DAY = 24 * 60; // 1440 min
-  // Si days es null (rango 'all' o 'custom'), calcular el lapso real con base en las fichas presentes
-  let numDaysUtil = days;
-  if (!numDaysUtil || numDaysUtil < 1) {
-    if (rows.length > 0) {
-      const fechas = [...new Set(rows.map(r => r.fecha).filter(Boolean))].sort();
-      if (fechas.length >= 2) {
-        const dA = new Date(fechas[0] + 'T12:00:00').getTime();
-        const dB = new Date(fechas[fechas.length-1] + 'T12:00:00').getTime();
-        numDaysUtil = Math.max(1, Math.round((dB - dA) / 86400000) + 1);
-      } else {
-        numDaysUtil = Math.max(1, fechas.length);
-      }
-    } else {
-      numDaysUtil = 1;
-    }
+  // Horas disponibles por día varían: enero 2026 fueron solo 2 turnos (16 h), feb en adelante 3 turnos (24 h)
+  // Esta función se usa luego al construir el rango de fechas reales para cada máquina.
+  const shiftMinForDate = (fechaISO) => {
+    if (!fechaISO) return 24 * 60;
+    // Enero 2026 → 16 h. Antes de enero 2026 → 16 h por defecto. Feb 2026 en adelante → 24 h.
+    const d = new Date(fechaISO + 'T12:00:00');
+    const ym = d.getFullYear() * 12 + d.getMonth(); // 2026/01 = 24315
+    const cutoff = 2026 * 12 + 1; // febrero 2026
+    return ym < cutoff ? 16 * 60 : 24 * 60;
+  };
+
+  // Construir el conjunto de fechas en el rango (a partir de las fichas presentes o del parámetro days)
+  let fechasEnRango = [];
+  if (rows.length > 0) {
+    fechasEnRango = [...new Set(rows.map(r => r.fecha).filter(Boolean))].sort();
   }
-  const availPerMachine = numDaysUtil * SHIFT_MIN_PER_DAY;
+  // Si days es un número (útlimos N días), expandir el rango aunque no haya fichas en cada día
+  if (typeof days === 'number' && days > 0) {
+    const today = new Date(); today.setHours(12,0,0,0);
+    const set = new Set(fechasEnRango);
+    for (let i = 0; i < days; i++) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const iso = d.toISOString().slice(0,10);
+      set.add(iso);
+    }
+    fechasEnRango = [...set].sort();
+  } else if (fechasEnRango.length === 0) {
+    fechasEnRango = [new Date().toISOString().slice(0,10)];
+  } else if (typeof days !== 'number' && fechasEnRango.length >= 2) {
+    // Rango 'all' o 'custom' — expandir entre fecha mín y máx
+    const dA = new Date(fechasEnRango[0] + 'T12:00:00').getTime();
+    const dB = new Date(fechasEnRango[fechasEnRango.length-1] + 'T12:00:00').getTime();
+    const set = new Set();
+    for (let t = dA; t <= dB; t += 86400000) {
+      set.add(new Date(t).toISOString().slice(0,10));
+    }
+    fechasEnRango = [...set].sort();
+  }
+  const numDaysUtil = fechasEnRango.length;
+  // Minutos disponibles por máquina = suma de minutos del turno de cada día en rango
+  const availPerMachine = fechasEnRango.reduce((a, f) => a + shiftMinForDate(f), 0);
 
   let totProd = 0, totDead = 0, totAvail = 0;
   const utilRows = MACHINES.map(m => {
