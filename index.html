@@ -1510,6 +1510,145 @@
       </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- Cadena de merma · Tintorería → P. Terminado -->
+    <!-- ========================================== -->
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-bold text-white">Cadena de merma · Tintorería → P. Terminado</h3>
+        <span class="text-slate-500 text-xs">Kg entrada (Tinto) vs kg liberados (PT)</span>
+      </div>
+      <p class="text-xs text-slate-500 mb-4">Tintorería y P. Terminado son departamentos distintos con numeración de lote propia. Se ofrecen 3 vistas para reconciliar la merma según lo que se quiera medir.</p>
+
+      <!-- KPIs globales merma -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+          <div class="text-[11px] uppercase tracking-wide text-slate-500">Tintorería · Kg entrada</div>
+          <div id="mc_kgTinto" class="text-xl font-bold text-white mt-1">—</div>
+          <div id="mc_kgTintoDetail" class="text-[11px] text-slate-500 mt-0.5"></div>
+        </div>
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+          <div class="text-[11px] uppercase tracking-wide text-slate-500">P. Terminado · Kg liberados</div>
+          <div id="mc_kgPt" class="text-xl font-bold text-white mt-1">—</div>
+          <div id="mc_kgPtDetail" class="text-[11px] text-slate-500 mt-0.5"></div>
+        </div>
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+          <div class="text-[11px] uppercase tracking-wide text-slate-500">Merma cadena</div>
+          <div id="mc_mermaKg" class="text-xl font-bold text-white mt-1">—</div>
+          <div id="mc_mermaPct" class="text-[11px] text-slate-500 mt-0.5"></div>
+        </div>
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+          <div class="text-[11px] uppercase tracking-wide text-slate-500">Yield global</div>
+          <div id="mc_yield" class="text-xl font-bold text-white mt-1">—</div>
+          <div id="mc_yieldDetail" class="text-[11px] text-slate-500 mt-0.5"></div>
+        </div>
+      </div>
+
+      <!-- Tabs de vistas -->
+      <div class="flex flex-wrap gap-2 mb-3 border-b border-ink-800 pb-2">
+        <button class="mc-view-btn chip chip-ok active text-xs px-3 py-1.5 cursor-pointer" data-mcview="diseno">Por diseño (agregado)</button>
+        <button class="mc-view-btn chip chip-info text-xs px-3 py-1.5 cursor-pointer" data-mcview="window">Diseño + ventana de fechas</button>
+        <button class="mc-view-btn chip chip-info text-xs px-3 py-1.5 cursor-pointer" data-mcview="lote">Lote exacto</button>
+      </div>
+
+      <!-- Controles ventana (solo visibles en vista 'window') -->
+      <div id="mc_windowControls" class="hidden flex flex-wrap items-end gap-3 mb-3 p-3 rounded-lg bg-ink-900/40 border border-ink-800">
+        <div>
+          <label class="lbl text-xs">Días antes (Tinto → PT)</label>
+          <input type="number" id="mc_lagDays" class="field !py-2 !text-sm w-24" value="7" min="0" max="30" />
+        </div>
+        <div>
+          <label class="lbl text-xs">Tolerancia ± días</label>
+          <input type="number" id="mc_tolDays" class="field !py-2 !text-sm w-24" value="3" min="0" max="15" />
+        </div>
+        <p class="text-[11px] text-slate-500 max-w-md">Empareja kg de Tinto con kg de PT del mismo diseño, asumiendo que un lote tarda ~N días en pasar por Bruckner.</p>
+      </div>
+
+      <!-- Vista: Diseño agregado -->
+      <div id="mc_view_diseno" class="mc-view">
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Diseño</th>
+                <th class="text-right">Tinto kg</th>
+                <th class="text-right">PT kg</th>
+                <th class="text-right">Merma kg</th>
+                <th class="text-right">Merma %</th>
+                <th class="text-right">Yield</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="mc_disenoTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vista: Diseño + ventana -->
+      <div id="mc_view_window" class="mc-view hidden">
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Fecha PT</th>
+                <th>Diseño</th>
+                <th class="text-right">PT kg</th>
+                <th class="text-right">Tinto kg<br/>(ventana)</th>
+                <th>Rango Tinto</th>
+                <th class="text-right">Δ kg</th>
+                <th class="text-right">Merma %</th>
+              </tr>
+            </thead>
+            <tbody id="mc_windowTbody"></tbody>
+          </table>
+        </div>
+        <div class="text-[11px] text-slate-500 px-2 py-2">Mostrando primeras 150 filas (PT) emparejadas.</div>
+      </div>
+
+      <!-- Vista: Lote exacto -->
+      <div id="mc_view_lote" class="mc-view hidden">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+            <div class="text-[11px] uppercase tracking-wide text-slate-500">Lotes Tinto</div>
+            <div id="mc_lotesTinto" class="text-lg font-bold text-white mt-1">—</div>
+          </div>
+          <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+            <div class="text-[11px] uppercase tracking-wide text-slate-500">Lotes PT</div>
+            <div id="mc_lotesPt" class="text-lg font-bold text-white mt-1">—</div>
+          </div>
+          <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+            <div class="text-[11px] uppercase tracking-wide text-slate-500">Lotes coincidentes</div>
+            <div id="mc_lotesMatch" class="text-lg font-bold text-white mt-1">—</div>
+            <div id="mc_lotesMatchPct" class="text-[11px] text-slate-500 mt-0.5"></div>
+          </div>
+          <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+            <div class="text-[11px] uppercase tracking-wide text-slate-500">Cobertura kg</div>
+            <div id="mc_lotesKgCov" class="text-lg font-bold text-white mt-1">—</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">de PT con lote en Tinto</div>
+          </div>
+        </div>
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Lote</th>
+                <th>Diseño (PT)</th>
+                <th class="text-right">Tinto kg</th>
+                <th class="text-right">PT kg</th>
+                <th class="text-right">Merma kg</th>
+                <th class="text-right">Merma %</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="mc_loteTbody"></tbody>
+          </table>
+        </div>
+        <div id="mc_loteEmpty" class="hidden text-center py-10 px-6">
+          <p class="text-slate-400 text-sm">No hay lotes coincidentes en el rango actual de filtros.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Tabla -->
     <div class="card overflow-hidden">
       <div class="flex items-center justify-between px-4 py-3 border-b border-ink-800">
@@ -2417,6 +2556,7 @@ let state = {
   pt:       JSON.parse(localStorage.getItem(LS_KEYS.pt) || '[]'),
   ptSheets: JSON.parse(localStorage.getItem(LS_KEYS.ptSheets) || '[]'),
   ptFilters: { from:'', to:'', diseno:'', lote:'', turno:'', flagsOnly:false },
+  mcState:   { view:'diseno', lagDays:7, tolDays:3 },
   selectedMachine: null,
   selectedShift:   null,
   selectedDtCat:   null,
@@ -4626,11 +4766,272 @@ function bindPT() {
   wire('pt_flagsOnly','flagsOnly','change');
   $('#ptResetFilters')?.addEventListener('click', () => {
     state.ptFilters = { from:'', to:'', diseno:'', lote:'', turno:'', flagsOnly:false };
+    state.mcState   = state.mcState || { view:'diseno', lagDays:7, tolDays:3 };
     ['pt_from','pt_to','pt_diseno','pt_lote'].forEach(id => { const e=$('#'+id); if (e) e.value=''; });
     const tt=$('#pt_turno'); if (tt) tt.value='';
     const fo=$('#pt_flagsOnly'); if (fo) fo.checked=false;
     renderPT();
   });
+  bindMermaChain();
+}
+
+/* ---------------------------------------------------------------
+   MERMA CHAIN (Tintorería → P. Terminado)
+   - 3 vistas: por diseño (agregado), diseño + ventana, lote exacto
+   - Respeta los filtros de la pestaña PT (fecha, diseño, turno, lote)
+   - Tintorería y PT usan numeraciones de lote distintas
+--------------------------------------------------------------- */
+function bindMermaChain() {
+  state.mcState = state.mcState || { view:'diseno', lagDays:7, tolDays:3 };
+  document.querySelectorAll('.mc-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.getAttribute('data-mcview');
+      state.mcState.view = view;
+      // estilos activos
+      document.querySelectorAll('.mc-view-btn').forEach(b => {
+        b.classList.toggle('active', b === btn);
+        b.classList.toggle('chip-ok', b === btn);
+        b.classList.toggle('chip-info', b !== btn);
+      });
+      // mostrar/ocultar vistas
+      document.querySelectorAll('.mc-view').forEach(v => v.classList.add('hidden'));
+      const target = document.getElementById('mc_view_' + view);
+      if (target) target.classList.remove('hidden');
+      // controles de ventana
+      const wc = document.getElementById('mc_windowControls');
+      if (wc) wc.classList.toggle('hidden', view !== 'window');
+      renderMermaChain();
+    });
+  });
+  const lag = document.getElementById('mc_lagDays');
+  const tol = document.getElementById('mc_tolDays');
+  if (lag) lag.addEventListener('change', () => {
+    state.mcState.lagDays = parseInt(lag.value)||0;
+    renderMermaChain();
+  });
+  if (tol) tol.addEventListener('change', () => {
+    state.mcState.tolDays = parseInt(tol.value)||0;
+    renderMermaChain();
+  });
+}
+
+// Helpers de normalización
+function _mcNormDis(s) { return (s||'').toString().trim().toLowerCase().replace(/[óôö]/g,'o').replace(/[áäâ]/g,'a').replace(/[éêë]/g,'e').replace(/[íïî]/g,'i').replace(/[úüû]/g,'u'); }
+function _mcNormLote(s) { return (s||'').toString().trim().replace(/^0+/, '').toLowerCase(); }
+function _mcDateAdd(iso, days) {
+  if (!iso) return '';
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+
+// Filtra registros de Tintorería según filtros activos de PT
+function _mcFilterTinto() {
+  const f = state.ptFilters;
+  const dq = (f.diseno||'').toLowerCase().trim();
+  const lq = (f.lote||'').toString().trim();
+  const lagDays = state.mcState.lagDays || 0;
+  return (state.prod||[]).filter(r => {
+    if (!r || !r.kilos) return false;
+    // Ventana de fechas: tinto ocurre antes que PT, ampliar rango hacia atrás
+    if (f.from && r.fecha) {
+      const minTinto = _mcDateAdd(f.from, -(lagDays + (state.mcState.tolDays||0) + 14));
+      if (r.fecha < minTinto) return false;
+    }
+    if (f.to && r.fecha && r.fecha > f.to) return false;
+    if (dq && !(r.diseno||r.tela||'').toLowerCase().includes(dq)) return false;
+    if (lq && !(r.lote||'').toString().includes(lq)) return false;
+    return true;
+  });
+}
+
+function renderMermaChain() {
+  if (!document.getElementById('mc_kgTinto')) return; // tab no presente
+  const ptRows = ptApplyFilters(state.pt || []);
+  const tintoRows = _mcFilterTinto();
+
+  const sumKgTinto = tintoRows.reduce((a,r)=>a+(r.kilos||0),0);
+  const sumKgPt    = ptRows.reduce((a,r)=>a+(r.kf||0),0);
+  const merma      = sumKgTinto - sumKgPt;
+  const mermaPct   = sumKgTinto > 0 ? (merma / sumKgTinto) * 100 : null;
+  const yieldPct   = sumKgTinto > 0 ? (sumKgPt / sumKgTinto) * 100 : null;
+
+  $('#mc_kgTinto').textContent = fmtKg(sumKgTinto);
+  $('#mc_kgTintoDetail').textContent = tintoRows.length + ' fichas';
+  $('#mc_kgPt').textContent = fmtKg(sumKgPt);
+  $('#mc_kgPtDetail').textContent = ptRows.length + ' filas · ' + new Set(ptRows.map(r=>r.sid)).size + ' hojas';
+  $('#mc_mermaKg').textContent = (merma >= 0 ? '' : '+') + fmtKg(Math.abs(merma)) + ' kg';
+  $('#mc_mermaPct').textContent = mermaPct !== null ? (merma >= 0 ? mermaPct.toFixed(1)+'%' : 'PT > Tinto') : '—';
+  $('#mc_yield').textContent = yieldPct !== null ? yieldPct.toFixed(1)+'%' : '—';
+  $('#mc_yieldDetail').textContent = sumKgTinto > 0 ? ('PT/Tinto, basado en ' + tintoRows.length + ' fichas') : '—';
+
+  const view = state.mcState.view || 'diseno';
+  if (view === 'diseno') _mcRenderViewDiseno(tintoRows, ptRows);
+  else if (view === 'window') _mcRenderViewWindow(tintoRows, ptRows);
+  else if (view === 'lote') _mcRenderViewLote(tintoRows, ptRows);
+}
+
+// Vista 1: Por diseño (agregado) — suma todos los kg por diseño, sin emparejar fechas
+function _mcRenderViewDiseno(tintoRows, ptRows) {
+  const tb = $('#mc_disenoTbody'); if (!tb) return;
+  const map = {}; // norm -> { display, tinto, pt }
+  tintoRows.forEach(r => {
+    const raw = (r.diseno || r.tela || '').trim() || '(sin)';
+    const k = _mcNormDis(raw);
+    if (!map[k]) map[k] = { display: raw, tinto: 0, pt: 0 };
+    map[k].tinto += (r.kilos||0);
+  });
+  ptRows.forEach(r => {
+    const raw = (r.d || '').trim() || '(sin)';
+    const k = _mcNormDis(raw);
+    if (!map[k]) map[k] = { display: raw, tinto: 0, pt: 0 };
+    // preferir nombre PT (más consistente) si todavía no se vio en tinto
+    if (!map[k].tinto) map[k].display = raw;
+    map[k].pt += (r.kf||0);
+  });
+  const rows = Object.values(map)
+    .filter(r => r.tinto > 0 || r.pt > 0)
+    .sort((a,b) => (b.tinto+b.pt) - (a.tinto+a.pt));
+
+  if (!rows.length) { tb.innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">Sin datos en este filtro</td></tr>'; return; }
+  tb.innerHTML = rows.slice(0,80).map(r => {
+    const merma = r.tinto - r.pt;
+    const pct = r.tinto > 0 ? (merma/r.tinto)*100 : null;
+    const yld = r.tinto > 0 ? (r.pt/r.tinto)*100 : null;
+    let estado, chipCls;
+    if (r.tinto === 0) { estado = 'Solo PT'; chipCls = 'chip-info'; }
+    else if (r.pt === 0) { estado = 'Solo Tinto'; chipCls = 'chip-info'; }
+    else if (pct !== null && pct < 0) { estado = 'PT > Tinto'; chipCls = 'chip-warn'; }
+    else if (pct !== null && pct < 5) { estado = 'OK'; chipCls = 'chip-ok'; }
+    else if (pct !== null && pct < 15) { estado = 'Normal'; chipCls = 'chip-info'; }
+    else { estado = 'Alta merma'; chipCls = 'chip-warn'; }
+    return '<tr>'+
+      '<td><b class="text-white">'+r.display+'</b></td>'+
+      '<td class="text-right text-slate-300">'+fmtKg(r.tinto)+'</td>'+
+      '<td class="text-right text-slate-300">'+fmtKg(r.pt)+'</td>'+
+      '<td class="text-right '+(merma>=0?'text-slate-300':'text-amber-accent')+'">'+(merma>=0?'':'+')+fmtKg(Math.abs(merma))+'</td>'+
+      '<td class="text-right text-slate-400">'+(pct!==null ? (merma>=0?pct.toFixed(1)+'%':'—') : '—')+'</td>'+
+      '<td class="text-right text-slate-400">'+(yld!==null ? yld.toFixed(1)+'%' : '—')+'</td>'+
+      '<td><span class="chip '+chipCls+'">'+estado+'</span></td>'+
+      '</tr>';
+  }).join('');
+}
+
+// Vista 2: Diseño + ventana de fechas — fila por hoja PT, suma kg de Tinto en ventana [fecha-lag-tol, fecha-lag+tol]
+function _mcRenderViewWindow(tintoRows, ptRows) {
+  const tb = $('#mc_windowTbody'); if (!tb) return;
+  const lag = state.mcState.lagDays || 0;
+  const tol = state.mcState.tolDays || 0;
+
+  // Pre-indexar Tinto por diseño normalizado para acelerar
+  const tintoByDis = {};
+  tintoRows.forEach(r => {
+    const k = _mcNormDis(r.diseno || r.tela);
+    if (!tintoByDis[k]) tintoByDis[k] = [];
+    tintoByDis[k].push(r);
+  });
+
+  // Agrupar PT por sid (hoja) para reducir filas y reflejar la realidad operativa
+  const byHoja = {};
+  ptRows.forEach(r => {
+    if (!r.sid || !r.f) return;
+    const k = r.sid + '|' + _mcNormDis(r.d);
+    if (!byHoja[k]) byHoja[k] = { sid: r.sid, fecha: r.f, diseno: r.d || '(sin)', kfin: 0, kini: 0, n: 0 };
+    byHoja[k].kfin += (r.kf||0);
+    byHoja[k].kini += (r.ki||0);
+    byHoja[k].n++;
+  });
+  const hojas = Object.values(byHoja).sort((a,b) => a.fecha < b.fecha ? 1 : -1);
+
+  if (!hojas.length) { tb.innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-6">Sin hojas PT en este filtro</td></tr>'; return; }
+
+  tb.innerHTML = hojas.slice(0,150).map(h => {
+    const k = _mcNormDis(h.diseno);
+    const candidates = tintoByDis[k] || [];
+    const minD = _mcDateAdd(h.fecha, -(lag+tol));
+    const maxD = _mcDateAdd(h.fecha, -(lag-tol));
+    const matched = candidates.filter(r => r.fecha && r.fecha >= minD && r.fecha <= maxD);
+    const kgTinto = matched.reduce((a,r)=>a+(r.kilos||0),0);
+    const delta = kgTinto - h.kfin;
+    const pct = kgTinto > 0 ? (delta/kgTinto)*100 : null;
+    const range = matched.length ? (matched.map(r=>r.fecha).sort()[0]+' → '+matched.map(r=>r.fecha).sort().slice(-1)[0]) : '—';
+    return '<tr>'+
+      '<td class="text-xs">'+h.fecha+'</td>'+
+      '<td><b class="text-white">'+h.diseno+'</b></td>'+
+      '<td class="text-right text-slate-300">'+fmtKg(h.kfin)+'</td>'+
+      '<td class="text-right text-slate-300">'+(kgTinto>0?fmtKg(kgTinto):'—')+' <span class="text-slate-600 text-xs">('+matched.length+')</span></td>'+
+      '<td class="text-xs text-slate-500">'+range+'</td>'+
+      '<td class="text-right '+(delta>=0?'text-slate-300':'text-amber-accent')+'">'+(kgTinto>0 ? ((delta>=0?'':'+')+fmtKg(Math.abs(delta))) : '—')+'</td>'+
+      '<td class="text-right text-slate-400">'+(pct!==null && delta>=0 ? pct.toFixed(1)+'%' : '—')+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+// Vista 3: Lote exacto — join estricto Tinto.lote == PT.lote (normalizado: sin ceros a la izq.)
+function _mcRenderViewLote(tintoRows, ptRows) {
+  const tb = $('#mc_loteTbody'); if (!tb) return;
+
+  const tintoByLote = {};
+  tintoRows.forEach(r => {
+    const k = _mcNormLote(r.lote); if (!k) return;
+    if (!tintoByLote[k]) tintoByLote[k] = { lote: r.lote, kg: 0, n: 0, disenos: new Set() };
+    tintoByLote[k].kg += (r.kilos||0);
+    tintoByLote[k].n++;
+    if (r.diseno) tintoByLote[k].disenos.add(r.diseno);
+  });
+  const ptByLote = {};
+  ptRows.forEach(r => {
+    const k = _mcNormLote(r.l); if (!k) return;
+    if (!ptByLote[k]) ptByLote[k] = { lote: r.l, kg: 0, n: 0, disenos: new Set() };
+    ptByLote[k].kg += (r.kf||0);
+    ptByLote[k].n++;
+    if (r.d) ptByLote[k].disenos.add(r.d);
+  });
+
+  const tintoKeys = new Set(Object.keys(tintoByLote));
+  const ptKeys = new Set(Object.keys(ptByLote));
+  const matchKeys = [...ptKeys].filter(k => tintoKeys.has(k));
+  const ptKgWithMatch = matchKeys.reduce((a,k)=>a+ptByLote[k].kg,0);
+  const ptKgTotal = [...ptKeys].reduce((a,k)=>a+ptByLote[k].kg,0);
+  const kgCovPct = ptKgTotal > 0 ? (ptKgWithMatch/ptKgTotal)*100 : 0;
+
+  $('#mc_lotesTinto').textContent = tintoKeys.size;
+  $('#mc_lotesPt').textContent = ptKeys.size;
+  $('#mc_lotesMatch').textContent = matchKeys.length;
+  $('#mc_lotesMatchPct').textContent = ptKeys.size > 0 ? (matchKeys.length/ptKeys.size*100).toFixed(1)+'% de PT' : '—';
+  $('#mc_lotesKgCov').textContent = kgCovPct.toFixed(1)+'%';
+
+  if (!matchKeys.length) {
+    tb.innerHTML = '';
+    $('#mc_loteEmpty').classList.remove('hidden');
+    return;
+  }
+  $('#mc_loteEmpty').classList.add('hidden');
+
+  const rows = matchKeys.map(k => {
+    const t = tintoByLote[k], p = ptByLote[k];
+    const merma = t.kg - p.kg;
+    const pct = t.kg > 0 ? (merma/t.kg)*100 : null;
+    return { lote:p.lote, disenoPt:[...p.disenos].join(', ')||'—', tintoKg:t.kg, ptKg:p.kg, merma, pct };
+  }).sort((a,b) => b.ptKg - a.ptKg);
+
+  tb.innerHTML = rows.slice(0,200).map(r => {
+    let estado, chipCls;
+    if (r.pct === null) { estado = 'Sin tinto kg'; chipCls = 'chip-info'; }
+    else if (r.pct < 0) { estado = 'PT > Tinto'; chipCls = 'chip-warn'; }
+    else if (r.pct < 5) { estado = 'OK'; chipCls = 'chip-ok'; }
+    else if (r.pct < 15) { estado = 'Normal'; chipCls = 'chip-info'; }
+    else { estado = 'Alta merma'; chipCls = 'chip-warn'; }
+    return '<tr>'+
+      '<td class="text-slate-300"><b>'+r.lote+'</b></td>'+
+      '<td class="text-slate-400">'+r.disenoPt+'</td>'+
+      '<td class="text-right text-slate-300">'+fmtKg(r.tintoKg)+'</td>'+
+      '<td class="text-right text-slate-300">'+fmtKg(r.ptKg)+'</td>'+
+      '<td class="text-right '+(r.merma>=0?'text-slate-300':'text-amber-accent')+'">'+(r.merma>=0?'':'+')+fmtKg(Math.abs(r.merma))+'</td>'+
+      '<td class="text-right text-slate-400">'+(r.pct!==null && r.merma>=0 ? r.pct.toFixed(1)+'%' : '—')+'</td>'+
+      '<td><span class="chip '+chipCls+'">'+estado+'</span></td>'+
+      '</tr>';
+  }).join('');
 }
 
 function ptApplyFilters(rows) {
@@ -4786,6 +5187,9 @@ function renderPT() {
       '</tr>';
     }).join('');
   }
+
+  // Cadena de merma (siempre se actualiza con los filtros de PT)
+  try { renderMermaChain(); } catch(e) { console.warn('renderMermaChain err:', e); }
 }
 
 /* ---------------------------------------------------------------
