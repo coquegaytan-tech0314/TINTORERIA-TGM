@@ -633,11 +633,43 @@
         <p class="text-slate-400 text-sm" id="reportSub">Fichas agrupadas por máquina</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <input type="date" id="reportDate" class="field !py-2 !text-base" />
+        <!-- Día / Mes toggle -->
+        <div class="inline-flex rounded-lg overflow-hidden border border-slate-700" id="reportModeToggle">
+          <button type="button" data-mode="day"   id="reportModeDay"   class="px-3 py-1.5 text-xs font-bold bg-sky-600 text-white">Día</button>
+          <button type="button" data-mode="month" id="reportModeMonth" class="px-3 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">Mes</button>
+        </div>
+        <input type="date"  id="reportDate"  class="field !py-2 !text-base" />
+        <input type="month" id="reportMonth" class="field !py-2 !text-base hidden" />
         <button id="jumpLatest" type="button" class="btn btn-ghost text-xs" title="Saltar al último día con datos">Último día</button>
         <span id="reportTotal" class="chip chip-ok">0 kg</span>
         <span id="reportCostQ" class="chip chip-warn" title="Costo químico estimado: Σ (kilos × Químico/kg)">$0 MXN</span>
         <button id="reportSetMeta" type="button" class="btn btn-ghost text-xs" title="Definir meta diaria por máquina">🎯 Metas</button>
+      </div>
+    </div>
+
+    <!-- Calendario heatmap (visible solo en modo Día) -->
+    <div id="reportHeatmapWrap" class="card p-4 mb-4">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 class="font-black text-white text-sm">Calendario de producción</h3>
+          <p class="text-xs text-slate-400" id="reportHeatmapSub">Click en un día para verlo · intensidad según kilos</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="heatPrev" class="btn btn-ghost text-xs" title="Mes anterior">‹</button>
+          <span id="heatMonthLbl" class="text-sm font-bold text-white">—</span>
+          <button type="button" id="heatNext" class="btn btn-ghost text-xs" title="Mes siguiente">›</button>
+        </div>
+      </div>
+      <div id="reportHeatmap" class="grid grid-cols-7 gap-1.5"></div>
+      <div class="flex items-center justify-end gap-2 mt-3 text-xs text-slate-400">
+        <span>0 kg</span>
+        <div class="w-4 h-4 rounded" style="background:#1e293b"></div>
+        <div class="w-4 h-4 rounded" style="background:#0c4a6e"></div>
+        <div class="w-4 h-4 rounded" style="background:#0369a1"></div>
+        <div class="w-4 h-4 rounded" style="background:#0284c7"></div>
+        <div class="w-4 h-4 rounded" style="background:#0ea5e9"></div>
+        <div class="w-4 h-4 rounded" style="background:#38bdf8"></div>
+        <span>máx</span>
       </div>
     </div>
 
@@ -3037,13 +3069,35 @@ function init() {
   $('#dtFilterEditable')?.addEventListener('change', renderDowntime);
   $('#dtAnalyticsRange')?.addEventListener('change', renderDowntime);
   $('#reportDate').addEventListener('change', renderReport);
+  $('#reportMonth')?.addEventListener('change', renderReport);
+  // Toggle Día / Mes
+  $('#reportModeDay')?.addEventListener('click', () => switchReportMode('day'));
+  $('#reportModeMonth')?.addEventListener('click', () => switchReportMode('month'));
+  // Heatmap navigation
+  $('#heatPrev')?.addEventListener('click', () => {
+    const [y,m] = reportHeatMonth.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    reportHeatMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    renderReportHeatmap();
+  });
+  $('#heatNext')?.addEventListener('click', () => {
+    const [y,m] = reportHeatMonth.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    reportHeatMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    renderReportHeatmap();
+  });
   // Botón "Último día": salta a la fecha más reciente con fichas
   $('#jumpLatest')?.addEventListener('click', () => {
     try {
       const prod = JSON.parse(localStorage.getItem(LS_KEYS.prod) || '[]');
       const fechas = [...new Set(prod.map(f => f.fecha).filter(Boolean))].sort();
       const latest = fechas[fechas.length - 1];
-      if (latest) { $('#reportDate').value = latest; renderReport(); }
+      if (latest) {
+        switchReportMode('day');
+        $('#reportDate').value = latest;
+        reportHeatMonth = latest.slice(0,7);
+        renderReport();
+      }
       else { alert('No hay fichas registradas todavía.'); }
     } catch(e) { console.error(e); }
   });
@@ -3291,7 +3345,20 @@ function clearProdForm() {
 /* ---------------------------------------------------------------
    REPORTE DE PRODUCCIÓN (agrupado por máquina - imita el papel)
 --------------------------------------------------------------- */
+// Vista actual: 'day' (default) o 'month'
+let reportMode = 'day';
+// Mes mostrado en el heatmap (puede ser distinto al día seleccionado)
+let reportHeatMonth = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+})();
+
 function renderReport() {
+  // Sincroniza heatMonth con la fecha del día si cambia de mes
+  const dayVal = $('#reportDate')?.value;
+  if (dayVal && dayVal.length >= 7) reportHeatMonth = dayVal.slice(0,7);
+  renderReportHeatmap();
+  if (reportMode === 'month') return renderReportMonth();
   const date = $('#reportDate').value || todayISO();
   const rows = state.prod.filter(r => r.fecha === date);
 
@@ -3426,6 +3493,258 @@ function renderReport() {
       </div>`;
   }).join('');
 }
+
+/* ---------------------------------------------------------------
+   REPORTE — VISTA MENSUAL (agregado por máquina del mes seleccionado)
+--------------------------------------------------------------- */
+function renderReportMonth() {
+  const monthInp = $('#reportMonth');
+  const ym = monthInp?.value || (function(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  })();
+  if (monthInp && !monthInp.value) monthInp.value = ym;
+
+  const rows = state.prod.filter(r => (r.fecha || '').startsWith(ym));
+  const totalK = rows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const totalCQ = rows.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+  const daysWithData = new Set(rows.map(r => r.fecha)).size;
+
+  $('#reportTotal').textContent = fmtKg(totalK) + ' kg';
+  $('#reportCostQ').textContent = '$' + Math.round(totalCQ).toLocaleString('es-MX') + ' MXN quím.';
+
+  const [yy, mm] = ym.split('-');
+  const monthLbl = new Date(+yy, +mm - 1, 1).toLocaleDateString('es-MX', { month:'long', year:'numeric' });
+  $('#reportSub').textContent = rows.length
+    ? `${rows.length} fichas · ${daysWithData} días con datos · ${monthLbl}`
+    : `Sin fichas en ${monthLbl}`;
+
+  // Tarjetas Rama — mes completo
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && (r.fecha||'').startsWith(ym));
+  const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && (r.fecha||'').startsWith(ym));
+  const bruckKg = bruckRows.reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_bruck_k', fmtKg(bruckKg));
+  setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+(r.metros||0), 0)));
+  setEl('rep_bruck_f', bruckRows.length);
+
+  // Meta mensual = meta diaria × días con datos (informativo)
+  const ramaMeta = getRamaMeta();
+  const metaMes = ramaMeta * Math.max(daysWithData, 1);
+  const brPct = metaMes > 0 ? Math.round(bruckKg * 100 / metaMes) : 0;
+  const brBarColor = brPct >= 90 ? '#10b981' : brPct >= 60 ? '#f59e0b' : '#ef4444';
+  const brChipCls  = brPct >= 90 ? 'chip-ok' : brPct >= 60 ? 'chip-warn' : 'chip-bad';
+  setEl('rep_bruck_meta', fmtKg(metaMes) + ' kg (mes)');
+  const pctEl = document.getElementById('rep_bruck_pct');
+  if (pctEl) { pctEl.textContent = brPct + '% del mes'; pctEl.className = 'chip ' + brChipCls + ' text-xs'; }
+  const barEl = document.getElementById('rep_bruck_bar');
+  if (barEl) { barEl.style.width = Math.min(brPct,100) + '%'; barEl.style.background = brBarColor; }
+
+  function desgloseChip(rs, idEmp, idTerm, idSuav) {
+    const totKg = rs.reduce((a,r)=>a+(r.kilos||0), 0);
+    const byP = {};
+    rs.forEach(r => { const p = (r.proceso||'Otro').trim(); byP[p] = (byP[p]||0) + (r.kilos||0); });
+    const fmt = (id, key, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      const kg = byP[key] || 0;
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    };
+    fmt(idEmp,  'Empacado',   'Empacado');
+    fmt(idTerm, 'Termofijado','Termofijado');
+    fmt(idSuav, 'Suavizado',  'Suavizado');
+  }
+  desgloseChip(bruckRows, 'rep_bruck_emp', 'rep_bruck_term', 'rep_bruck_suav');
+
+  setEl('rep_monf_k', fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
+  setEl('rep_monf_m', fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
+  setEl('rep_monf_f', monfRows.length);
+  desgloseChip(monfRows, 'rep_monf_emp', 'rep_monf_term', 'rep_monf_suav');
+
+  // Agrupado por máquina (mismo orden que el día)
+  const container = $('#reportGroups');
+  const empty = $('#reportEmpty');
+  if (!rows.length) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  const order = MACHINES.map(m => m.id);
+  // También incluir máquinas no canónicas (THIES-3, GASTON-2, etc.) presentes en datos
+  const allMachs = [...new Set(rows.map(r => r.machine))];
+  const extraMachs = allMachs.filter(m => !order.includes(m)).sort();
+  const finalOrder = [...order, ...extraMachs];
+
+  const byM = {};
+  rows.forEach(r => { (byM[r.machine] = byM[r.machine] || []).push(r); });
+
+  const metas = JSON.parse(localStorage.getItem(LS_KEYS.metas) || '{}');
+
+  container.innerHTML = finalOrder.filter(id => byM[id]).map(id => {
+    const items = byM[id];
+    const totM = items.reduce((a,r)=>a+(r.kilos||0), 0);
+    const totCQ = items.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+    const daysM = new Set(items.map(r => r.fecha)).size;
+    const meta  = parseFloat(metas[id]) || 0;
+    const metaMesM = meta * daysM;
+    const pct   = metaMesM > 0 ? Math.min(150, Math.round(totM*100/metaMesM)) : null;
+    const pctColor = pct == null ? '' : (pct >= 100 ? 'text-emerald-400' : pct >= 75 ? 'text-amber-300' : 'text-rose-400');
+    const metaBadge = metaMesM > 0
+      ? ` · <span class="${pctColor} font-bold">${pct}% del mes (${fmtKg(metaMesM)} kg)</span>`
+      : '';
+    const cqBadge = totCQ > 0 ? ` · $${Math.round(totCQ).toLocaleString('es-MX')} MXN quím.` : '';
+
+    // Sub-agregado por día — una fila por día con totales
+    const byDay = {};
+    items.forEach(r => {
+      const k = r.fecha || '—';
+      if (!byDay[k]) byDay[k] = { kg:0, cq:0, fichas:0, procesos:{} };
+      byDay[k].kg += (r.kilos||0);
+      byDay[k].cq += ((r.kilos||0)*(r.apq||0));
+      byDay[k].fichas += 1;
+      const p = (r.proceso||'Otro').trim();
+      byDay[k].procesos[p] = (byDay[k].procesos[p]||0) + (r.kilos||0);
+    });
+    const dayKeys = Object.keys(byDay).sort().reverse();
+
+    return `
+      <div class="card overflow-hidden">
+        <div class="group-header">
+          <span class="m-name">${id}</span>
+          <span class="m-tot">Total: ${fmtKg(totM)} kg · ${items.length} ficha${items.length===1?'':'s'} · ${daysM} días${cqBadge}${metaBadge}</span>
+        </div>
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Fichas</th>
+                <th>Kilos del día</th>
+                <th>Costo quím.</th>
+                <th>Procesos (kg)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dayKeys.map(d => {
+                const v = byDay[d];
+                const procStr = Object.entries(v.procesos)
+                  .sort((a,b) => b[1]-a[1])
+                  .map(([p,kg]) => `${p}: ${fmtKg(kg)}`).join(' · ');
+                const dLbl = d === '—' ? '—' : new Date(d+'T12:00:00').toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'});
+                return `
+                  <tr style="cursor:pointer" onclick="jumpToDay('${d}')" title="Ver día ${d}">
+                    <td><b>${dLbl}</b></td>
+                    <td>${v.fichas}</td>
+                    <td><b class="text-sky-accent">${fmtKg(v.kg)}</b> kg</td>
+                    <td>${v.cq > 0 ? '$'+Math.round(v.cq).toLocaleString('es-MX') : '—'}</td>
+                    <td class="text-slate-300 text-sm">${procStr || '—'}</td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+window.jumpToDay = function(d) {
+  if (!d || d === '—') return;
+  switchReportMode('day');
+  const dEl = $('#reportDate'); if (dEl) dEl.value = d;
+  reportHeatMonth = d.slice(0,7);
+  renderReport();
+};
+
+/* ---------------------------------------------------------------
+   REPORTE — CALENDARIO HEATMAP
+--------------------------------------------------------------- */
+function renderReportHeatmap() {
+  const wrap = $('#reportHeatmap');
+  const lbl  = $('#heatMonthLbl');
+  if (!wrap || !lbl) return;
+  const ym = reportHeatMonth;
+  const [yy, mm] = ym.split('-').map(Number);
+  const firstDay = new Date(yy, mm - 1, 1);
+  const daysInMonth = new Date(yy, mm, 0).getDate();
+  // Lunes = 0
+  const startCol = (firstDay.getDay() + 6) % 7;
+
+  // Aggregate kg per day in this month (todas las máquinas)
+  const kgByDay = {};
+  state.prod.forEach(r => {
+    if ((r.fecha||'').startsWith(ym)) {
+      kgByDay[r.fecha] = (kgByDay[r.fecha] || 0) + (r.kilos || 0);
+    }
+  });
+  const maxKg = Math.max(0, ...Object.values(kgByDay));
+
+  function bucketColor(kg) {
+    if (!kg || maxKg === 0) return '#1e293b';
+    const r = kg / maxKg;
+    if (r > 0.83) return '#38bdf8';
+    if (r > 0.66) return '#0ea5e9';
+    if (r > 0.50) return '#0284c7';
+    if (r > 0.33) return '#0369a1';
+    if (r > 0.16) return '#0c4a6e';
+    return '#1e3a5f';
+  }
+
+  lbl.textContent = firstDay.toLocaleDateString('es-MX', { month:'long', year:'numeric' });
+
+  const dayHeaders = ['L','M','M','J','V','S','D'];
+  let html = dayHeaders.map(d => `<div class="text-[10px] text-slate-500 text-center font-bold flex items-center justify-center" style="height:20px">${d}</div>`).join('');
+  // Espacios vacíos antes del día 1
+  for (let i = 0; i < startCol; i++) html += `<div style="height:36px"></div>`;
+
+  const selectedDay = ($('#reportDate')?.value || '');
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${yy}-${String(mm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const kg = kgByDay[iso] || 0;
+    const bg = bucketColor(kg);
+    const isSel = iso === selectedDay;
+    const ring = isSel ? 'ring-2 ring-amber-400' : '';
+    const tip = kg > 0 ? `${fmtKg(kg)} kg` : 'Sin datos';
+    html += `
+      <button type="button"
+        onclick="jumpToDay('${iso}')"
+        title="${iso} · ${tip}"
+        class="rounded text-[11px] font-bold ${ring} hover:opacity-80 transition flex items-center justify-center"
+        style="background:${bg};color:${kg > 0 ? '#fff' : '#64748b'};height:36px;">
+        ${d}
+      </button>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function switchReportMode(mode) {
+  reportMode = mode;
+  const dayBtn = $('#reportModeDay');
+  const monBtn = $('#reportModeMonth');
+  const dayInp = $('#reportDate');
+  const monInp = $('#reportMonth');
+  const heatWrap = $('#reportHeatmapWrap');
+  if (mode === 'day') {
+    dayBtn?.classList.add('bg-sky-600','text-white');
+    dayBtn?.classList.remove('bg-slate-800','text-slate-300');
+    monBtn?.classList.add('bg-slate-800','text-slate-300');
+    monBtn?.classList.remove('bg-sky-600','text-white');
+    dayInp?.classList.remove('hidden');
+    monInp?.classList.add('hidden');
+    if (heatWrap) heatWrap.classList.remove('hidden');
+  } else {
+    monBtn?.classList.add('bg-sky-600','text-white');
+    monBtn?.classList.remove('bg-slate-800','text-slate-300');
+    dayBtn?.classList.add('bg-slate-800','text-slate-300');
+    dayBtn?.classList.remove('bg-sky-600','text-white');
+    monInp?.classList.remove('hidden');
+    dayInp?.classList.add('hidden');
+    if (heatWrap) heatWrap.classList.add('hidden');
+    if (monInp && !monInp.value) {
+      const dv = (dayInp?.value || todayISO()).slice(0,7);
+      monInp.value = dv;
+    }
+  }
+  renderReport();
+}
+
 window.deleteProd = function(id) {
   if (!confirm('¿Borrar esta ficha?')) return;
   const rec = state.prod.find(r => r.id === id);
