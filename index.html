@@ -197,6 +197,40 @@
   .chip-bad  { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
   .chip-info { background: rgba(56,189,248,0.15); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.35); }
 
+  /* Tarjetas de Fichas Abiertas (aging) */
+  .open-ficha-card {
+    position: relative;
+    background: rgba(15,23,42,0.55);
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 14px;
+    padding: 14px 14px 14px 18px;
+    overflow: hidden;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .open-ficha-card:hover { border-color: rgba(56,189,248,0.45); transform: translateY(-1px); }
+  .open-ficha-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; border-radius: 14px 0 0 14px;
+  }
+  .open-ficha-card.aging-ok::before   { background: #10b981; }
+  .open-ficha-card.aging-warn::before { background: #f59e0b; }
+  .open-ficha-card.aging-late::before { background: #f43f5e; }
+  .open-ficha-card.aging-late { animation: agingPulse 2.4s ease-in-out infinite; }
+  @keyframes agingPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(244,63,94,0.0); }
+    50%      { box-shadow: 0 0 0 4px rgba(244,63,94,0.18); }
+  }
+  .open-ficha-card .of-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
+  .open-ficha-card .of-mach { font-weight: 800; color: #fff; font-size: 1rem; letter-spacing:0.02em; }
+  .open-ficha-card .of-meta { font-size: 0.78rem; color: #94a3b8; }
+  .open-ficha-card .of-body { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px 12px; margin: 6px 0 10px; }
+  .open-ficha-card .of-cell .lbl-mini { font-size: 0.62rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .open-ficha-card .of-cell .val      { font-size: 0.88rem; color: #e2e8f0; font-weight: 600; }
+  .open-ficha-card .of-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .of-aging-chip { font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .aging-ok   .of-aging-chip { background: rgba(16,185,129,0.15);  color:#34d399; border:1px solid rgba(16,185,129,0.35); }
+  .aging-warn .of-aging-chip { background: rgba(245,158,11,0.15);  color:#fbbf24; border:1px solid rgba(245,158,11,0.35); }
+  .aging-late .of-aging-chip { background: rgba(244,63,94,0.18);   color:#fb7185; border:1px solid rgba(244,63,94,0.45); }
+
   /* Navegación inferior tipo iPad */
   .tab-btn {
     flex: 1;
@@ -472,9 +506,50 @@
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="text-2xl font-black text-white">Ficha de Producción</h2>
-        <p class="text-slate-400 text-sm">Área de Tintorería TGM · Captura por ficha</p>
+        <p class="text-slate-400 text-sm">Flujo por turno: <b class="text-emerald-400">Abrir</b> al entrar la tela · <b class="text-sky-400">Cerrar</b> al salir</p>
       </div>
-      <span class="chip chip-info">Nueva entrada</span>
+      <span id="openFichasBadge" class="chip chip-warn hidden">0 fichas abiertas</span>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- PANEL: FICHAS ABIERTAS (las que esperan cierre) -->
+    <!-- ============================================ -->
+    <div id="openFichasPanel" class="card p-5 mb-4 hidden">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 class="text-lg font-black text-white">Fichas Abiertas</h3>
+          <p class="text-slate-400 text-xs">El turno entrante cierra estas fichas con la <b>hora de salida</b> y los <b>kilos finales</b>.</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs flex-wrap">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#10b981"></span>En proceso</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#f59e0b"></span>Cerrar pronto</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#f43f5e"></span>Olvidada</span>
+        </div>
+      </div>
+      <div id="openFichasList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODE TOGGLE: Abrir / Cerrar / Captura completa -->
+    <!-- ============================================ -->
+    <div class="card p-3 mb-4">
+      <div class="flex flex-wrap gap-2" role="tablist">
+        <button type="button" id="fmAbrir"    class="btn btn-primary touch-xl flex-1 min-w-[140px]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M12 5v14M5 12h14"/></svg>
+          Abrir Ficha
+        </button>
+        <button type="button" id="fmCerrar"   class="btn btn-secondary touch-xl flex-1 min-w-[140px]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M5 13l4 4L19 7"/></svg>
+          Cerrar Ficha
+        </button>
+        <button type="button" id="fmCompleta" class="btn btn-secondary touch-xl flex-1 min-w-[140px]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+          Captura completa
+        </button>
+      </div>
+      <p id="fmHint" class="text-xs text-slate-400 mt-2">
+        <b class="text-emerald-400">Abrir</b>: turno actual captura entrada (sin hora de salida ni kilos finales).
+      </p>
     </div>
 
     <!-- Datos de cabecera: Turno / Operador / Fecha -->
@@ -545,9 +620,10 @@
         <input type="time" id="f_hEntrada" class="field" />
       </div>
 
-      <div class="card p-5">
+      <div class="card p-5" id="f_hSalidaWrap">
         <label class="lbl">Hora Salida</label>
         <input type="time" id="f_hSalida" class="field" />
+        <p class="text-xs text-slate-500 mt-1">En modo <b>Abrir</b>, esta hora la captura el turno entrante al cerrar.</p>
       </div>
 
       <div class="card p-5 md:col-span-2">
@@ -607,15 +683,23 @@
     </div>
 
     <!-- Botones de acción -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-      <button id="btnSave" class="btn btn-primary touch-xl">
+    <div id="fichaActions" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+      <!-- Modo ABRIR: solo botón primario "Abrir Ficha" -->
+      <button id="btnAbrirFicha" class="btn btn-primary touch-xl sm:col-span-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><path d="M12 5v14M5 12h14"/></svg>
+        Abrir Ficha (entrada)
+      </button>
+
+      <!-- Modo COMPLETA: dos botones (guardar / guardar y nuevo) -->
+      <button id="btnSave" class="btn btn-primary touch-xl hidden">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Guardar
       </button>
-      <button id="btnSaveNew" class="btn btn-sky touch-xl">
+      <button id="btnSaveNew" class="btn btn-sky touch-xl hidden">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><path d="M12 5v14M5 12h14"/></svg>
         Guardar y Nuevo
       </button>
+
       <button id="btnClear" class="btn btn-secondary touch-xl">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-6 h-6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         Limpiar
@@ -2736,8 +2820,82 @@ let state = {
   // Usuario de sesión (se pregunta una sola vez)
   user: sessionStorage.getItem(SS_KEYS.user) || '',
   // Cola de acciones pendientes que esperan al nombre del usuario
-  pendingAfterUser: null
+  pendingAfterUser: null,
+  // Modo del tab Ficha: 'abrir' | 'cerrar' | 'completa'
+  fichaMode: 'abrir'
 };
+
+/* ---------------------------------------------------------------
+   MIGRACIÓN: marcar 'estado' en fichas existentes
+   Toda ficha previa a la introducción del flujo Abrir/Cerrar se trata
+   como 'cerrada' (datos históricos importados desde fotos / capturas
+   completas). Solo nuevas fichas creadas con saveFichaAbrir() llevarán
+   estado 'abierta'.
+   Se ejecuta una sola vez (flag tg_tint_estado_migration_v2).
+--------------------------------------------------------------- */
+(function migrateFichaEstado(){
+  const FLAG = 'tg_tint_estado_migration_v2';
+  if (localStorage.getItem(FLAG)) return;
+  let mutated = 0;
+  state.prod = (state.prod || []).map(r => {
+    if (r && typeof r === 'object' && !r.estado) {
+      r.estado = 'cerrada';
+      mutated++;
+    }
+    return r;
+  });
+  if (mutated) save(LS_KEYS.prod, state.prod);
+  // Limpiar el flag v1 si existía y todas las fichas están marcadas
+  localStorage.removeItem('tg_tint_estado_migration_v1');
+  localStorage.setItem(FLAG, '1');
+})();
+
+// Si una versión previa de la migración ya marcó fichas históricas como 'abierta' por error,
+// corregirlo: tratar como 'cerrada' cualquier ficha cuya importBatch indique import previo
+// (campo importBatch existe solo en datos importados vía batch histórico).
+(function fixMissedAbiertas(){
+  const FLAG = 'tg_tint_fix_abiertas_v1';
+  if (localStorage.getItem(FLAG)) return;
+  let fixed = 0;
+  (state.prod || []).forEach(r => {
+    if (r && r.estado === 'abierta' && r.importBatch) {
+      r.estado = 'cerrada';
+      fixed++;
+    }
+  });
+  if (fixed) save(LS_KEYS.prod, state.prod);
+  localStorage.setItem(FLAG, '1');
+})();
+
+/* ---------------------------------------------------------------
+   AGING DE FICHAS ABIERTAS
+   Devuelve {label, klass, color} según horas desde hEntrada hoy.
+--------------------------------------------------------------- */
+function fichaAging(rec){
+  // Construir Date de entrada combinando rec.fecha + rec.hEntrada
+  if (!rec.fecha || !rec.hEntrada) {
+    return { hours: 0, label: 'En proceso', klass: 'aging-ok', stripe: '#10b981' };
+  }
+  const [Y,M,D] = rec.fecha.split('-').map(Number);
+  const [h,m]   = rec.hEntrada.split(':').map(Number);
+  const start = new Date(Y, (M||1)-1, D||1, h||0, m||0, 0);
+  let hours = (Date.now() - start.getTime()) / 3600000;
+  if (hours < 0) hours = 0;
+  if (hours < 2)      return { hours, label: 'En proceso',     klass: 'aging-ok',    stripe: '#10b981' };
+  if (hours < 6)      return { hours, label: 'Cerrar pronto',  klass: 'aging-warn',  stripe: '#f59e0b' };
+  return                     { hours, label: 'Olvidada — revisar', klass: 'aging-late', stripe: '#f43f5e' };
+}
+
+// Devuelve solo las fichas abiertas, ordenadas por más antiguas primero (mayor urgencia)
+function getFichasAbiertas(){
+  return (state.prod || [])
+    .filter(r => r && r.estado === 'abierta')
+    .sort((a,b) => {
+      const ka = (a.fecha||'') + ' ' + (a.hEntrada||'');
+      const kb = (b.fecha||'') + ' ' + (b.hEntrada||'');
+      return ka.localeCompare(kb);
+    });
+}
 
 /* ---------------------------------------------------------------
    HELPERS
@@ -3255,6 +3413,16 @@ function bindCaptureForm() {
   $('#btnSave').addEventListener('click', () => requireUserThen(() => saveProd(false)));
   $('#btnSaveNew').addEventListener('click', () => requireUserThen(() => saveProd(true)));
   $('#btnClear').addEventListener('click', clearProdForm);
+
+  // Botones de modo Ficha (Abrir / Cerrar / Captura completa)
+  $('#fmAbrir')   ?.addEventListener('click', () => switchFichaMode('abrir'));
+  $('#fmCerrar')  ?.addEventListener('click', () => switchFichaMode('cerrar'));
+  $('#fmCompleta')?.addEventListener('click', () => switchFichaMode('completa'));
+  $('#btnAbrirFicha')?.addEventListener('click', () => requireUserThen(() => saveFichaAbrir()));
+  // Exponer el handler del modal de cierre globalmente (los botones se renderizan en HTML inline)
+  window.openCerrarFichaModal = openCerrarFichaModal;
+  // Inicializar el modo por defecto
+  switchFichaMode('abrir');
 }
 
 function recalc() {
@@ -3305,7 +3473,8 @@ function saveProd(andNew) {
     notas:    $('#f_notas').value.trim(),
     des:      calcDesempeno(state.selectedMachine, kilos, $('#f_proceso').value),
     tiempoPlanMin: minutosProceso($('#f_proceso').value),
-    cargaEstim:    cargaEsperada(state.selectedMachine, $('#f_proceso').value)
+    cargaEstim:    cargaEsperada(state.selectedMachine, $('#f_proceso').value),
+    estado:   'cerrada'
   };
 
   state.prod.unshift(rec);
@@ -3341,6 +3510,311 @@ function clearProdForm() {
   $('#benchmarkLbl').textContent = '— kg';
   recalc();
 }
+
+/* ================================================================
+   FLUJO ABRIR / CERRAR FICHA (handoff entre turnos)
+   - Abrir: capt. de entrada (hSalida vacía, estado='abierta')
+   - Cerrar: capt. de salida sobre una ficha abierta existente
+   - Captura completa: como antes (entrada + salida en una sola pasada)
+================================================================ */
+
+function switchFichaMode(mode){
+  // mode: 'abrir' | 'cerrar' | 'completa'
+  state.fichaMode = mode;
+  const btnA = $('#fmAbrir'), btnC = $('#fmCerrar'), btnK = $('#fmCompleta');
+  if (!btnA) return;
+  // Reset visual
+  [btnA, btnC, btnK].forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
+  if (mode === 'abrir')    { btnA.classList.add('btn-primary');  btnA.classList.remove('btn-secondary'); }
+  if (mode === 'cerrar')   { btnC.classList.add('btn-primary');  btnC.classList.remove('btn-secondary'); }
+  if (mode === 'completa') { btnK.classList.add('btn-primary');  btnK.classList.remove('btn-secondary'); }
+
+  // Ajustar UI del formulario
+  const hSalidaWrap = $('#f_hSalidaWrap');
+  const btnAbrir    = $('#btnAbrirFicha');
+  const btnSave     = $('#btnSave');
+  const btnSaveNew  = $('#btnSaveNew');
+  const hint        = $('#fmHint');
+
+  if (mode === 'abrir') {
+    hSalidaWrap.classList.add('opacity-40','pointer-events-none');
+    $('#f_hSalida').value = '';
+    btnAbrir.classList.remove('hidden');
+    btnSave.classList.add('hidden');
+    btnSaveNew.classList.add('hidden');
+    hint.innerHTML = '<b class="text-emerald-400">Abrir</b>: turno actual captura entrada (sin hora de salida ni kilos finales). El turno entrante cerrará la ficha.';
+  } else if (mode === 'cerrar') {
+    hSalidaWrap.classList.remove('opacity-40','pointer-events-none');
+    btnAbrir.classList.add('hidden');
+    btnSave.classList.add('hidden');
+    btnSaveNew.classList.add('hidden');
+    hint.innerHTML = '<b class="text-sky-400">Cerrar</b>: usa el panel de arriba. Toca <b>Cerrar</b> en la ficha que corresponde a tu máquina.';
+  } else { // completa
+    hSalidaWrap.classList.remove('opacity-40','pointer-events-none');
+    btnAbrir.classList.add('hidden');
+    btnSave.classList.remove('hidden');
+    btnSaveNew.classList.remove('hidden');
+    hint.innerHTML = '<b class="text-slate-200">Captura completa</b>: usa este modo si la ficha entró y salió en tu mismo turno (entrada + salida juntas).';
+  }
+  // Re-render del panel siempre, por si cambió el orden
+  renderOpenFichasPanel();
+}
+
+// Guardar ficha en estado 'abierta' (sin hSalida)
+function saveFichaAbrir(){
+  if (!state.selectedMachine) return toast('Selecciona una máquina', true);
+  if (!state.selectedShift)   return toast('Selecciona un turno', true);
+  const kilos = parseFloat($('#f_kilos').value);
+  if (!kilos || kilos <= 0)   return toast('Captura los kilos de entrada', true);
+  if (!$('#f_hEntrada').value) return toast('Captura la hora de entrada', true);
+
+  const rec = {
+    id: uid(),
+    ts: Date.now(),
+    machine:  state.selectedMachine,
+    shift:    state.selectedShift,
+    operador: $('#f_operador').value.trim(),
+    fecha:    $('#f_fecha').value || todayISO(),
+    lote:     $('#f_lote').value.trim(),
+    tela:     $('#f_tela').value.trim(),
+    color:    $('#f_color').value.trim(),
+    diseno:   $('#f_diseno').value.trim(),
+    pedido:   $('#f_pedido').value.trim(),
+    kilos:    kilos,
+    hEntrada: $('#f_hEntrada').value,
+    hSalida:  '',
+    duracionMin: 0,
+    proceso:  $('#f_proceso').value.trim(),
+    apq:      parseFloat($('#f_apq').value) || 0,
+    banos:    parseInt($('#f_banos').value, 10) || 1,
+    notas:    $('#f_notas').value.trim(),
+    des:      0,
+    tiempoPlanMin: minutosProceso($('#f_proceso').value),
+    cargaEstim:    cargaEsperada(state.selectedMachine, $('#f_proceso').value),
+    estado:   'abierta',
+    operadorAbrir: ($('#f_operador').value.trim() || state.user || ''),
+    shiftAbrir:    state.selectedShift
+  };
+
+  state.prod.unshift(rec);
+  save(LS_KEYS.prod, state.prod);
+  try { saveToCloud('prod', rec); } catch(e) {}
+  logChange({ module:'Ficha', action:'Abierta', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · entrada ${rec.hEntrada}` });
+  toast('Ficha abierta ✓ — esperando cierre del siguiente turno');
+  clearProdForm();
+  renderAll();
+}
+
+// Cierre de una ficha abierta (modal)
+function openCerrarFichaModal(id){
+  const rec = (state.prod || []).find(r => r.id === id);
+  if (!rec) return toast('Ficha no encontrada', true);
+
+  // Construir modal inline (lazy)
+  let modal = $('#cerrarFichaModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'cerrarFichaModal';
+    modal.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-3 hidden';
+    modal.innerHTML = `
+      <div class="card p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-xl font-black text-white">Cerrar Ficha</h3>
+            <p id="cf_subtitle" class="text-sm text-slate-400"></p>
+          </div>
+          <button id="cf_close" class="btn btn-secondary !p-2" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div id="cf_summary" class="text-sm text-slate-300 mb-4 grid grid-cols-2 gap-2"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="lbl">Hora de Salida</label>
+            <input type="time" id="cf_hSalida" class="field" />
+          </div>
+          <div>
+            <label class="lbl">Kilos Finales</label>
+            <input type="number" step="0.01" min="0" id="cf_kilos" class="field" placeholder="kg" inputmode="decimal" />
+          </div>
+          <div>
+            <label class="lbl">Merma <span class="text-slate-500 normal-case text-xs">(opcional)</span></label>
+            <input type="number" step="0.01" min="0" id="cf_merma" class="field" placeholder="kg" inputmode="decimal" />
+          </div>
+          <div>
+            <label class="lbl">Turno que cierra</label>
+            <div id="cf_turnoBtns" class="grid grid-cols-3 gap-2">
+              <button type="button" class="shift-btn cf-shift-btn" data-shift="1°">1°</button>
+              <button type="button" class="shift-btn cf-shift-btn" data-shift="2°">2°</button>
+              <button type="button" class="shift-btn cf-shift-btn" data-shift="3°">3°</button>
+            </div>
+          </div>
+          <div class="col-span-2">
+            <label class="lbl">Observaciones del cierre <span class="text-slate-500 normal-case text-xs">(opcional)</span></label>
+            <textarea id="cf_notas" rows="2" class="field" placeholder="Ej: tono OK / repaso / atorón al final..."></textarea>
+          </div>
+          <div class="col-span-2 grid grid-cols-3 gap-2 text-center mt-1">
+            <div><div class="kpi-lbl">Duración</div><div id="cf_calc_dur" class="kpi-num text-sky-accent">--:--</div></div>
+            <div><div class="kpi-lbl">Kilos / hora</div><div id="cf_calc_kph" class="kpi-num text-white">--</div></div>
+            <div><div class="kpi-lbl">Desempeño</div><div id="cf_calc_eff" class="kpi-num text-emer-accent">-- %</div></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <button id="cf_cancel" class="btn btn-secondary touch-xl">Cancelar</button>
+          <button id="cf_save"   class="btn btn-primary  touch-xl">Cerrar Ficha</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    // Wire los botones estáticos
+    $('#cf_close',  modal).addEventListener('click', () => modal.classList.add('hidden'));
+    $('#cf_cancel', modal).addEventListener('click', () => modal.classList.add('hidden'));
+  }
+
+  // Llenar datos de esta ficha
+  modal.dataset.fichaId = id;
+  $('#cf_subtitle').textContent = `${rec.machine} · Lote ${rec.lote || '—'} · ${rec.color || 'sin color'}`;
+  $('#cf_summary').innerHTML = `
+    <div><span class="text-slate-500">Entrada:</span> <b class="text-white">${rec.hEntrada || '--'}</b></div>
+    <div><span class="text-slate-500">Kilos entrada:</span> <b class="text-white">${fmtKg(rec.kilos)} kg</b></div>
+    <div><span class="text-slate-500">Proceso:</span> <b class="text-white">${rec.proceso || '—'}</b></div>
+    <div><span class="text-slate-500">Tela / Diseño:</span> <b class="text-white">${rec.tela || '—'} / ${rec.diseno || '—'}</b></div>
+    <div><span class="text-slate-500">Operador entrada:</span> <b class="text-white">${rec.operadorAbrir || rec.operador || '—'}</b></div>
+    <div><span class="text-slate-500">Turno entrada:</span> <b class="text-white">${rec.shiftAbrir || rec.shift || '—'}</b></div>
+  `;
+  // Reset campos
+  $('#cf_hSalida').value = '';
+  $('#cf_kilos').value   = rec.kilos || '';
+  $('#cf_merma').value   = '';
+  $('#cf_notas').value   = '';
+  $$('#cf_turnoBtns .cf-shift-btn').forEach(b => b.classList.remove('active'));
+  $('#cf_calc_dur').textContent = '--:--';
+  $('#cf_calc_kph').textContent = '--';
+  $('#cf_calc_eff').textContent = '-- %';
+
+  // Recalc en tiempo real
+  const recalcCierre = () => {
+    const hf = $('#cf_hSalida').value;
+    const kf = parseFloat($('#cf_kilos').value) || rec.kilos;
+    if (rec.hEntrada && hf) {
+      const mins = durationMinutes(rec.hEntrada, hf);
+      $('#cf_calc_dur').textContent = fmtDur(mins);
+      $('#cf_calc_kph').textContent = mins > 0 ? (kf / (mins/60)).toLocaleString('es-MX', {maximumFractionDigits:1}) : '--';
+      const cargaEst = cargaEsperada(rec.machine, rec.proceso);
+      const eff = cargaEst > 0 ? Math.round((kf / cargaEst) * 100) : 0;
+      $('#cf_calc_eff').textContent = eff ? eff + ' %' : '-- %';
+    } else {
+      $('#cf_calc_dur').textContent = '--:--';
+      $('#cf_calc_kph').textContent = '--';
+      $('#cf_calc_eff').textContent = '-- %';
+    }
+  };
+  $('#cf_hSalida').oninput = recalcCierre;
+  $('#cf_kilos').oninput   = recalcCierre;
+
+  // Turno cierre selectable
+  let turnoCerrar = '';
+  $$('#cf_turnoBtns .cf-shift-btn').forEach(b => {
+    b.onclick = () => {
+      $$('#cf_turnoBtns .cf-shift-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      turnoCerrar = b.dataset.shift;
+    };
+  });
+
+  // Save handler (re-bound cada vez)
+  $('#cf_save').onclick = () => {
+    const hf = $('#cf_hSalida').value;
+    if (!hf) return toast('Captura la hora de salida', true);
+    const kf = parseFloat($('#cf_kilos').value);
+    if (!kf || kf <= 0) return toast('Captura los kilos finales', true);
+    const mins = durationMinutes(rec.hEntrada, hf);
+    const merma = parseFloat($('#cf_merma').value);
+    const notasCierre = $('#cf_notas').value.trim();
+
+    // Mutar el record
+    rec.hSalida     = hf;
+    rec.duracionMin = mins;
+    rec.kilos       = kf;
+    if (!isNaN(merma)) rec.merma = merma;
+    if (notasCierre) rec.notas = (rec.notas ? (rec.notas + ' — ') : '') + 'Cierre: ' + notasCierre;
+    rec.estado        = 'cerrada';
+    rec.shiftCerrar   = turnoCerrar || rec.shift;
+    rec.operadorCerrar = state.user || '';
+    rec.tsCierre      = Date.now();
+    // Recalcular desempeño con kilos finales
+    rec.des = calcDesempeno(rec.machine, kf, rec.proceso);
+
+    save(LS_KEYS.prod, state.prod);
+    try { saveToCloud('prod', rec); } catch(e) {}
+    logChange({ module:'Ficha', action:'Cerrada', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(kf)} kg · ${fmtDur(mins)} · turno ${rec.shiftCerrar||'?'}` });
+    toast('Ficha cerrada ✓');
+    modal.classList.add('hidden');
+    renderAll();
+  };
+
+  modal.classList.remove('hidden');
+}
+
+// Render del panel de Fichas Abiertas
+function renderOpenFichasPanel(){
+  const panel = $('#openFichasPanel');
+  const list  = $('#openFichasList');
+  const badge = $('#openFichasBadge');
+  if (!panel || !list || !badge) return;
+
+  const abiertas = getFichasAbiertas();
+
+  // Badge en el header
+  if (abiertas.length === 0) {
+    badge.classList.add('hidden');
+    panel.classList.add('hidden');
+    return;
+  }
+  badge.textContent = abiertas.length === 1 ? '1 ficha abierta' : `${abiertas.length} fichas abiertas`;
+  badge.classList.remove('hidden');
+  // Cambiar tono del badge según la ficha más vieja
+  const peor = abiertas.reduce((acc, r) => Math.max(acc, fichaAging(r).hours), 0);
+  badge.classList.remove('chip-warn','chip-bad','chip-info');
+  if (peor >= 6)      badge.classList.add('chip-bad');
+  else if (peor >= 2) badge.classList.add('chip-warn');
+  else                badge.classList.add('chip-info');
+
+  panel.classList.remove('hidden');
+
+  list.innerHTML = abiertas.map(r => {
+    const ag = fichaAging(r);
+    const hLabel = ag.hours < 1
+      ? `${Math.round(ag.hours*60)} min`
+      : `${ag.hours.toFixed(1)} h`;
+    const fechaTxt = r.fecha ? new Date(r.fecha + 'T00:00:00').toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'}) : '—';
+    return `
+      <div class="open-ficha-card ${ag.klass}">
+        <div class="of-head">
+          <div>
+            <span class="of-mach">${r.machine || '—'}</span>
+            <span class="of-meta">· Lote ${r.lote || '—'} · ${fechaTxt}</span>
+          </div>
+          <span class="of-aging-chip">${ag.label} · ${hLabel}</span>
+        </div>
+        <div class="of-body">
+          <div class="of-cell"><div class="lbl-mini">Entrada</div><div class="val">${r.hEntrada || '--'}</div></div>
+          <div class="of-cell"><div class="lbl-mini">Kilos</div><div class="val">${fmtKg(r.kilos)} kg</div></div>
+          <div class="of-cell"><div class="lbl-mini">Proceso</div><div class="val" title="${(r.proceso||'').replace(/"/g,'&quot;')}">${(r.proceso || '—').slice(0,18)}</div></div>
+          <div class="of-cell"><div class="lbl-mini">Tela</div><div class="val">${(r.tela || '—').slice(0,18)}</div></div>
+          <div class="of-cell"><div class="lbl-mini">Color</div><div class="val">${(r.color || '—').slice(0,18)}</div></div>
+          <div class="of-cell"><div class="lbl-mini">Turno entrada</div><div class="val">${r.shiftAbrir || r.shift || '—'}</div></div>
+        </div>
+        <div class="of-actions">
+          <button class="btn btn-primary !py-2 !px-3 text-sm" onclick="openCerrarFichaModal('${r.id}')">Cerrar ficha</button>
+          <button class="btn btn-secondary !py-2 !px-3 text-sm" onclick="openEditFicha('${r.id}')" title="Editar campos">Editar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Auto-refresh aging cada 60s para que los colores avancen sin recargar
+setInterval(() => { try { renderOpenFichasPanel(); } catch(e) {} }, 60000);
 
 /* ---------------------------------------------------------------
    REPORTE DE PRODUCCIÓN (agrupado por máquina - imita el papel)
@@ -5679,6 +6153,7 @@ function bindExport() {
    RENDER ALL
 --------------------------------------------------------------- */
 function renderAll() {
+  renderOpenFichasPanel();
   renderReport();
   renderEfficiency();
   renderDowntime(); // already calls renderDowntimeAnalytics + renderRamaDowntime
