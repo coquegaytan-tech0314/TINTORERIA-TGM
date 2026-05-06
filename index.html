@@ -515,7 +515,7 @@
     <!-- ============================================ -->
     <!-- PANEL: FICHAS ABIERTAS (las que esperan cierre) -->
     <!-- ============================================ -->
-    <div id="openFichasPanel" class="card p-5 mb-4 hidden">
+    <div id="openFichasPanel" class="card p-5 mb-4">
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
           <h3 class="text-lg font-black text-white">Fichas Abiertas</h3>
@@ -3766,12 +3766,23 @@ function renderOpenFichasPanel(){
 
   const abiertas = getFichasAbiertas();
 
-  // Badge en el header
+  // Panel siempre visible (también cuando no hay abiertas, con vacío amistoso)
+  panel.classList.remove('hidden');
+
+  // Empty state
   if (abiertas.length === 0) {
-    badge.classList.add('hidden');
-    panel.classList.add('hidden');
+    badge.textContent = '0 fichas abiertas';
+    badge.classList.remove('hidden','chip-warn','chip-bad');
+    badge.classList.add('chip-info');
+    list.innerHTML = `
+      <div class="col-span-full text-center py-6">
+        <div class="text-3xl mb-2 opacity-40">✓</div>
+        <p class="text-slate-300 font-bold">Sin fichas pendientes de cierre</p>
+        <p class="text-slate-500 text-xs mt-1">Cuando un operador abra una ficha, aparecerá aquí para que el siguiente turno la cierre.</p>
+      </div>`;
     return;
   }
+
   badge.textContent = abiertas.length === 1 ? '1 ficha abierta' : `${abiertas.length} fichas abiertas`;
   badge.classList.remove('hidden');
   // Cambiar tono del badge según la ficha más vieja
@@ -3780,8 +3791,6 @@ function renderOpenFichasPanel(){
   if (peor >= 6)      badge.classList.add('chip-bad');
   else if (peor >= 2) badge.classList.add('chip-warn');
   else                badge.classList.add('chip-info');
-
-  panel.classList.remove('hidden');
 
   list.innerHTML = abiertas.map(r => {
     const ag = fichaAging(r);
