@@ -2931,11 +2931,13 @@ const fmtKg = (n) => (Number(n)||0).toLocaleString('es-MX', { maximumFractionDig
 
 function toast(msg, isErr=false) {
   const t = $('#toast');
-  t.textContent = msg;
+  // Prefijo visual claro: ✓ (éxito) o ⚠ (error)
+  t.textContent = (isErr ? '⚠  ' : '✓  ') + msg;
   t.classList.toggle('err', isErr);
   t.classList.add('show');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+  // Errores duran más para que el usuario los lea
+  toast._t = setTimeout(() => t.classList.remove('show'), isErr ? 3800 : 2200);
 }
 
 function getMachine(id) { return MACHINES.find(m => m.id === id); }
@@ -5378,9 +5380,20 @@ function saveEditedFicha() {
   const f = state.prod.find(r => r.id === editingFichaId);
   if (!f) return toast('Ficha no encontrada', true);
 
-  const kilos = parseFloat($('#ef_kilos').value);
-  if (!(kilos > 0)) return toast('Captura los kilos', true);
-  if (!$('#ef_hEntrada').value || !$('#ef_hSalida').value) return toast('Captura horas entrada y salida', true);
+  const isAbierta = f.estado === 'abierta';
+  const kilosRaw  = $('#ef_kilos').value;
+  const kilos     = parseFloat(kilosRaw);
+  const hEntrada  = $('#ef_hEntrada').value;
+  const hSalida   = $('#ef_hSalida').value;
+
+  // Validación: relajada para fichas abiertas (hSalida y kilos pueden faltar)
+  if (isAbierta) {
+    if (!hEntrada) return toast('La hora de entrada es obligatoria', true);
+    if (kilosRaw && !(kilos > 0)) return toast('Kilos debe ser un número positivo', true);
+  } else {
+    if (!(kilos > 0)) return toast('Captura los kilos', true);
+    if (!hEntrada || !hSalida) return toast('Captura horas entrada y salida', true);
+  }
 
   const machine = $('#ef_machine').value;
   const proceso = $('#ef_proceso').value.trim();
@@ -5393,15 +5406,15 @@ function saveEditedFicha() {
   f.color    = $('#ef_color').value.trim();
   f.diseno   = $('#ef_diseno').value.trim();
   f.pedido   = $('#ef_pedido').value.trim();
-  f.kilos    = kilos;
-  f.hEntrada = $('#ef_hEntrada').value;
-  f.hSalida  = $('#ef_hSalida').value;
+  f.kilos    = isAbierta ? (kilosRaw ? kilos : (f.kilos || 0)) : kilos;
+  f.hEntrada = hEntrada;
+  f.hSalida  = hSalida;
   f.proceso  = proceso;
   f.apq      = parseFloat($('#ef_apq').value) || 0;
   f.banos    = parseInt($('#ef_banos').value, 10) || 1;
   f.notas    = $('#ef_notas').value.trim();
-  // Recalcular derivados
-  f.duracionMin   = durationMinutes(f.hEntrada, f.hSalida);
+  // Recalcular derivados (sólo si hay hSalida)
+  f.duracionMin   = (hEntrada && hSalida) ? durationMinutes(hEntrada, hSalida) : 0;
   f.des           = calcDesempeno(machine, kilos, proceso);
   f.tiempoPlanMin = minutosProceso(proceso);
   f.cargaEstim    = cargaEsperada(machine, proceso);
