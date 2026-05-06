@@ -22,6 +22,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Chart.js para gráficas -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <!-- ============================================================
      FIREBASE - sincronización entre dispositivos
@@ -6127,26 +6128,232 @@ function renderPT() {
 }
 
 /* ---------------------------------------------------------------
-   EXPORT
+   EXPORT — genera un .xlsx (Excel) con varias hojas
+   Hojas: Resumen / Producción / Tiempos Muertos / Bruckner manual /
+          PT Bruckner / PT Hojas / Historial
+   Requiere SheetJS (XLSX global) cargado vía CDN.
 --------------------------------------------------------------- */
 function bindExport() {
-  $('#exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({
-      exported: new Date().toISOString(),
-      empresa: 'Tejidos Gaytan de Moroleón S.A. de C.V.',
-      area: 'Tintorería TGM',
-      produccion: state.prod,
-      tiemposMuertos: state.down,
-      bruckner: state.bruck
-    }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tintoreria_tgm_${todayISO()}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-    toast('Datos exportados ✓');
+  $('#exportBtn').addEventListener('click', () => exportToExcel());
+}
+
+function _xlsxFmtTs(ts){ if (!ts) return ''; try { return new Date(ts).toLocaleString('es-MX'); } catch(e){ return ''; } }
+
+// Convierte un arreglo de objetos a una hoja con columnas definidas (orden + headers en español)
+function _toSheet(rows, columns){
+  const headers = columns.map(c => c.header);
+  const data = (rows || []).map(r => {
+    const out = {};
+    columns.forEach(c => {
+      const raw = r ? r[c.key] : '';
+      out[c.header] = c.fmt ? c.fmt(raw, r) : (raw === undefined || raw === null ? '' : raw);
+    });
+    return out;
   });
+  const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+  ws['!cols'] = columns.map(c => ({ wch: c.width || Math.max(10, (c.header || '').length + 2) }));
+  return ws;
+}
+
+function exportToExcel(){
+  if (typeof XLSX === 'undefined') {
+    toast('No se pudo cargar el módulo Excel. Revisa tu conexión.', true);
+    return;
+  }
+  try {
+    const wb = XLSX.utils.book_new();
+    wb.Props = {
+      Title: 'Tintorería TGM — Producción',
+      Subject: 'Datos del dashboard',
+      Author: 'Tintorería TGM',
+      CreatedDate: new Date()
+    };
+
+    // ==== Hoja 1: RESUMEN ====
+    const prod = state.prod || [];
+    const totalKg     = prod.reduce((s,r)=> s + (Number(r.kilos)||0), 0);
+    const cerradas    = prod.filter(r => r.estado !== 'abierta').length;
+    const abiertas    = prod.filter(r => r.estado === 'abierta').length;
+    const fechas      = [...new Set(prod.map(r=>r.fecha).filter(Boolean))].sort();
+    const machines    = [...new Set(prod.map(r=>r.machine).filter(Boolean))].sort();
+    const ptRows      = state.pt || [];
+    const ptKg        = ptRows.reduce((s,r)=> s + (Number(r.kf || r.ki) || 0), 0);
+    const dtRows      = state.down || [];
+    const dtMin       = dtRows.reduce((s,r)=> s + (Number(r.duracionMin || r.minutos)||0), 0);
+    const bruckRows   = state.bruck || [];
+    const bruckKg     = bruckRows.reduce((s,r)=> s + (Number(r.kilos)||0), 0);
+
+    const resumen = [
+      ['Empresa',                'Tejidos Gaytán de Moroleón S.A. de C.V.'],
+      ['Área',                   'Tintorería TGM'],
+      ['Exportado',              new Date().toLocaleString('es-MX')],
+      ['', ''],
+      ['== Producción Tintorería ==', ''],
+      ['Fichas totales',         prod.length],
+      ['Fichas cerradas',        cerradas],
+      ['Fichas abiertas',        abiertas],
+      ['Kilos procesados (kg)',  Math.round(totalKg)],
+      ['Cobertura (días)',       fechas.length],
+      ['Primer día',             fechas[0] || ''],
+      ['Último día',             fechas[fechas.length-1] || ''],
+      ['Máquinas registradas',   machines.join(', ')],
+      ['', ''],
+      ['== PT / Bruckner ==', ''],
+      ['Filas PT',               ptRows.length],
+      ['Kilos PT (liberados)',   Math.round(ptKg)],
+      ['Hojas PT',               (state.ptSheets || []).length],
+      ['Bruckner manual (filas)',bruckRows.length],
+      ['Bruckner manual (kg)',   Math.round(bruckKg)],
+      ['', ''],
+      ['== Tiempos Muertos ==', ''],
+      ['Eventos registrados',    dtRows.length],
+      ['Minutos totales',        Math.round(dtMin)]
+    ];
+    const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+    wsResumen['!cols'] = [{ wch: 30 }, { wch: 50 }];
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+    // ==== Hoja 2: PRODUCCIÓN TINTORERÍA ====
+    const colsProd = [
+      { key: 'fecha',         header: 'Fecha',         width: 12 },
+      { key: 'machine',       header: 'Máquina',       width: 12 },
+      { key: 'shift',         header: 'Turno',         width: 8  },
+      { key: 'operador',      header: 'Operador',      width: 18 },
+      { key: 'lote',          header: 'Lote',          width: 12 },
+      { key: 'tela',          header: 'Tela',          width: 16 },
+      { key: 'color',         header: 'Color',         width: 18 },
+      { key: 'diseno',        header: 'Diseño',        width: 18 },
+      { key: 'pedido',        header: 'Pedido',        width: 14 },
+      { key: 'kilos',         header: 'Kilos',         width: 10 },
+      { key: 'hEntrada',      header: 'Hr. Entrada',   width: 11 },
+      { key: 'hSalida',       header: 'Hr. Salida',    width: 11 },
+      { key: 'duracionMin',   header: 'Duración (min)',width: 13 },
+      { key: 'proceso',       header: 'Proceso',       width: 22 },
+      { key: 'apq',           header: 'Químico/kg (MXN)', width: 16, fmt:v=> Number(v||0) },
+      { key: 'banos',         header: 'Baños',         width: 7  },
+      { key: 'merma',         header: 'Merma (kg)',    width: 11 },
+      { key: 'estado',        header: 'Estado',        width: 10 },
+      { key: 'shiftAbrir',    header: 'Turno entrada', width: 13 },
+      { key: 'operadorAbrir', header: 'Op. entrada',   width: 16 },
+      { key: 'shiftCerrar',   header: 'Turno cierre',  width: 13 },
+      { key: 'operadorCerrar',header: 'Op. cierre',    width: 16 },
+      { key: 'des',           header: 'Desempeño (%)', width: 13 },
+      { key: 'tiempoPlanMin', header: 'Plan (min)',    width: 11 },
+      { key: 'cargaEstim',    header: 'Carga est. (kg)', width: 15 },
+      { key: 'notas',         header: 'Notas',         width: 32 },
+      { key: 'importBatch',   header: 'Lote import',   width: 12 },
+      { key: 'ts',            header: 'Capturada',     width: 18, fmt:v=> _xlsxFmtTs(v) },
+      { key: 'tsCierre',      header: 'Cerrada',       width: 18, fmt:v=> _xlsxFmtTs(v) },
+      { key: 'id',            header: 'ID',            width: 16 }
+    ];
+    const prodSorted = [...prod].sort((a,b) => {
+      const ka = (a.fecha||'') + ' ' + (a.machine||'') + ' ' + (a.hEntrada||'');
+      const kb = (b.fecha||'') + ' ' + (b.machine||'') + ' ' + (b.hEntrada||'');
+      return ka.localeCompare(kb);
+    });
+    XLSX.utils.book_append_sheet(wb, _toSheet(prodSorted, colsProd), 'Producción');
+
+    // ==== Hoja 3: TIEMPOS MUERTOS ====
+    const colsDt = [
+      { key: 'fecha',     header: 'Fecha',       width: 12 },
+      { key: 'machine',   header: 'Máquina',     width: 14 },
+      { key: 'shift',     header: 'Turno',       width: 8  },
+      { key: 'categoria', header: 'Categoría',   width: 18 },
+      { key: 'subcat',    header: 'Subcategoría',width: 18 },
+      { key: 'hInicio',   header: 'Hr. Inicio',  width: 11 },
+      { key: 'hFin',      header: 'Hr. Fin',     width: 11 },
+      { key: 'minutos',   header: 'Minutos',     width: 10 },
+      { key: 'duracionMin', header: 'Duración (min)', width: 13 },
+      { key: 'operador',  header: 'Operador',    width: 16 },
+      { key: 'detalle',   header: 'Detalle',     width: 36 },
+      { key: 'notas',     header: 'Notas',       width: 30 },
+      { key: 'ts',        header: 'Capturada',   width: 18, fmt:v=> _xlsxFmtTs(v) },
+      { key: 'id',        header: 'ID',          width: 16 }
+    ];
+    XLSX.utils.book_append_sheet(wb, _toSheet(dtRows, colsDt), 'Tiempos Muertos');
+
+    // ==== Hoja 4: BRUCKNER MANUAL ====
+    const colsBruck = [
+      { key: 'fecha',       header: 'Fecha',         width: 12 },
+      { key: 'shift',       header: 'Turno',         width: 8  },
+      { key: 'operador',    header: 'Operador',      width: 18 },
+      { key: 'lote',        header: 'Lote',          width: 12 },
+      { key: 'tela',        header: 'Tela',          width: 16 },
+      { key: 'color',       header: 'Color',         width: 18 },
+      { key: 'diseno',      header: 'Diseño',        width: 18 },
+      { key: 'pedido',      header: 'Pedido',        width: 14 },
+      { key: 'kilos',       header: 'Kilos',         width: 10 },
+      { key: 'hEntrada',    header: 'Hr. Entrada',   width: 11 },
+      { key: 'hSalida',     header: 'Hr. Salida',    width: 11 },
+      { key: 'duracionMin', header: 'Duración (min)',width: 13 },
+      { key: 'proceso',     header: 'Proceso',       width: 22 },
+      { key: 'notas',       header: 'Notas',         width: 32 },
+      { key: 'ts',          header: 'Capturada',     width: 18, fmt:v=> _xlsxFmtTs(v) },
+      { key: 'id',          header: 'ID',            width: 16 }
+    ];
+    XLSX.utils.book_append_sheet(wb, _toSheet(bruckRows, colsBruck), 'Bruckner manual');
+
+    // ==== Hoja 5: PT BRUCKNER (filas) ====
+    const colsPT = [
+      { key: 'f',  header: 'Fecha',         width: 12 },
+      { key: 'b',  header: 'Lote import',   width: 12 },
+      { key: 't',  header: 'Turno',         width: 8  },
+      { key: 'd',  header: 'Diseño',        width: 18 },
+      { key: 'c',  header: 'Color',         width: 18 },
+      { key: 'an', header: 'Ancho',         width: 10 },
+      { key: 'l',  header: 'Lote',          width: 12 },
+      { key: 'ri', header: 'Rollo inicio',  width: 13 },
+      { key: 'rf', header: 'Rollo fin',     width: 13 },
+      { key: 'ki', header: 'Kg inicio',     width: 11 },
+      { key: 'kf', header: 'Kg fin',        width: 11 },
+      { key: 'mt', header: 'Metros',        width: 10 },
+      { key: 'me', header: 'Merma',         width: 10 },
+      { key: 'o',  header: 'Observaciones', width: 30 },
+      { key: 'es', header: 'Estado',        width: 12 },
+      { key: 'pr', header: 'Pasada repet.', width: 13 },
+      { key: 'fl', header: 'Flag',          width: 8  },
+      { key: 'src',header: 'Origen',        width: 14 },
+      { key: 'sid',header: 'Sheet ID',      width: 14 },
+      { key: 'idx',header: 'Idx',           width: 6  }
+    ];
+    XLSX.utils.book_append_sheet(wb, _toSheet(ptRows, colsPT), 'PT Bruckner');
+
+    // ==== Hoja 6: PT HOJAS (totales por hoja) ====
+    const colsPTSheets = [
+      { key: 'sid',         header: 'Sheet ID',     width: 14 },
+      { key: 'fecha',       header: 'Fecha',        width: 12 },
+      { key: 'turno',       header: 'Turno',        width: 8  },
+      { key: 'totalKg',     header: 'Total kg',     width: 12 },
+      { key: 'totalMt',     header: 'Total metros', width: 13 },
+      { key: 'rollos',      header: 'Rollos',       width: 8  },
+      { key: 'importBatch', header: 'Lote import',  width: 12 },
+      { key: 'notas',       header: 'Notas',        width: 30 }
+    ];
+    XLSX.utils.book_append_sheet(wb, _toSheet(state.ptSheets || [], colsPTSheets), 'PT Hojas');
+
+    // ==== Hoja 7: HISTORIAL (últimos 1000 eventos) ====
+    const colsHist = [
+      { key: 'ts',      header: 'Fecha/Hora', width: 18, fmt:v=> _xlsxFmtTs(v) },
+      { key: 'usuario', header: 'Usuario',    width: 16 },
+      { key: 'module',  header: 'Módulo',     width: 14 },
+      { key: 'action',  header: 'Acción',     width: 16 },
+      { key: 'machine', header: 'Máquina',    width: 12 },
+      { key: 'lote',    header: 'Lote',       width: 12 },
+      { key: 'detail',  header: 'Detalle',    width: 40 }
+    ];
+    const histSorted = [...(state.history || [])].sort((a,b)=> (b.ts||0) - (a.ts||0)).slice(0, 1000);
+    XLSX.utils.book_append_sheet(wb, _toSheet(histSorted, colsHist), 'Historial');
+
+    // ==== Generar y descargar ====
+    const fname = `tintoreria_tgm_${todayISO()}.xlsx`;
+    XLSX.writeFile(wb, fname, { compression: true, bookType: 'xlsx' });
+
+    try { logChange({ module:'Export', action:'Excel', detail:`${prod.length} fichas · ${ptRows.length} PT · ${dtRows.length} t. muertos` }); } catch(e){}
+    toast('Excel descargado ✓');
+  } catch (err) {
+    console.error('Export Excel error:', err);
+    toast('Error al exportar a Excel: ' + (err && err.message || err), true);
+  }
 }
 
 /* ---------------------------------------------------------------
