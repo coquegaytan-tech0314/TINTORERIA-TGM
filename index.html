@@ -826,6 +826,96 @@
       </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- INSIGHTS DE COSTO QUÍMICO (sólo modo Mes) -->
+    <!-- ============================================ -->
+    <div id="reportCostInsights" class="hidden mb-4">
+      <!-- Strip de KPIs grandes del mes -->
+      <div class="card p-5 mb-3">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-black text-white text-base">💰 Insights de Costo Químico</h3>
+            <p class="text-slate-400 text-xs" id="ciSubtitle">Análisis del mes actual</p>
+          </div>
+          <span class="chip chip-info text-xs" title="Fórmula: Σ (kilos × Químico/kg)">Σ kilos × $/kg</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <div class="kpi-lbl">Producción del mes</div>
+            <div id="ciKgMonth" class="text-2xl font-black text-sky-accent">0 kg</div>
+            <div id="ciKgVsPrev" class="text-xs mt-0.5"></div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Costo químico</div>
+            <div id="ciCostMonth" class="text-2xl font-black text-amber-400">$0</div>
+            <div id="ciCostVsPrev" class="text-xs mt-0.5"></div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Costo promedio</div>
+            <div id="ciAvgCost" class="text-2xl font-black text-white">$0/kg</div>
+            <div class="text-xs text-slate-400 mt-0.5">prom. ponderado</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Fichas con químico</div>
+            <div id="ciCoverage" class="text-2xl font-black text-white">0%</div>
+            <div id="ciCoverageDet" class="text-xs text-slate-400 mt-0.5">0 / 0 fichas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tendencia 6 meses -->
+      <div class="card p-5 mb-3">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div>
+            <h3 class="font-black text-white text-sm">Tendencia · Últimos 6 meses</h3>
+            <p class="text-slate-400 text-xs">Costo químico (barras) y producción en kilos (línea) · click una barra para ver el mes</p>
+          </div>
+          <span class="chip text-xs" id="ciTrendBest">—</span>
+        </div>
+        <div style="height:240px;position:relative">
+          <canvas id="ciTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Top offenders: 3 columnas (máquina, proceso, color) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="card p-5">
+          <h4 class="font-black text-white text-sm mb-1">🔥 Máquinas más caras</h4>
+          <p class="text-slate-500 text-xs mb-3">Top 5 por costo químico total</p>
+          <div id="ciTopMachines" class="space-y-2"></div>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-black text-white text-sm mb-1">🧪 Procesos más caros</h4>
+          <p class="text-slate-500 text-xs mb-3">Por costo total del mes</p>
+          <div id="ciTopProcesos" class="space-y-2"></div>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-black text-white text-sm mb-1">🎨 Colores más caros</h4>
+          <p class="text-slate-500 text-xs mb-3">Top 5 colores con mayor costo</p>
+          <div id="ciTopColors" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- Fichas con $/kg fuera de rango -->
+      <div class="card p-5 mt-3" id="ciOutliersWrap">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div>
+            <h4 class="font-black text-white text-sm">⚠ Fichas con costo químico/kg alto</h4>
+            <p class="text-slate-500 text-xs">Fichas con $/kg ≥ promedio + 50% · candidatas para revisar fórmula o consumo</p>
+          </div>
+          <span class="chip chip-warn text-xs" id="ciOutliersCount">0 fichas</span>
+        </div>
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr><th>Fecha</th><th>Máquina</th><th>Lote</th><th>Color</th><th>Proceso</th><th>Kilos</th><th>$/kg</th><th>Costo total</th></tr>
+            </thead>
+            <tbody id="ciOutliersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Reporte agrupado por máquina (imita el papel "REPORTE DE PRODUCCIÓN TINTORERÍA") -->
     <div id="reportGroups" class="space-y-3">
       <!-- renderizado dinámico -->
@@ -4047,6 +4137,9 @@ function renderReportMonth() {
   setEl('rep_monf_f', monfRows.length);
   desgloseChip(monfRows, 'rep_monf_emp', 'rep_monf_term', 'rep_monf_suav');
 
+  // Insights de costo químico (sólo en modo Mes)
+  renderCostInsights(ym, rows);
+
   // Agrupado por máquina (mismo orden que el día)
   const container = $('#reportGroups');
   const empty = $('#reportEmpty');
@@ -4139,6 +4232,244 @@ window.jumpToDay = function(d) {
   renderReport();
 };
 
+window.jumpToMonth = function(ym) {
+  if (!ym) return;
+  switchReportMode('month');
+  const monInp = $('#reportMonth'); if (monInp) monInp.value = ym;
+  renderReport();
+};
+
+/* ---------------------------------------------------------------
+   REPORTE — INSIGHTS DE COSTO QUÍMICO (modo Mes)
+--------------------------------------------------------------- */
+let ciTrendChartInst = null;
+
+function _ciFmtMoney(n) {
+  return '$' + Math.round(Number(n)||0).toLocaleString('es-MX');
+}
+function _ciFmtPct(curr, prev) {
+  if (!prev) return '';
+  const d = ((curr - prev) / prev) * 100;
+  if (!isFinite(d)) return '';
+  const cls = d > 0 ? 'text-rose-400' : 'text-emerald-400';
+  const sign = d > 0 ? '▲' : '▼';
+  return `<span class="${cls} font-bold">${sign} ${Math.abs(d).toFixed(1)}%</span> vs mes anterior`;
+}
+function _ciKgVsPct(curr, prev) {
+  if (!prev) return '';
+  const d = ((curr - prev) / prev) * 100;
+  if (!isFinite(d)) return '';
+  const cls = d >= 0 ? 'text-emerald-400' : 'text-rose-400';
+  const sign = d >= 0 ? '▲' : '▼';
+  return `<span class="${cls} font-bold">${sign} ${Math.abs(d).toFixed(1)}%</span> vs mes anterior`;
+}
+
+/**
+ * Render the chemical cost insights panel for the given month.
+ * @param {string} ym  YYYY-MM
+ * @param {Array}  rowsOfMonth  fichas filtradas para el mes (state.prod.filter… ya hecho)
+ */
+function renderCostInsights(ym, rowsOfMonth) {
+  // Sólo dibuja si la sección existe (modo Mes)
+  const root = document.getElementById('reportCostInsights');
+  if (!root) return;
+
+  // ----- Subtítulo -----
+  const [yy, mm] = ym.split('-');
+  const monthLbl = new Date(+yy, +mm - 1, 1).toLocaleDateString('es-MX', { month:'long', year:'numeric' });
+  const sub = document.getElementById('ciSubtitle');
+  if (sub) sub.textContent = `${monthLbl} · datos calculados como kilos × químico/kg`;
+
+  // ----- KPIs del mes actual -----
+  const totK  = rowsOfMonth.reduce((a,r)=>a+(r.kilos||0), 0);
+  const totCQ = rowsOfMonth.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+  const withApq = rowsOfMonth.filter(r => (r.apq||0) > 0);
+  const avgApq = totK > 0 ? (totCQ / totK) : 0;
+
+  // Mes anterior para comparar
+  const prevDate = new Date(+yy, +mm - 2, 1);
+  const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const prevRows = state.prod.filter(r => (r.fecha||'').startsWith(prevYm));
+  const prevK  = prevRows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const prevCQ = prevRows.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+
+  document.getElementById('ciKgMonth').textContent   = fmtKg(totK) + ' kg';
+  document.getElementById('ciCostMonth').textContent = _ciFmtMoney(totCQ);
+  document.getElementById('ciAvgCost').textContent   = '$' + avgApq.toFixed(2) + '/kg';
+  document.getElementById('ciKgVsPrev').innerHTML    = _ciKgVsPct(totK, prevK);
+  document.getElementById('ciCostVsPrev').innerHTML  = _ciFmtPct(totCQ, prevCQ);
+  document.getElementById('ciCoverage').textContent  = rowsOfMonth.length > 0
+    ? Math.round(withApq.length * 100 / rowsOfMonth.length) + '%'
+    : '—';
+  document.getElementById('ciCoverageDet').textContent =
+    `${withApq.length} / ${rowsOfMonth.length} fichas con costo capturado`;
+
+  // ----- Tendencia 6 meses -----
+  const trendMonths = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(+yy, +mm - 1 - i, 1);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    trendMonths.push({
+      ym: k,
+      lbl: d.toLocaleDateString('es-MX', { month:'short', year:'2-digit' }),
+    });
+  }
+  trendMonths.forEach(t => {
+    const rs = state.prod.filter(r => (r.fecha||'').startsWith(t.ym));
+    t.kg   = rs.reduce((a,r)=>a+(r.kilos||0), 0);
+    t.cost = rs.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+    t.fichas = rs.length;
+  });
+
+  // Mes con costo más bajo → chip de "mejor mes"
+  const monthsWithCost = trendMonths.filter(t => t.cost > 0);
+  const bestMonth = monthsWithCost.length
+    ? monthsWithCost.reduce((a,b) => (a.cost/Math.max(a.kg,1)) < (b.cost/Math.max(b.kg,1)) ? a : b)
+    : null;
+  const bestEl = document.getElementById('ciTrendBest');
+  if (bestEl && bestMonth) {
+    const mejorPpk = bestMonth.cost / Math.max(bestMonth.kg, 1);
+    bestEl.textContent = `Mejor mes: ${bestMonth.lbl} · $${mejorPpk.toFixed(2)}/kg`;
+    bestEl.className = 'chip chip-ok text-xs';
+  } else if (bestEl) {
+    bestEl.textContent = 'Sin datos suficientes';
+    bestEl.className = 'chip chip-info text-xs';
+  }
+
+  // Chart.js trend
+  const canvas = document.getElementById('ciTrendChart');
+  if (canvas && typeof Chart !== 'undefined') {
+    if (ciTrendChartInst) { ciTrendChartInst.destroy(); ciTrendChartInst = null; }
+    const labels = trendMonths.map(t => t.lbl);
+    const dataCost = trendMonths.map(t => Math.round(t.cost));
+    const dataKg   = trendMonths.map(t => Math.round(t.kg));
+    const colors   = trendMonths.map(t => t.ym === ym ? '#f59e0b' : '#0ea5e9');
+    ciTrendChartInst = new Chart(canvas.getContext('2d'), {
+      data: {
+        labels,
+        datasets: [
+          { type:'bar', label:'Costo químico (MXN)', data:dataCost, backgroundColor:colors, yAxisID:'y', borderRadius:4 },
+          { type:'line', label:'Kilos producidos', data:dataKg, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.1)', yAxisID:'y1', tension:0.3, pointRadius:4, pointBackgroundColor:'#10b981' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color:'#cbd5e1', font:{size:11} } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed.y;
+                if (ctx.dataset.label.includes('Costo')) return `Costo: $${v.toLocaleString('es-MX')} MXN`;
+                return `Kilos: ${v.toLocaleString('es-MX')} kg`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color:'#94a3b8' }, grid: { color:'rgba(148,163,184,0.08)' } },
+          y:  { position:'left',  ticks: { color:'#fbbf24', callback: v => '$'+(v/1000).toFixed(0)+'k' }, grid: { color:'rgba(148,163,184,0.08)' }, title:{display:true,text:'Costo químico',color:'#fbbf24',font:{size:10}} },
+          y1: { position:'right', ticks: { color:'#10b981', callback: v => (v/1000).toFixed(0)+'k' }, grid: { display:false }, title:{display:true,text:'Kilos',color:'#10b981',font:{size:10}} }
+        },
+        onClick: (_evt, items) => {
+          if (!items || !items.length) return;
+          const idx = items[0].index;
+          const target = trendMonths[idx];
+          if (target) window.jumpToMonth(target.ym);
+        }
+      }
+    });
+  }
+
+  // ----- Top offenders -----
+  function topByGroup(rows, keyFn, formatLabel) {
+    const map = {};
+    rows.forEach(r => {
+      const k = keyFn(r);
+      if (!k) return;
+      if (!map[k]) map[k] = { kg:0, cost:0, fichas:0 };
+      map[k].kg     += (r.kilos||0);
+      map[k].cost   += ((r.kilos||0)*(r.apq||0));
+      map[k].fichas += 1;
+    });
+    return Object.entries(map)
+      .map(([k,v]) => ({ key:k, label: formatLabel ? formatLabel(k) : k, ...v, ppk: v.kg > 0 ? v.cost/v.kg : 0 }))
+      .filter(o => o.cost > 0)
+      .sort((a,b) => b.cost - a.cost)
+      .slice(0, 5);
+  }
+
+  function renderRanking(containerId, items, opts={}) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Sin datos de costo químico</p>';
+      return;
+    }
+    const max = Math.max(...items.map(i => i.cost));
+    el.innerHTML = items.map((it, idx) => {
+      const pct = max > 0 ? (it.cost / max * 100) : 0;
+      // Color del bar relativo al $/kg vs promedio
+      const barColor = avgApq > 0 && it.ppk > avgApq * 1.3 ? '#ef4444' : avgApq > 0 && it.ppk > avgApq * 1.1 ? '#f59e0b' : '#0ea5e9';
+      return `
+        <div>
+          <div class="flex items-baseline justify-between gap-2 mb-1">
+            <span class="text-sm font-bold text-white truncate" title="${it.label}">${idx+1}. ${it.label}</span>
+            <span class="text-xs text-amber-400 font-bold whitespace-nowrap">${_ciFmtMoney(it.cost)}</span>
+          </div>
+          <div class="h-1.5 bg-slate-800 rounded mb-1"><div class="h-1.5 rounded" style="width:${pct}%;background:${barColor}"></div></div>
+          <div class="text-[10px] text-slate-400 flex justify-between">
+            <span>${fmtKg(it.kg)} kg · ${it.fichas} ficha${it.fichas===1?'':'s'}</span>
+            <span>$${it.ppk.toFixed(2)}/kg</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  renderRanking('ciTopMachines', topByGroup(rowsOfMonth, r => r.machine || ''));
+  renderRanking('ciTopProcesos', topByGroup(rowsOfMonth, r => (r.proceso||'').trim()));
+  renderRanking('ciTopColors',   topByGroup(rowsOfMonth, r => (r.color||'').trim().toUpperCase()));
+
+  // ----- Outliers (fichas con $/kg ≥ promedio + 50%) -----
+  const threshold = avgApq * 1.5;
+  const outliers = withApq
+    .filter(r => (r.apq||0) >= threshold && threshold > 0)
+    .sort((a,b) => ((b.kilos||0)*(b.apq||0)) - ((a.kilos||0)*(a.apq||0)))
+    .slice(0, 20);
+
+  const ocEl = document.getElementById('ciOutliersCount');
+  const obEl = document.getElementById('ciOutliersBody');
+  const owEl = document.getElementById('ciOutliersWrap');
+  if (avgApq <= 0 || withApq.length < 3) {
+    if (owEl) owEl.classList.add('hidden');
+  } else {
+    if (owEl) owEl.classList.remove('hidden');
+    if (ocEl) ocEl.textContent = outliers.length === 0
+      ? 'Ninguna ⚠'
+      : `${outliers.length} ficha${outliers.length===1?'':'s'} sobre $${threshold.toFixed(2)}/kg`;
+    if (ocEl) ocEl.className = 'chip text-xs ' + (outliers.length === 0 ? 'chip-ok' : 'chip-warn');
+    if (obEl) obEl.innerHTML = outliers.length === 0
+      ? '<tr><td colspan="8" class="text-center text-slate-400 py-4">No hay fichas fuera de rango este mes ✓</td></tr>'
+      : outliers.map(r => {
+          const dLbl = r.fecha ? new Date(r.fecha+'T12:00:00').toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) : '—';
+          const cost = (r.kilos||0)*(r.apq||0);
+          return `
+            <tr style="cursor:pointer" onclick="jumpToDay('${r.fecha||''}')" title="Ver día ${r.fecha||''}">
+              <td>${dLbl}</td>
+              <td><b>${r.machine||'—'}</b></td>
+              <td>${r.lote||'—'}</td>
+              <td>${r.color||'—'}</td>
+              <td class="text-xs">${r.proceso||'—'}</td>
+              <td>${fmtKg(r.kilos)}</td>
+              <td><b class="text-rose-400">$${(r.apq||0).toFixed(2)}</b></td>
+              <td>${_ciFmtMoney(cost)}</td>
+            </tr>`;
+        }).join('');
+  }
+}
+
 /* ---------------------------------------------------------------
    REPORTE — CALENDARIO HEATMAP
 --------------------------------------------------------------- */
@@ -4228,6 +4559,9 @@ function switchReportMode(mode) {
       monInp.value = dv;
     }
   }
+  // Mostrar insights de costo sólo en modo Mes
+  const ci = document.getElementById('reportCostInsights');
+  if (ci) ci.classList.toggle('hidden', mode !== 'month');
   renderReport();
 }
 
