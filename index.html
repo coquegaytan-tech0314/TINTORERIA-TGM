@@ -718,14 +718,70 @@
         <p class="text-slate-400 text-sm" id="reportSub">Fichas agrupadas por máquina</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <!-- Día / Mes toggle -->
+        <!-- Día / Mes / Rango toggle -->
         <div class="inline-flex rounded-lg overflow-hidden border border-slate-700" id="reportModeToggle">
           <button type="button" data-mode="day"   id="reportModeDay"   class="px-3 py-1.5 text-xs font-bold bg-sky-600 text-white">Día</button>
           <button type="button" data-mode="month" id="reportModeMonth" class="px-3 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">Mes</button>
+          <button type="button" data-mode="range" id="reportModeRange" class="px-3 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">Rango</button>
+          <button type="button" data-mode="year"  id="reportModeYear"  class="px-3 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">Año</button>
         </div>
-        <input type="date"  id="reportDate"  class="field !py-2 !text-base" />
-        <input type="month" id="reportMonth" class="field !py-2 !text-base hidden" />
-        <button id="jumpLatest" type="button" class="btn btn-ghost text-xs" title="Saltar al último día con datos">Último día</button>
+
+        <!-- Selector de Día -->
+        <div id="reportDayWrap" class="flex items-center gap-1">
+          <input type="date" id="reportDate" class="field !py-2 !text-base" />
+          <button id="jumpLatest" type="button" class="btn btn-ghost text-xs" title="Saltar al último día con datos">Último día</button>
+        </div>
+
+        <!-- Selector de Mes (en español) -->
+        <div id="reportMonthWrap" class="hidden items-center gap-1">
+          <select id="reportMonthName" class="field !py-2 !text-base" style="max-width:130px">
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+          <select id="reportMonthYear" class="field !py-2 !text-base" style="max-width:90px"></select>
+          <button id="reportMonthPrev" type="button" class="btn btn-ghost !py-1 !px-2 text-base" title="Mes anterior">‹</button>
+          <button id="reportMonthNext" type="button" class="btn btn-ghost !py-1 !px-2 text-base" title="Mes siguiente">›</button>
+          <input type="month" id="reportMonth" class="hidden" />
+        </div>
+
+        <!-- Selector de Año -->
+        <div id="reportYearWrap" class="hidden items-center gap-1">
+          <select id="reportYearSel" class="field !py-2 !text-base" style="max-width:120px"></select>
+          <button id="reportYearPrev" type="button" class="btn btn-ghost !py-1 !px-2 text-base" title="Año anterior">‹</button>
+          <button id="reportYearNext" type="button" class="btn btn-ghost !py-1 !px-2 text-base" title="Año siguiente">›</button>
+        </div>
+
+        <!-- Selector de Rango -->
+        <div id="reportRangeWrap" class="hidden items-center gap-1 flex-wrap">
+          <select id="reportRangePreset" class="field !py-2 !text-base" style="max-width:200px">
+            <option value="7">Últimos 7 días</option>
+            <option value="15">Últimos 15 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="thisWeek">Esta semana</option>
+            <option value="thisMonth">Mes actual</option>
+            <option value="lastMonth">Mes pasado</option>
+            <option value="ytd">Lo que va del año</option>
+            <option value="custom">📅 Personalizado…</option>
+          </select>
+          <div id="reportRangeCustom" class="hidden items-center gap-1 flex-wrap">
+            <label class="lbl !mb-0 text-xs">De:</label>
+            <input type="date" id="reportFrom" class="field !py-2 !text-sm" style="max-width:150px" />
+            <label class="lbl !mb-0 text-xs">A:</label>
+            <input type="date" id="reportTo" class="field !py-2 !text-sm" style="max-width:150px" />
+          </div>
+        </div>
+
         <span id="reportTotal" class="chip chip-ok">0 kg</span>
         <span id="reportCostQ" class="chip chip-warn" title="Costo químico estimado: Σ (kilos × Químico/kg)">$0 MXN</span>
         <button id="reportSetMeta" type="button" class="btn btn-ghost text-xs" title="Definir meta diaria por máquina">🎯 Metas</button>
@@ -912,6 +968,95 @@
             </thead>
             <tbody id="ciOutliersBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- VISTA ANUAL (sólo modo Año) -->
+    <!-- ============================================ -->
+    <div id="reportYearView" class="hidden mb-4">
+      <!-- KPI strip del año -->
+      <div class="card p-5 mb-3">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-black text-white text-base">📊 Resumen Anual</h3>
+            <p class="text-slate-400 text-xs" id="yvSubtitle">Año seleccionado vs año anterior</p>
+          </div>
+          <span class="chip chip-info text-xs" id="yvCompareLbl">vs —</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <div class="kpi-lbl">Producción del año</div>
+            <div id="yvKgYear" class="text-2xl font-black text-sky-accent">0 kg</div>
+            <div id="yvKgVsPrev" class="text-xs mt-0.5"></div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Costo químico anual</div>
+            <div id="yvCostYear" class="text-2xl font-black text-amber-400">$0</div>
+            <div id="yvCostVsPrev" class="text-xs mt-0.5"></div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Costo promedio anual</div>
+            <div id="yvAvgYear" class="text-2xl font-black text-white">$0/kg</div>
+            <div id="yvAvgVsPrev" class="text-xs mt-0.5"></div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Fichas del año</div>
+            <div id="yvFichas" class="text-2xl font-black text-white">0</div>
+            <div id="yvFichasVsPrev" class="text-xs mt-0.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mes a mes vs año anterior -->
+      <div class="card p-5 mb-3">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div>
+            <h3 class="font-black text-white text-sm">Mes a mes · año vs año anterior</h3>
+            <p class="text-slate-400 text-xs">Costo químico promedio ($/kg) por mes · click una barra para ver ese mes</p>
+          </div>
+          <span class="text-xs text-slate-500" id="yvChartLegendNote">Naranja: año seleccionado · Gris: año anterior</span>
+        </div>
+        <div style="height:280px;position:relative">
+          <canvas id="yvAvgChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Comparativa multi-años -->
+      <div class="card p-5 mb-3">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div>
+            <h3 class="font-black text-white text-sm">Histórico anual</h3>
+            <p class="text-slate-400 text-xs">Todos los años con datos · producción y costo químico promedio</p>
+          </div>
+        </div>
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr><th>Año</th><th>Kilos</th><th>Costo químico</th><th>Costo promedio ($/kg)</th><th>Fichas</th><th>vs año anterior ($/kg)</th></tr>
+            </thead>
+            <tbody id="yvHistoricalBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top offenders del año -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div class="card p-5">
+          <h4 class="font-black text-white text-sm mb-1">🔥 Máquinas más caras del año</h4>
+          <p class="text-slate-500 text-xs mb-3">Top 5 por costo total</p>
+          <div id="yvTopMachines" class="space-y-2"></div>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-black text-white text-sm mb-1">🧪 Procesos más caros del año</h4>
+          <p class="text-slate-500 text-xs mb-3">Top 5 por costo total</p>
+          <div id="yvTopProcesos" class="space-y-2"></div>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-black text-white text-sm mb-1">🎨 Colores más caros del año</h4>
+          <p class="text-slate-500 text-xs mb-3">Top 5 por costo total</p>
+          <div id="yvTopColors" class="space-y-2"></div>
         </div>
       </div>
     </div>
@@ -3321,9 +3466,60 @@ function init() {
   $('#dtAnalyticsRange')?.addEventListener('change', renderDowntime);
   $('#reportDate').addEventListener('change', renderReport);
   $('#reportMonth')?.addEventListener('change', renderReport);
-  // Toggle Día / Mes
+  // Toggle Día / Mes / Rango / Año
   $('#reportModeDay')?.addEventListener('click', () => switchReportMode('day'));
   $('#reportModeMonth')?.addEventListener('click', () => switchReportMode('month'));
+  $('#reportModeRange')?.addEventListener('click', () => switchReportMode('range'));
+  $('#reportModeYear')?.addEventListener('click', () => switchReportMode('year'));
+
+  // Selector de Mes en español (dropdowns Mes + Año)
+  $('#reportMonthName')?.addEventListener('change', () => { syncMonthInputFromDropdowns(); renderReport(); });
+  $('#reportMonthYear')?.addEventListener('change', () => { syncMonthInputFromDropdowns(); renderReport(); });
+  $('#reportMonthPrev')?.addEventListener('click', () => {
+    const monInp = $('#reportMonth');
+    if (!monInp?.value) return;
+    const [y,m] = monInp.value.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    monInp.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    syncMonthDropdownsFromInput();
+    renderReport();
+  });
+  $('#reportMonthNext')?.addEventListener('click', () => {
+    const monInp = $('#reportMonth');
+    if (!monInp?.value) return;
+    const [y,m] = monInp.value.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    monInp.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    syncMonthDropdownsFromInput();
+    renderReport();
+  });
+
+  // Selector de Rango (preset + custom dates)
+  $('#reportRangePreset')?.addEventListener('change', (e) => {
+    applyRangePreset(e.target.value);
+    renderReport();
+  });
+  $('#reportFrom')?.addEventListener('change', () => renderReport());
+  $('#reportTo')?.addEventListener('change', () => renderReport());
+
+  // Selector de Año
+  $('#reportYearSel')?.addEventListener('change', renderReport);
+  $('#reportYearPrev')?.addEventListener('click', () => {
+    const sel = $('#reportYearSel'); if (!sel) return;
+    const cur = +sel.value;
+    if (![...sel.options].some(o => +o.value === cur - 1)) {
+      sel.insertAdjacentHTML('beforeend', `<option value="${cur-1}">${cur-1}</option>`);
+    }
+    sel.value = String(cur - 1); renderReport();
+  });
+  $('#reportYearNext')?.addEventListener('click', () => {
+    const sel = $('#reportYearSel'); if (!sel) return;
+    const cur = +sel.value;
+    if (![...sel.options].some(o => +o.value === cur + 1)) {
+      sel.insertAdjacentHTML('afterbegin', `<option value="${cur+1}">${cur+1}</option>`);
+    }
+    sel.value = String(cur + 1); renderReport();
+  });
   // Heatmap navigation
   $('#heatPrev')?.addEventListener('click', () => {
     const [y,m] = reportHeatMonth.split('-').map(Number);
@@ -3935,6 +4131,8 @@ function renderReport() {
   if (dayVal && dayVal.length >= 7) reportHeatMonth = dayVal.slice(0,7);
   renderReportHeatmap();
   if (reportMode === 'month') return renderReportMonth();
+  if (reportMode === 'range') return renderReportRange();
+  if (reportMode === 'year')  return renderReportYear();
   const date = $('#reportDate').value || todayISO();
   const rows = state.prod.filter(r => r.fecha === date);
 
@@ -4223,6 +4421,312 @@ function renderReportMonth() {
       </div>`;
   }).join('');
 }
+
+/* ---------------------------------------------------------------
+   REPORTE — MODO RANGO
+--------------------------------------------------------------- */
+function renderReportRange() {
+  const fromV = $('#reportFrom')?.value;
+  const toV   = $('#reportTo')?.value;
+  if (!fromV || !toV) {
+    $('#reportSub').textContent = 'Selecciona un rango de fechas';
+    return;
+  }
+  const from = fromV <= toV ? fromV : toV;
+  const to   = fromV <= toV ? toV : fromV;
+  const rows = state.prod.filter(r => (r.fecha||'') >= from && (r.fecha||'') <= to);
+  const totalK  = rows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const totalCQ = rows.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+  const daysWithData = new Set(rows.map(r => r.fecha)).size;
+
+  $('#reportTotal').textContent = fmtKg(totalK) + ' kg';
+  $('#reportCostQ').textContent = '$' + Math.round(totalCQ).toLocaleString('es-MX') + ' MXN quím.';
+
+  const fmtSpan = iso => new Date(iso+'T12:00:00').toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+  $('#reportSub').textContent = rows.length
+    ? `${rows.length} fichas · ${daysWithData} días con datos · ${fmtSpan(from)} → ${fmtSpan(to)}`
+    : `Sin fichas en el rango ${fmtSpan(from)} → ${fmtSpan(to)}`;
+
+  // Reutilizar Insights de Costo Químico con label de rango
+  const ciSub = document.getElementById('ciSubtitle');
+  // Render con el rango activo (le pasamos un string tipo "YYYY-MM" pero lo sobreescribiremos)
+  renderCostInsights(from.slice(0,7), rows);
+  if (ciSub) ciSub.textContent = `${fmtSpan(from)} → ${fmtSpan(to)} · datos calculados como kilos × químico/kg`;
+
+  // Tarjeta Rama del rango
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && (r.fecha||'') >= from && (r.fecha||'') <= to);
+  const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && (r.fecha||'') >= from && (r.fecha||'') <= to);
+  setEl('rep_bruck_k', fmtKg(bruckRows.reduce((a,r)=>a+(r.kilos||0), 0)));
+  setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+(r.metros||0), 0)));
+  setEl('rep_bruck_f', bruckRows.length);
+  setEl('rep_monf_k',  fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
+  setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
+  setEl('rep_monf_f',  monfRows.length);
+
+  // Per-machine groups (mismo formato que mes, agregando por día)
+  const container = $('#reportGroups');
+  const empty = $('#reportEmpty');
+  if (!rows.length) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  const order = MACHINES.map(m => m.id);
+  const allMachs = [...new Set(rows.map(r => r.machine))];
+  const extraMachs = allMachs.filter(m => !order.includes(m)).sort();
+  const finalOrder = [...order, ...extraMachs];
+  const byM = {};
+  rows.forEach(r => { (byM[r.machine] = byM[r.machine] || []).push(r); });
+
+  container.innerHTML = finalOrder.filter(id => byM[id]).map(id => {
+    const items = byM[id];
+    const totM  = items.reduce((a,r)=>a+(r.kilos||0), 0);
+    const totCQ = items.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+    const daysM = new Set(items.map(r => r.fecha)).size;
+    const cqBadge = totCQ > 0 ? ` · $${Math.round(totCQ).toLocaleString('es-MX')} MXN quím.` : '';
+
+    const byDay = {};
+    items.forEach(r => {
+      const k = r.fecha || '—';
+      if (!byDay[k]) byDay[k] = { kg:0, cq:0, fichas:0, procesos:{} };
+      byDay[k].kg += (r.kilos||0);
+      byDay[k].cq += ((r.kilos||0)*(r.apq||0));
+      byDay[k].fichas += 1;
+      const p = (r.proceso||'Otro').trim();
+      byDay[k].procesos[p] = (byDay[k].procesos[p]||0) + (r.kilos||0);
+    });
+    const dayKeys = Object.keys(byDay).sort().reverse();
+
+    return `
+      <div class="card overflow-hidden">
+        <div class="group-header">
+          <span class="m-name">${id}</span>
+          <span class="m-tot">Total: ${fmtKg(totM)} kg · ${items.length} ficha${items.length===1?'':'s'} · ${daysM} días${cqBadge}</span>
+        </div>
+        <div class="scroll-x">
+          <table class="tbl">
+            <thead>
+              <tr><th>Fecha</th><th>Fichas</th><th>Kilos del día</th><th>Costo quím.</th><th>Procesos (kg)</th></tr>
+            </thead>
+            <tbody>
+              ${dayKeys.map(d => {
+                const v = byDay[d];
+                const procStr = Object.entries(v.procesos).sort((a,b) => b[1]-a[1]).map(([p,kg]) => `${p}: ${fmtKg(kg)}`).join(' · ');
+                const dLbl = d === '—' ? '—' : new Date(d+'T12:00:00').toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'});
+                return `
+                  <tr style="cursor:pointer" onclick="jumpToDay('${d}')" title="Ver día ${d}">
+                    <td><b>${dLbl}</b></td>
+                    <td>${v.fichas}</td>
+                    <td><b class="text-sky-accent">${fmtKg(v.kg)}</b> kg</td>
+                    <td>${v.cq > 0 ? '$'+Math.round(v.cq).toLocaleString('es-MX') : '—'}</td>
+                    <td class="text-slate-300 text-sm">${procStr || '—'}</td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------
+   REPORTE — MODO AÑO
+--------------------------------------------------------------- */
+let yvAvgChartInst = null;
+
+function _yearAggregate(year) {
+  const yStr = String(year);
+  const rows = state.prod.filter(r => (r.fecha||'').startsWith(yStr));
+  const kg   = rows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const cost = rows.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
+  return { rows, kg, cost, fichas: rows.length, ppk: kg > 0 ? cost/kg : 0 };
+}
+function _yearByMonth(year) {
+  const out = Array.from({length:12}, () => ({ kg:0, cost:0, fichas:0 }));
+  const yStr = String(year);
+  state.prod.forEach(r => {
+    if (!(r.fecha||'').startsWith(yStr)) return;
+    const mi = parseInt((r.fecha||'').slice(5,7), 10) - 1;
+    if (mi < 0 || mi > 11) return;
+    out[mi].kg     += (r.kilos||0);
+    out[mi].cost   += ((r.kilos||0)*(r.apq||0));
+    out[mi].fichas += 1;
+  });
+  return out.map(m => ({ ...m, ppk: m.kg > 0 ? m.cost/m.kg : 0 }));
+}
+
+function _ciDeltaTxt(curr, prev, opts={}) {
+  const inv = opts.lowerIsBetter !== false; // default: bajar es bueno (cost/$)
+  if (!prev) return '<span class="text-slate-500">sin año anterior</span>';
+  const d = ((curr - prev) / prev) * 100;
+  if (!isFinite(d)) return '';
+  const isUp = d > 0;
+  const goodSign = inv ? !isUp : isUp;
+  const cls = goodSign ? 'text-emerald-400' : 'text-rose-400';
+  const sign = isUp ? '▲' : '▼';
+  return `<span class="${cls} font-bold">${sign} ${Math.abs(d).toFixed(1)}%</span> vs año anterior`;
+}
+
+function renderReportYear() {
+  const sel = document.getElementById('reportYearSel');
+  if (!sel) return;
+  const year = parseInt(sel.value, 10) || new Date().getFullYear();
+  const prevYear = year - 1;
+
+  const cur  = _yearAggregate(year);
+  const prev = _yearAggregate(prevYear);
+
+  // Top KPIs en encabezado
+  $('#reportTotal').textContent = fmtKg(cur.kg) + ' kg';
+  $('#reportCostQ').textContent = '$' + Math.round(cur.cost).toLocaleString('es-MX') + ' MXN quím.';
+  $('#reportSub').textContent = cur.rows.length
+    ? `${cur.rows.length} fichas · ${year}`
+    : `Sin fichas en ${year}`;
+
+  // KPI strip de la vista anual
+  const setEl = (id, html, isHTML = false) => { const el = document.getElementById(id); if (!el) return; el[isHTML?'innerHTML':'textContent'] = html; };
+  setEl('yvSubtitle', `Año ${year} comparado con ${prevYear}`);
+  setEl('yvCompareLbl', `vs ${prevYear}`);
+  setEl('yvKgYear',    fmtKg(cur.kg) + ' kg');
+  setEl('yvCostYear',  '$' + Math.round(cur.cost).toLocaleString('es-MX'));
+  setEl('yvAvgYear',   '$' + cur.ppk.toFixed(2) + '/kg');
+  setEl('yvFichas',    cur.fichas.toLocaleString('es-MX'));
+
+  // Para producción / fichas: subir es mejor (lowerIsBetter:false)
+  setEl('yvKgVsPrev',     _ciDeltaTxt(cur.kg,    prev.kg,    { lowerIsBetter: false }), true);
+  setEl('yvFichasVsPrev', _ciDeltaTxt(cur.fichas,prev.fichas,{ lowerIsBetter: false }), true);
+  // Para costo / $-per-kg: bajar es mejor
+  setEl('yvCostVsPrev', _ciDeltaTxt(cur.cost, prev.cost, { lowerIsBetter: true }), true);
+  setEl('yvAvgVsPrev',  _ciDeltaTxt(cur.ppk,  prev.ppk,  { lowerIsBetter: true }), true);
+
+  // Mes a mes chart (current vs prev year, $/kg)
+  const curM  = _yearByMonth(year);
+  const prevM = _yearByMonth(prevYear);
+  const labels = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const canvas = document.getElementById('yvAvgChart');
+  if (canvas && typeof Chart !== 'undefined') {
+    if (yvAvgChartInst) { yvAvgChartInst.destroy(); yvAvgChartInst = null; }
+    yvAvgChartInst = new Chart(canvas.getContext('2d'), {
+      data: {
+        labels,
+        datasets: [
+          { type:'bar', label:`$/kg ${prevYear}`, data: prevM.map(m => +m.ppk.toFixed(2)), backgroundColor:'rgba(148,163,184,0.45)', borderRadius:4, yAxisID:'y' },
+          { type:'bar', label:`$/kg ${year}`,     data: curM.map(m => +m.ppk.toFixed(2)),  backgroundColor:'#f59e0b', borderRadius:4, yAxisID:'y' },
+          { type:'line', label:`Kilos ${year}`, data: curM.map(m => m.kg), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.1)', yAxisID:'y1', tension:0.3, pointRadius:3, pointBackgroundColor:'#10b981' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color:'#cbd5e1', font:{size:11} } },
+          tooltip: { callbacks: { label: (ctx) => {
+            const v = ctx.parsed.y;
+            if (ctx.dataset.label.startsWith('Kilos')) return `${ctx.dataset.label}: ${v.toLocaleString('es-MX')} kg`;
+            return `${ctx.dataset.label}: $${v.toFixed(2)}/kg`;
+          } } }
+        },
+        scales: {
+          x: { ticks: { color:'#94a3b8' }, grid: { color:'rgba(148,163,184,0.08)' } },
+          y:  { position:'left',  ticks: { color:'#fbbf24', callback: v => '$'+v.toFixed(0) }, grid: { color:'rgba(148,163,184,0.08)' }, title:{display:true,text:'Costo químico ($/kg)',color:'#fbbf24',font:{size:10}} },
+          y1: { position:'right', ticks: { color:'#10b981', callback: v => (v/1000).toFixed(0)+'k' }, grid: { display:false }, title:{display:true,text:'Kilos',color:'#10b981',font:{size:10}} }
+        },
+        onClick: (_evt, items) => {
+          if (!items || !items.length) return;
+          const idx = items[0].index;
+          const ym = `${year}-${String(idx+1).padStart(2,'0')}`;
+          window.jumpToMonth(ym);
+        }
+      }
+    });
+  }
+
+  // Histórico anual (todos los años con datos)
+  const allYears = Array.from(new Set(state.prod.map(r => (r.fecha||'').slice(0,4)).filter(y => /^\d{4}$/.test(y)))).map(Number).sort((a,b) => b - a);
+  const histRows = allYears.map(y => _yearAggregate(y));
+  const histBody = document.getElementById('yvHistoricalBody');
+  if (histBody) {
+    histBody.innerHTML = allYears.map((y, i) => {
+      const v = histRows[i];
+      const prevAgg = i + 1 < allYears.length ? histRows[i+1] : null;
+      let deltaHtml = '<span class="text-slate-500">—</span>';
+      if (prevAgg && prevAgg.ppk > 0) {
+        const d = ((v.ppk - prevAgg.ppk) / prevAgg.ppk) * 100;
+        const cls = d <= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const sign = d > 0 ? '▲' : '▼';
+        deltaHtml = `<span class="${cls} font-bold">${sign} ${Math.abs(d).toFixed(1)}%</span>`;
+      }
+      const isCur = +y === year;
+      return `
+        <tr ${isCur ? 'style="background:rgba(245,158,11,0.08)"' : 'style="cursor:pointer"'} ${!isCur ? `onclick="jumpToYear(${y})"` : ''}>
+          <td><b class="${isCur ? 'text-amber-400' : ''}">${y}${isCur ? ' ← actual' : ''}</b></td>
+          <td>${fmtKg(v.kg)} kg</td>
+          <td>$${Math.round(v.cost).toLocaleString('es-MX')}</td>
+          <td><b>$${v.ppk.toFixed(2)}</b>/kg</td>
+          <td>${v.fichas.toLocaleString('es-MX')}</td>
+          <td>${deltaHtml}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  // Top offenders del año (reusa el mismo formato de Insights)
+  function topByGroupYear(rows, keyFn) {
+    const map = {};
+    rows.forEach(r => {
+      const k = keyFn(r);
+      if (!k) return;
+      if (!map[k]) map[k] = { kg:0, cost:0, fichas:0 };
+      map[k].kg     += (r.kilos||0);
+      map[k].cost   += ((r.kilos||0)*(r.apq||0));
+      map[k].fichas += 1;
+    });
+    return Object.entries(map)
+      .map(([k,v]) => ({ key:k, label:k, ...v, ppk: v.kg > 0 ? v.cost/v.kg : 0 }))
+      .filter(o => o.cost > 0)
+      .sort((a,b) => b.cost - a.cost)
+      .slice(0, 5);
+  }
+  function renderYrRanking(containerId, items) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Sin datos de costo químico</p>';
+      return;
+    }
+    const max = Math.max(...items.map(i => i.cost));
+    el.innerHTML = items.map((it, idx) => {
+      const pct = max > 0 ? (it.cost / max * 100) : 0;
+      const barColor = cur.ppk > 0 && it.ppk > cur.ppk * 1.3 ? '#ef4444' : cur.ppk > 0 && it.ppk > cur.ppk * 1.1 ? '#f59e0b' : '#0ea5e9';
+      return `
+        <div>
+          <div class="flex items-baseline justify-between gap-2 mb-1">
+            <span class="text-sm font-bold text-white truncate" title="${it.label}">${idx+1}. ${it.label}</span>
+            <span class="text-xs text-amber-400 font-bold whitespace-nowrap">$${Math.round(it.cost).toLocaleString('es-MX')}</span>
+          </div>
+          <div class="h-1.5 bg-slate-800 rounded mb-1"><div class="h-1.5 rounded" style="width:${pct}%;background:${barColor}"></div></div>
+          <div class="text-[10px] text-slate-400 flex justify-between">
+            <span>${fmtKg(it.kg)} kg · ${it.fichas} ficha${it.fichas===1?'':'s'}</span>
+            <span>$${it.ppk.toFixed(2)}/kg</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  renderYrRanking('yvTopMachines', topByGroupYear(cur.rows, r => r.machine || ''));
+  renderYrRanking('yvTopProcesos', topByGroupYear(cur.rows, r => (r.proceso||'').trim()));
+  renderYrRanking('yvTopColors',   topByGroupYear(cur.rows, r => (r.color||'').trim().toUpperCase()));
+}
+
+window.jumpToYear = function(y) {
+  if (!y) return;
+  switchReportMode('year');
+  const sel = document.getElementById('reportYearSel');
+  if (sel) {
+    if (![...sel.options].some(o => +o.value === +y)) {
+      sel.insertAdjacentHTML('afterbegin', `<option value="${y}">${y}</option>`);
+    }
+    sel.value = String(y);
+  }
+  renderReport();
+};
 
 window.jumpToDay = function(d) {
   if (!d || d === '—') return;
@@ -4533,36 +5037,179 @@ function renderReportHeatmap() {
 
 function switchReportMode(mode) {
   reportMode = mode;
-  const dayBtn = $('#reportModeDay');
-  const monBtn = $('#reportModeMonth');
-  const dayInp = $('#reportDate');
-  const monInp = $('#reportMonth');
+  const buttons = {
+    day:   $('#reportModeDay'),
+    month: $('#reportModeMonth'),
+    range: $('#reportModeRange'),
+    year:  $('#reportModeYear'),
+  };
+  const wraps = {
+    day:   $('#reportDayWrap'),
+    month: $('#reportMonthWrap'),
+    range: $('#reportRangeWrap'),
+    year:  $('#reportYearWrap'),
+  };
+  Object.entries(buttons).forEach(([k, btn]) => {
+    if (!btn) return;
+    if (k === mode) {
+      btn.classList.add('bg-sky-600','text-white');
+      btn.classList.remove('bg-slate-800','text-slate-300');
+    } else {
+      btn.classList.add('bg-slate-800','text-slate-300');
+      btn.classList.remove('bg-sky-600','text-white');
+    }
+  });
+  Object.entries(wraps).forEach(([k, w]) => {
+    if (!w) return;
+    if (k === mode) {
+      w.classList.remove('hidden');
+      w.style.display = 'flex';
+    } else {
+      w.classList.add('hidden');
+      w.style.display = 'none';
+    }
+  });
+
+  // Heatmap sólo en modo Día
   const heatWrap = $('#reportHeatmapWrap');
-  if (mode === 'day') {
-    dayBtn?.classList.add('bg-sky-600','text-white');
-    dayBtn?.classList.remove('bg-slate-800','text-slate-300');
-    monBtn?.classList.add('bg-slate-800','text-slate-300');
-    monBtn?.classList.remove('bg-sky-600','text-white');
-    dayInp?.classList.remove('hidden');
-    monInp?.classList.add('hidden');
-    if (heatWrap) heatWrap.classList.remove('hidden');
-  } else {
-    monBtn?.classList.add('bg-sky-600','text-white');
-    monBtn?.classList.remove('bg-slate-800','text-slate-300');
-    dayBtn?.classList.add('bg-slate-800','text-slate-300');
-    dayBtn?.classList.remove('bg-sky-600','text-white');
-    monInp?.classList.remove('hidden');
-    dayInp?.classList.add('hidden');
-    if (heatWrap) heatWrap.classList.add('hidden');
+  if (heatWrap) heatWrap.classList.toggle('hidden', mode !== 'day');
+
+  // Insights de costo en modo Mes y Rango (no en Día ni Año)
+  const ci = document.getElementById('reportCostInsights');
+  if (ci) ci.classList.toggle('hidden', mode === 'day' || mode === 'year');
+
+  // Vista anual exclusiva
+  const yv = document.getElementById('reportYearView');
+  if (yv) yv.classList.toggle('hidden', mode !== 'year');
+
+  // Per-machine groups: ocultos en modo Año
+  const groups = document.getElementById('reportGroups');
+  if (groups) groups.classList.toggle('hidden', mode === 'year');
+  // Tarjeta Rama: oculta en modo Año
+  const rama = document.getElementById('repRamaSection');
+  if (rama) rama.classList.toggle('hidden', mode === 'year');
+
+  // Inicialización por modo
+  if (mode === 'month') {
+    const monInp = $('#reportMonth');
     if (monInp && !monInp.value) {
-      const dv = (dayInp?.value || todayISO()).slice(0,7);
+      const dv = ($('#reportDate')?.value || todayISO()).slice(0,7);
       monInp.value = dv;
     }
+    syncMonthDropdownsFromInput();
+  } else if (mode === 'range') {
+    initRangePresetIfEmpty();
+  } else if (mode === 'year') {
+    populateYearSelector();
   }
-  // Mostrar insights de costo sólo en modo Mes
-  const ci = document.getElementById('reportCostInsights');
-  if (ci) ci.classList.toggle('hidden', mode !== 'month');
+
   renderReport();
+}
+
+/* ---------- Year selector ---------- */
+function populateYearSelector() {
+  const sel = document.getElementById('reportYearSel');
+  if (!sel) return;
+  const cy = new Date().getFullYear();
+  const years = new Set();
+  (state.prod || []).forEach(r => {
+    const y = (r.fecha||'').slice(0,4);
+    if (/^\d{4}$/.test(y)) years.add(+y);
+  });
+  years.add(cy);
+  years.add(cy - 1);
+  const arr = Array.from(years).sort((a,b) => b - a);
+  const cur = sel.value;
+  sel.innerHTML = arr.map(y => `<option value="${y}">${y}</option>`).join('');
+  if (cur && arr.includes(+cur)) sel.value = cur;
+}
+
+/* ---------- Spanish month dropdown sync ---------- */
+function populateMonthYearDropdown() {
+  const ySel = document.getElementById('reportMonthYear');
+  if (!ySel || ySel.options.length) return;
+  // Build year list from data + current year
+  const years = new Set();
+  (state.prod || []).forEach(r => {
+    const y = (r.fecha||'').slice(0,4);
+    if (/^\d{4}$/.test(y)) years.add(+y);
+  });
+  const cy = new Date().getFullYear();
+  years.add(cy);
+  years.add(cy - 1);
+  const arr = Array.from(years).sort((a,b) => b - a);
+  ySel.innerHTML = arr.map(y => `<option value="${y}">${y}</option>`).join('');
+}
+function syncMonthDropdownsFromInput() {
+  populateMonthYearDropdown();
+  const monInp = $('#reportMonth');
+  if (!monInp?.value) return;
+  const [yy, mm] = monInp.value.split('-');
+  const mSel = document.getElementById('reportMonthName');
+  const ySel = document.getElementById('reportMonthYear');
+  if (mSel) mSel.value = mm;
+  if (ySel) {
+    if (![...ySel.options].some(o => o.value === yy)) {
+      ySel.insertAdjacentHTML('afterbegin', `<option value="${yy}">${yy}</option>`);
+    }
+    ySel.value = yy;
+  }
+}
+function syncMonthInputFromDropdowns() {
+  const mSel = document.getElementById('reportMonthName');
+  const ySel = document.getElementById('reportMonthYear');
+  const monInp = $('#reportMonth');
+  if (!mSel || !ySel || !monInp) return;
+  monInp.value = `${ySel.value}-${mSel.value}`;
+}
+
+/* ---------- Range presets ---------- */
+function initRangePresetIfEmpty() {
+  const presetSel = document.getElementById('reportRangePreset');
+  const fromInp   = document.getElementById('reportFrom');
+  const toInp     = document.getElementById('reportTo');
+  if (!presetSel || !fromInp || !toInp) return;
+  if (!fromInp.value || !toInp.value) {
+    applyRangePreset(presetSel.value || '30');
+  }
+}
+function applyRangePreset(preset) {
+  const fromInp = document.getElementById('reportFrom');
+  const toInp   = document.getElementById('reportTo');
+  const customWrap = document.getElementById('reportRangeCustom');
+  if (!fromInp || !toInp) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  let from = null, to = null;
+  const isoOf = d => d.toISOString().slice(0,10);
+  if (preset === 'custom') {
+    customWrap?.classList.remove('hidden');
+    if (customWrap) customWrap.style.display = 'flex';
+    return;
+  }
+  customWrap?.classList.add('hidden');
+  if (customWrap) customWrap.style.display = 'none';
+  if (preset === 'thisWeek') {
+    // Semana actual (lunes a hoy)
+    const dow = (today.getDay() + 6) % 7;
+    from = new Date(today); from.setDate(today.getDate() - dow);
+    to = today;
+  } else if (preset === 'thisMonth') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to   = today;
+  } else if (preset === 'lastMonth') {
+    from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    to   = new Date(today.getFullYear(), today.getMonth(), 0);
+  } else if (preset === 'ytd') {
+    from = new Date(today.getFullYear(), 0, 1);
+    to   = today;
+  } else {
+    // número de días
+    const n = parseInt(preset, 10) || 30;
+    from = new Date(today); from.setDate(today.getDate() - n + 1);
+    to = today;
+  }
+  fromInp.value = isoOf(from);
+  toInp.value   = isoOf(to);
 }
 
 window.deleteProd = function(id) {
