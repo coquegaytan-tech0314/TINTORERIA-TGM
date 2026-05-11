@@ -320,6 +320,22 @@
   main { padding-bottom: 110px; }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
 
+  /* ============================================================
+     BARRA INFERIOR FIJA - garantizar anclaje en móvil (iOS/Android)
+     ============================================================ */
+  nav.fixed.bottom-0 {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    /* Forzar capa de composición propia para que iOS no la desancle */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+
   /* Pills categoría tiempo muerto */
   .cat-btn {
     background: #111826; border: 2px solid #253149; color: #cbd5e1;
@@ -344,7 +360,7 @@
      ============================================================ */
   /* iOS safe-area: respetar notch y barras del sistema */
   header { padding-top: env(safe-area-inset-top, 0); }
-  nav.fixed.bottom-0 { padding-bottom: env(safe-area-inset-bottom, 0); }
+  nav.fixed.bottom-0 { padding-bottom: max(env(safe-area-inset-bottom), 6px); }
 
   /* En pantallas <= 480px (teléfono) reducimos tamaños y compactamos */
   @media (max-width: 480px) {
