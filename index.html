@@ -1961,6 +1961,76 @@
       </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!--  PLAN DEL DÍA · Meta de Producción Bruckner (tiempo real)     -->
+    <!--  Captura rápida: pegar de Excel / agregar fila / editar       -->
+    <!--  Avance vs real automático                                   -->
+    <!-- ============================================================ -->
+    <div class="card p-5 mb-4" id="planDiaCard">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 class="text-lg font-black text-white">🎯 Plan del Día · Bruckner</h3>
+          <p class="text-xs text-slate-400">Meta de producción diaria · sincronizado en tiempo real con todo el equipo</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="date" id="plan_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
+          <button id="planPasteBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Copiar tabla desde Excel y pegar aquí">📋 Pegar de Excel</button>
+          <button id="planAddRowBtn" class="btn btn-secondary !py-2 !px-3 text-sm">+ Fila</button>
+          <button id="planClearBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Borrar el plan del día">Vaciar</button>
+        </div>
+      </div>
+
+      <!-- Banner de avance global -->
+      <div id="planAvanceBanner" class="mb-3 grid grid-cols-1 sm:grid-cols-4 gap-2">
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Meta total</div>
+          <div id="plan_metaTotal" class="text-xl font-black text-white">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Real hoy</div>
+          <div id="plan_realTotal" class="text-xl font-black text-sky-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Avance</div>
+          <div id="plan_avancePct" class="text-xl font-black text-emer-accent">0%</div>
+          <div class="w-full h-1.5 rounded-full bg-slate-800 mt-1.5 overflow-hidden">
+            <div id="plan_avanceBar" class="h-full bg-emer-accent transition-all" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Falta</div>
+          <div id="plan_faltaTotal" class="text-xl font-black text-amber-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+      </div>
+
+      <!-- Sub-totales por proceso -->
+      <div id="planSubtotals" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-xs"></div>
+
+      <!-- Tabla del plan -->
+      <div class="scroll-x rounded-lg border border-slate-800">
+        <table class="tbl text-sm">
+          <thead class="sticky top-0 bg-[#0c1320]">
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Tela</th>
+              <th>Color</th>
+              <th>Lote</th>
+              <th>KG meta</th>
+              <th>Rend.</th>
+              <th>Vel.</th>
+              <th>Proceso</th>
+              <th>Real kg</th>
+              <th>%</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="planTbody"></tbody>
+        </table>
+      </div>
+      <p id="planEmpty" class="text-center text-slate-500 text-sm py-6 hidden">Sin plan capturado todavía. Pega la tabla del Excel o agrega filas.</p>
+      <p class="text-[11px] text-slate-500 mt-2">💡 Tip: copia desde Excel/Sheets las columnas <b>Tela, Color, Lote, KG, Rend, Vel, Proceso</b> y haz clic en "Pegar de Excel".</p>
+    </div>
+
     <!-- Formulario Bruckner -->
     <div class="card p-5 mb-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2019,6 +2089,38 @@
           <label class="lbl">Temperatura (°C)</label>
           <input type="number" step="1" min="0" id="br_temp" class="field" inputmode="numeric" />
         </div>
+
+        <!-- ===== Costos del lote (de la hoja de fórmula) ===== -->
+        <div class="md:col-span-2 pt-3 mt-1 border-t border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">💰 Costos del lote <span class="text-slate-500 font-normal normal-case">(opcional · de la hoja de fórmula)</span></div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label class="lbl text-xs">$ Fórmula <span class="text-slate-500">/kg</span></label>
+              <input type="number" step="0.01" min="0" id="br_costoFormula" class="field !py-2 text-sm" inputmode="decimal" placeholder="Ej: 3.03" />
+            </div>
+            <div>
+              <label class="lbl text-xs">$ Color <span class="text-slate-500">/kg</span></label>
+              <input type="number" step="0.01" min="0" id="br_costoColor" class="field !py-2 text-sm" inputmode="decimal" placeholder="Ej: 0.55" />
+            </div>
+            <div>
+              <label class="lbl text-xs">$ Químicos <span class="text-slate-500">/kg</span></label>
+              <input type="number" step="0.01" min="0" id="br_costoQuim" class="field !py-2 text-sm" inputmode="decimal" placeholder="Ej: 1.78" />
+            </div>
+            <div>
+              <label class="lbl text-xs">$ Apresto <span class="text-slate-500">/kg · ác. cítrico</span></label>
+              <input type="number" step="0.01" min="0" id="br_costoApresto" class="field !py-2 text-sm" inputmode="decimal" value="0.80" />
+            </div>
+          </div>
+          <div class="mt-2 flex items-center gap-3 flex-wrap text-xs">
+            <span class="text-slate-500">Total $/kg:</span>
+            <span id="br_costoTotalKg" class="font-bold text-emer-accent">$0.80</span>
+            <span class="text-slate-600">·</span>
+            <span class="text-slate-500">Total lote:</span>
+            <span id="br_costoTotalLote" class="font-bold text-amber-accent">$0</span>
+          </div>
+        </div>
+        <!-- ===== fin costos ===== -->
+
         <div class="md:col-span-2">
           <label class="lbl">Proceso</label>
           <!-- Hidden input stores the selected value -->
@@ -2059,6 +2161,26 @@
       <div class="card p-5">
         <div class="kpi-lbl">Kilos totales</div>
         <div id="br_kpiTot" class="kpi-num text-white mt-1">0</div>
+      </div>
+    </div>
+
+    <!-- Costos del día -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-4">
+        <div class="kpi-lbl text-xs">💰 Costo total hoy</div>
+        <div id="costos_total" class="text-xl font-black text-amber-accent mt-1">$0</div>
+      </div>
+      <div class="card p-4">
+        <div class="kpi-lbl text-xs">$ / kg promedio</div>
+        <div id="costos_avg" class="text-xl font-black text-white mt-1">$0</div>
+      </div>
+      <div class="card p-4">
+        <div class="kpi-lbl text-xs">Lotes con costo</div>
+        <div id="costos_lotes" class="text-xl font-black text-white mt-1">0</div>
+      </div>
+      <div class="card p-4">
+        <div class="kpi-lbl text-xs">Lote más caro</div>
+        <div id="costos_topLote" class="text-sm font-bold text-amber-accent mt-1 leading-tight">—</div>
       </div>
     </div>
 
@@ -3801,6 +3923,7 @@ function init() {
   bindDowntimeForm();
   bindRamaDowntimeForm();
   bindBrucknerForm();
+  bindPlanDia();
   bindPT();
   bindExport();
   bindUserModal();
@@ -6923,6 +7046,10 @@ function bindBrucknerForm() {
   $('#brSave').addEventListener('click', () => requireUserThen(() => {
     const k = parseFloat($('#br_kilos').value) || 0;
     if (!k) return toast('Captura los kilos', true);
+    const cFor = parseFloat($('#br_costoFormula')?.value) || 0;
+    const cCol = parseFloat($('#br_costoColor')?.value) || 0;
+    const cQui = parseFloat($('#br_costoQuim')?.value) || 0;
+    const cApr = parseFloat($('#br_costoApresto')?.value) || 0;
     const rec = {
       id: uid(), ts: Date.now(),
       rama:     $('#br_rama').value || 'Bruckner',
@@ -6938,13 +7065,20 @@ function bindBrucknerForm() {
       vel:      parseFloat($('#br_vel').value) || 0,
       temp:     parseFloat($('#br_temp').value) || 0,
       proceso:  $('#br_proceso').value,
-      notas:    $('#br_notas').value.trim()
+      notas:    $('#br_notas').value.trim(),
+      // Costos por kg (MXN). Total/kg = suma de los 4. Total lote = total/kg * kilos.
+      costoFormula: cFor,
+      costoColor:   cCol,
+      costoQuim:    cQui,
+      costoApresto: cApr
     };
     state.bruck.unshift(rec);
     save(LS_KEYS.bruck, state.bruck);
     saveToCloud('bruck', rec); // fire-and-forget
-    logChange({ module:'Bruckner', action:'Nuevo registro', lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.proceso||'sin proceso'}` });
-    toast('Bruckner guardado');
+    const costoKg = cFor + cCol + cQui + cApr;
+    const costoLote = costoKg * k;
+    logChange({ module:'Bruckner', action:'Nuevo registro', lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.proceso||'sin proceso'}${costoKg ? ' · $'+costoKg.toFixed(2)+'/kg' : ''}` });
+    toast('Bruckner guardado' + (costoKg ? ` · $${costoLote.toFixed(0)}` : ''));
     clearBrForm();
     renderAll();
   }));
@@ -6952,8 +7086,13 @@ function bindBrucknerForm() {
   bindBrAutoCalc();
 }
 function clearBrForm() {
-  ['#br_operador','#br_lote','#br_tela','#br_color','#br_kilos','#br_rend','#br_metros','#br_vel','#br_temp','#br_notas']
-    .forEach(s => $(s).value = '');
+  ['#br_operador','#br_lote','#br_tela','#br_color','#br_kilos','#br_rend','#br_metros','#br_vel','#br_temp','#br_notas','#br_costoFormula','#br_costoColor','#br_costoQuim']
+    .forEach(s => { const el = $(s); if (el) el.value = ''; });
+  // Apresto vuelve a su default ($0.80/kg — ácido cítrico)
+  const apr = $('#br_costoApresto'); if (apr) apr.value = '0.80';
+  // Resetear el display de costo total
+  const tk = $('#br_costoTotalKg'); if (tk) tk.textContent = '$0.80';
+  const tl = $('#br_costoTotalLote'); if (tl) tl.textContent = '$0';
   $('#br_fecha').value = todayISO();
   // Reset proceso chips to default (Empacado)
   $$('#brProcesoChips .br-proc-btn').forEach(b => {
@@ -6965,7 +7104,7 @@ function clearBrForm() {
   $('#br_proceso').value = 'Empacado';
 }
 
-/* Auto-calc metros from kg × rend */
+/* Auto-calc metros from kg × rend + auto-calc costo total */
 function bindBrAutoCalc() {
   function recalcMetros() {
     const k = parseFloat($('#br_kilos').value);
@@ -6975,9 +7114,27 @@ function bindBrAutoCalc() {
       // Only auto-fill if user hasn't manually typed something different
       mEl.value = (k * r).toFixed(0);
     }
+    recalcCosto();
+  }
+  function recalcCosto() {
+    const cFor = parseFloat($('#br_costoFormula')?.value) || 0;
+    const cCol = parseFloat($('#br_costoColor')?.value) || 0;
+    const cQui = parseFloat($('#br_costoQuim')?.value) || 0;
+    const cApr = parseFloat($('#br_costoApresto')?.value) || 0;
+    const kg = parseFloat($('#br_kilos')?.value) || 0;
+    const totalKg = cFor + cCol + cQui + cApr;
+    const totalLote = totalKg * kg;
+    const tk = $('#br_costoTotalKg'); if (tk) tk.textContent = '$' + totalKg.toFixed(2);
+    const tl = $('#br_costoTotalLote'); if (tl) tl.textContent = '$' + (totalLote >= 1000 ? totalLote.toFixed(0) : totalLote.toFixed(2));
   }
   $('#br_kilos').addEventListener('input', recalcMetros);
   $('#br_rend').addEventListener('input', recalcMetros);
+  ['#br_costoFormula','#br_costoColor','#br_costoQuim','#br_costoApresto'].forEach(sel => {
+    const el = $(sel);
+    if (el) el.addEventListener('input', recalcCosto);
+  });
+  // primer pintado
+  recalcCosto();
 
   // Proceso chip handlers
   $$('#brProcesoChips .br-proc-btn').forEach(b => {
@@ -7003,6 +7160,38 @@ function renderBruckner() {
   $('#br_kpiMts').textContent    = fmtKg(totMHoy);
   $('#br_kpiFichas').textContent = rows.length;
   $('#br_kpiTot').textContent    = fmtKg(totK);
+
+  // === Costos del día === (solo registros con algún costo capturado)
+  const costoRows = todayRows.filter(r => (r.costoFormula||r.costoColor||r.costoQuim||r.costoApresto));
+  let costoTotal = 0, costoKgPond = 0, kgConCosto = 0;
+  let topLote = null, topLoteCosto = 0;
+  costoRows.forEach(r => {
+    const cKg = (r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoApresto||0);
+    const cLote = cKg * (r.kilos||0);
+    costoTotal += cLote;
+    kgConCosto += (r.kilos||0);
+    costoKgPond += cLote;
+    if (cLote > topLoteCosto) { topLoteCosto = cLote; topLote = r; }
+  });
+  const avgKg = kgConCosto > 0 ? (costoKgPond / kgConCosto) : 0;
+  const elTotal = $('#costos_total');
+  const elAvg   = $('#costos_avg');
+  const elLotes = $('#costos_lotes');
+  const elTop   = $('#costos_topLote');
+  if (elTotal) elTotal.textContent = costoTotal > 0 ? ('$' + costoTotal.toLocaleString('es-MX',{maximumFractionDigits:0})) : '$0';
+  if (elAvg)   elAvg.textContent   = avgKg > 0 ? ('$' + avgKg.toFixed(2)) : '$0';
+  if (elLotes) elLotes.textContent = costoRows.length;
+  if (elTop) {
+    if (topLote) {
+      const nm = (topLote.lote || topLote.tela || '—');
+      elTop.innerHTML = `${nm} <span class="text-slate-400 font-normal">·</span> $${topLoteCosto.toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+    } else {
+      elTop.textContent = '—';
+    }
+  }
+
+  // === Plan del Día · refrescar avance vs real ===
+  if (typeof renderPlanAvance === 'function') renderPlanAvance();
 
   const tb = $('#brTbody');
   if (!rows.length) {
@@ -7716,6 +7905,303 @@ function exportToExcel(){
 /* ---------------------------------------------------------------
    RENDER ALL
 --------------------------------------------------------------- */
+/* ===============================================================
+   PLAN DEL DÍA · Meta de producción Bruckner (tiempo real)
+   - Una doc por fecha en Firestore: plan_dia/{YYYY-MM-DD}
+   - Estructura: { fecha, items: [{tela, color, lote, kg, rend, vel, proceso}], updatedAt, updatedBy, auth }
+   - Render combinado con state.bruck para mostrar avance real vs meta
+=============================================================== */
+const PLAN_STATE = { fecha: '', items: [], unsub: null, dirty: false };
+
+/** Normaliza el campo "proceso" para clasificarlo en una de cuatro categorías */
+function _planCatProceso(p) {
+  const s = (p||'').toString().toLowerCase();
+  if (s.includes('suav')) return 'Suavizado';
+  if (s.includes('termo')) return 'Termofijado';
+  if (s.includes('empac')) return 'Empacado';
+  return 'Otros';
+}
+
+/** Genera un id corto para una fila del plan */
+function _planRowId() { return 'p_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3); }
+
+/** Render principal: tabla del plan + banner de avance */
+function renderPlanAvance() {
+  if (!document.getElementById('planTbody')) return;
+  const items = PLAN_STATE.items || [];
+  const fecha = PLAN_STATE.fecha || todayISO();
+
+  // Real de Bruckner para la misma fecha (cualquier rama Bruckner)
+  const brRows = (state.bruck||[]).filter(r => r.fecha === fecha && (r.rama||'Bruckner') === 'Bruckner');
+  const realTotal = brRows.reduce((a,r) => a + (r.kilos||0), 0);
+
+  // Avance por lote: empareja por lote (case-insensitive), si no por tela+color
+  function realForItem(it) {
+    const lote = (it.lote||'').trim().toLowerCase();
+    const tela = (it.tela||'').trim().toLowerCase();
+    const color = (it.color||'').trim().toLowerCase();
+    let matchKg = 0;
+    brRows.forEach(r => {
+      const rLote = (r.lote||'').trim().toLowerCase();
+      const rTela = (r.tela||'').trim().toLowerCase();
+      const rColor = (r.color||'').trim().toLowerCase();
+      if (lote && rLote && rLote === lote) { matchKg += (r.kilos||0); return; }
+      if (!lote && tela && rTela === tela && (!color || rColor === color)) { matchKg += (r.kilos||0); }
+    });
+    return matchKg;
+  }
+
+  // Tabla
+  const tb = document.getElementById('planTbody');
+  const empty = document.getElementById('planEmpty');
+  if (!items.length) {
+    tb.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+  } else {
+    if (empty) empty.classList.add('hidden');
+    tb.innerHTML = items.map((it, idx) => {
+      const real = realForItem(it);
+      const meta = parseFloat(it.kg)||0;
+      const pct  = meta>0 ? Math.min(999, Math.round((real/meta)*100)) : 0;
+      const pctColor = pct >= 100 ? 'text-emer-accent' : pct >= 70 ? 'text-sky-accent' : pct > 0 ? 'text-amber-accent' : 'text-slate-500';
+      const cat = _planCatProceso(it.proceso);
+      const catChip = cat==='Suavizado' ? 'chip-info' : cat==='Termofijado' ? 'chip-warn' : cat==='Empacado' ? 'chip-ok' : 'chip-info';
+      return `<tr data-pid="${it.id}">
+        <td class="text-slate-500">${idx+1}</td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="tela" value="${(it.tela||'').replace(/"/g,'&quot;')}" placeholder="Tela" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="color" value="${(it.color||'').replace(/"/g,'&quot;')}" placeholder="Color" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="lote" value="${(it.lote||'').replace(/"/g,'&quot;')}" placeholder="Lote" style="width:80px" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="kg" type="number" step="1" min="0" value="${meta||''}" style="width:80px" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="rend" type="number" step="0.01" min="0" value="${it.rend||''}" style="width:70px" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="vel" type="number" step="0.1" min="0" value="${it.vel||''}" style="width:60px" /></td>
+        <td><span class="chip ${catChip} text-[10px]">${(it.proceso||cat).slice(0,18)}</span></td>
+        <td class="text-right font-bold">${real ? fmtKg(real) : '—'}</td>
+        <td class="text-right font-bold ${pctColor}">${pct}%</td>
+        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" data-act="del">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    // Wire inline edits
+    tb.querySelectorAll('input.plan-edit').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const tr = inp.closest('tr');
+        const pid = tr?.dataset.pid;
+        const it = PLAN_STATE.items.find(x => x.id === pid);
+        if (!it) return;
+        const k = inp.dataset.k;
+        if (k === 'kg' || k === 'rend' || k === 'vel') {
+          it[k] = parseFloat(inp.value) || 0;
+        } else {
+          it[k] = inp.value;
+        }
+        savePlanDia();
+      });
+    });
+    tb.querySelectorAll('button[data-act="del"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tr = btn.closest('tr');
+        const pid = tr?.dataset.pid;
+        PLAN_STATE.items = PLAN_STATE.items.filter(x => x.id !== pid);
+        savePlanDia();
+        renderPlanAvance();
+      });
+    });
+  }
+
+  // Banner totales
+  const metaTotal = items.reduce((a,it) => a + (parseFloat(it.kg)||0), 0);
+  const falta = Math.max(0, metaTotal - realTotal);
+  const avancePct = metaTotal > 0 ? Math.min(999, Math.round((realTotal/metaTotal)*100)) : 0;
+  const elMeta = document.getElementById('plan_metaTotal');
+  const elReal = document.getElementById('plan_realTotal');
+  const elPct  = document.getElementById('plan_avancePct');
+  const elBar  = document.getElementById('plan_avanceBar');
+  const elFalta= document.getElementById('plan_faltaTotal');
+  if (elMeta) elMeta.innerHTML = `${fmtKg(metaTotal)} <span class="text-xs text-slate-500">kg</span>`;
+  if (elReal) elReal.innerHTML = `${fmtKg(realTotal)} <span class="text-xs text-slate-500">kg</span>`;
+  if (elPct)  elPct.textContent = avancePct + '%';
+  if (elBar)  elBar.style.width = Math.min(100, avancePct) + '%';
+  if (elFalta) elFalta.innerHTML = `${fmtKg(falta)} <span class="text-xs text-slate-500">kg</span>`;
+
+  // Subtotales por proceso
+  const cats = ['Suavizado','Termofijado','Empacado','Otros'];
+  const subt = {};
+  cats.forEach(c => subt[c] = { meta:0, real:0 });
+  items.forEach(it => {
+    const c = _planCatProceso(it.proceso);
+    subt[c].meta += parseFloat(it.kg)||0;
+    subt[c].real += realForItem(it);
+  });
+  const subEl = document.getElementById('planSubtotals');
+  if (subEl) {
+    const colorMap = { Suavizado:'sky-accent', Termofijado:'amber-accent', Empacado:'emer-accent', Otros:'slate-400' };
+    subEl.innerHTML = cats.map(c => {
+      if (!subt[c].meta && !subt[c].real) return '';
+      const pct = subt[c].meta > 0 ? Math.round((subt[c].real/subt[c].meta)*100) : 0;
+      return `<div class="rounded-lg bg-[#0c1320] p-2 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">${c}</div>
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="font-bold text-${colorMap[c]}">${fmtKg(subt[c].real)} / ${fmtKg(subt[c].meta)}</span>
+          <span class="text-[10px] text-slate-400">${pct}%</span>
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+  }
+}
+
+/** Guarda el plan del día actual a Firestore (y al localStorage como respaldo) */
+async function savePlanDia() {
+  try {
+    PLAN_STATE.dirty = true;
+    // Respaldo local
+    try { localStorage.setItem('tg_plan_'+PLAN_STATE.fecha, JSON.stringify(PLAN_STATE.items)); } catch(_){}
+    const FB = await whenFbReady();
+    if (!FB) return;
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) { console.warn('[Plan] sin sesión, no se sube'); return; }
+    const docRef = FB.doc(FB.db, 'plan_dia', PLAN_STATE.fecha);
+    const payload = {
+      fecha: PLAN_STATE.fecha,
+      items: PLAN_STATE.items,
+      updatedAt: Date.now(),
+      updatedBy: (window.TG_USER || {}).name || 'desconocido',
+      auth: FB_AUTH_TOKEN
+    };
+    await FB.setDoc(docRef, payload);
+    PLAN_STATE.dirty = false;
+  } catch (e) {
+    console.warn('[Plan] savePlanDia error', e);
+  }
+}
+
+/** Carga (o re-suscribe) el plan para la fecha activa */
+async function subscribePlanDia(fecha) {
+  PLAN_STATE.fecha = fecha;
+  // Pre-cargar respaldo local mientras llega Firestore
+  try {
+    const cached = localStorage.getItem('tg_plan_'+fecha);
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { PLAN_STATE.items = arr; renderPlanAvance(); }
+    } else {
+      PLAN_STATE.items = [];
+      renderPlanAvance();
+    }
+  } catch(_){}
+
+  // Quitar suscripción previa
+  if (typeof PLAN_STATE.unsub === 'function') { try { PLAN_STATE.unsub(); } catch(_){} PLAN_STATE.unsub = null; }
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const docRef = FB.doc(FB.db, 'plan_dia', fecha);
+    PLAN_STATE.unsub = FB.onSnapshot(docRef, (snap) => {
+      if (!snap.exists()) {
+        // Sin doc remota — mantener lo que ya hay localmente si el usuario está editando
+        if (!PLAN_STATE.items.length) { PLAN_STATE.items = []; renderPlanAvance(); }
+        return;
+      }
+      const data = snap.data() || {};
+      const remoteItems = Array.isArray(data.items) ? data.items : [];
+      // Evitar pisar ediciones en curso si la remota llega justo después de escribir
+      PLAN_STATE.items = remoteItems;
+      try { localStorage.setItem('tg_plan_'+fecha, JSON.stringify(remoteItems)); } catch(_){}
+      renderPlanAvance();
+    }, (err) => console.warn('[Plan] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[Plan] subscribe error', e);
+  }
+}
+
+/** Parsea texto pegado desde Excel/Sheets (TSV) y lo convierte en items */
+function _planParsePasted(text) {
+  if (!text) return [];
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  // Detectar y descartar encabezado si la primera línea contiene "tela" o "lote"
+  const first = lines[0].toLowerCase();
+  const startIdx = (first.includes('tela') || first.includes('lote') || first.includes('color')) ? 1 : 0;
+  const out = [];
+  for (let i = startIdx; i < lines.length; i++) {
+    const cells = lines[i].split(/\t+/).map(c => c.trim());
+    if (cells.length < 2) continue;
+    // Auto-detectar el orden: TELA, COLOR, LOTE, KG, REND, VEL, PROCESO
+    // Si solo hay 3-4 columnas se asume TELA, COLOR, LOTE, KG
+    const [tela='', color='', lote='', kg='', rend='', vel='', proceso=''] = cells;
+    // Saltar filas-totales (que tienen palabras como "total" o "grand")
+    const lcAll = lines[i].toLowerCase();
+    if (lcAll.includes('total') || lcAll.includes('grand')) continue;
+    const kgN = parseFloat((kg||'').replace(/[, ]/g,''));
+    if (!tela && !lote && !kgN) continue;
+    out.push({
+      id: _planRowId(),
+      tela, color, lote,
+      kg:   kgN || 0,
+      rend: parseFloat((rend||'').replace(/[, ]/g,'')) || 0,
+      vel:  parseFloat((vel||'').replace(/[, ]/g,'')) || 0,
+      proceso: proceso || ''
+    });
+  }
+  return out;
+}
+
+/** Conecta todos los handlers del panel Plan del Día. Se invoca una sola vez. */
+function bindPlanDia() {
+  const fechaInput = document.getElementById('plan_fecha');
+  if (!fechaInput) return; // panel no presente
+  // Default: hoy
+  fechaInput.value = todayISO();
+  subscribePlanDia(fechaInput.value);
+
+  fechaInput.addEventListener('change', () => {
+    const f = fechaInput.value || todayISO();
+    subscribePlanDia(f);
+  });
+
+  // "Pegar de Excel" — usa el portapapeles si está disponible, si no muestra un prompt
+  document.getElementById('planPasteBtn')?.addEventListener('click', async () => {
+    requireUserThen(async () => {
+      let text = '';
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          text = await navigator.clipboard.readText();
+        }
+      } catch(_){}
+      if (!text) {
+        text = prompt('Pega aquí las filas copiadas desde Excel/Sheets (columnas separadas por TAB):');
+      }
+      if (!text) return;
+      const newItems = _planParsePasted(text);
+      if (!newItems.length) { toast('No se detectaron filas válidas', true); return; }
+      // Reemplaza por completo el plan del día con lo pegado (mejor experiencia: pegar = nueva lista)
+      PLAN_STATE.items = newItems;
+      await savePlanDia();
+      renderPlanAvance();
+      toast(`Plan cargado: ${newItems.length} líneas`);
+    });
+  });
+
+  // "+ Fila"
+  document.getElementById('planAddRowBtn')?.addEventListener('click', () => {
+    requireUserThen(() => {
+      PLAN_STATE.items.push({ id:_planRowId(), tela:'', color:'', lote:'', kg:0, rend:0, vel:0, proceso:'Empacado' });
+      savePlanDia();
+      renderPlanAvance();
+    });
+  });
+
+  // "Vaciar"
+  document.getElementById('planClearBtn')?.addEventListener('click', () => {
+    requireUserThen(() => {
+      if (!PLAN_STATE.items.length) return;
+      if (!confirm('¿Vaciar el plan del día? Esta acción no se puede deshacer.')) return;
+      PLAN_STATE.items = [];
+      savePlanDia();
+      renderPlanAvance();
+    });
+  });
+}
+
 function renderAll() {
   renderOpenFichasPanel();
   renderReport();
