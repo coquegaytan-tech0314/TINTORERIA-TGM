@@ -769,6 +769,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span class="hidden sm:inline">Exportar</span>
       </button>
+
+      <button id="signOutBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Cerrar sesión en este dispositivo" onclick="window.tgSignOut && window.tgSignOut()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="hidden sm:inline">Salir</span>
+      </button>
     </div>
   </div>
 
@@ -3195,6 +3200,19 @@ function whenFbReady() {
   });
 }
 
+/**
+ * Token compartido del equipo que se inserta en cada documento.
+ * Coincide con el hash sha256('tenido2026'). Las reglas de Firestore
+ * exigen este valor exacto en cada lectura/escritura.
+ */
+const FB_AUTH_TOKEN = '5ae770242d3a41112163262b59baf33f595cd54af8d5046bbe1600d944325280';
+
+/** Etiqueta cualquier registro con el token de autenticación antes de subir a la nube */
+function _withAuth(record) {
+  if (!record || typeof record !== 'object') return record;
+  return Object.assign({}, record, { auth: FB_AUTH_TOKEN });
+}
+
 /** Guarda un registro en Firestore (fire-and-forget) */
 async function saveToCloud(collKey, record) {
   try {
@@ -3202,9 +3220,14 @@ async function saveToCloud(collKey, record) {
     if (!FB) return; // sin SDK, solo localStorage
     const collName = FB_COLLECTIONS[collKey];
     if (!collName || !record || !record.id) return;
+    // Bloquear escrituras si el usuario no inició sesión correctamente
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) {
+      console.warn('[FB] saveToCloud: sin sesión válida, descartando');
+      return;
+    }
     fbPendingWrites++;
     updateCloudUI();
-    await FB.setDoc(FB.doc(FB.db, collName, String(record.id)), record);
+    await FB.setDoc(FB.doc(FB.db, collName, String(record.id)), _withAuth(record));
     fbLastError = null;
   } catch (e) {
     fbLastError = e;
@@ -3222,6 +3245,10 @@ async function deleteFromCloud(collKey, id) {
     if (!FB) return;
     const collName = FB_COLLECTIONS[collKey];
     if (!collName || !id) return;
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) {
+      console.warn('[FB] deleteFromCloud: sin sesión válida, descartando');
+      return;
+    }
     fbPendingWrites++;
     updateCloudUI();
     await FB.deleteDoc(FB.doc(FB.db, collName, String(id)));
