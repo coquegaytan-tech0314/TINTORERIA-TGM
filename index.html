@@ -1415,6 +1415,7 @@
       <div class="flex items-center gap-2 flex-wrap">
         <select id="effRange" class="field !py-2 !text-base max-w-[220px]">
           <option value="today">Hoy</option>
+          <option value="yesterday">Ayer</option>
           <option value="7" selected>Últimos 7 días</option>
           <option value="30">Últimos 30 días</option>
           <option value="week">Semana actual</option>
@@ -5712,6 +5713,10 @@ function getDateRange(range) {
     const d = new Date(); d.setHours(0,0,0,0);
     return { from: d.getTime(), to: d.getTime() + 86400000 - 1, days: 1 };
   }
+  if (range === 'yesterday') {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - 1);
+    return { from: d.getTime(), to: d.getTime() + 86400000 - 1, days: 1 };
+  }
   if (range === 'week') {
     const d = new Date();
     const day = d.getDay(); // 0=Dom, 1=Lun...
@@ -5747,7 +5752,7 @@ function formatRangeChip(range) {
     if (f && t) return `${f} → ${t}`;
     return 'Rango personalizado';
   }
-  return { today:'Hoy', '7':'Últimos 7 días', '30':'Últimos 30 días', week:'Semana actual', month:'Mes actual', all:'Todo' }[range] || range;
+  return { today:'Hoy', yesterday:'Ayer', '7':'Últimos 7 días', '30':'Últimos 30 días', week:'Semana actual', month:'Mes actual', all:'Todo' }[range] || range;
 }
 
 /** Devuelve el # de días distintos con fichas dentro del rango;
