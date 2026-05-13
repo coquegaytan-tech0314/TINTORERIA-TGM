@@ -1984,6 +1984,72 @@
     </div>
 
     <!-- ============================================================ -->
+    <!--  RESUMEN DEL DÍA · Formato WhatsApp para el jefe              -->
+    <!--  Botón "Copiar" arma el mensaje exacto del reporte diario     -->
+    <!-- ============================================================ -->
+    <div class="card p-5 mb-4" id="resumenTerminadoCard" style="border-left: 4px solid #10b981;">
+      <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h3 class="text-lg font-black text-white">📲 Producción de Terminado <span class="text-emer-accent">· Resumen del día</span></h3>
+          <p class="text-xs text-slate-400 mt-1">Listo para enviar al jefe — mismo formato que el mensaje actual.</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="date" id="resumen_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
+          <button id="resumenCopyBtn" class="btn btn-primary !py-2 !px-4 text-sm" title="Copiar el mensaje al portapapeles">📋 Copiar para WhatsApp</button>
+        </div>
+      </div>
+
+      <!-- KPIs grandes — el TOTAL es la cifra que más le importa al jefe -->
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        <div class="card p-4" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25)">
+          <div class="text-xs text-emer-accent font-bold uppercase tracking-wider">Total Terminado</div>
+          <div id="res_total" class="text-3xl font-black text-emer-accent mt-1">0.0</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">RAMA + COMP. (kg)</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">RAMA (Bruckner)</div>
+          <div id="res_rama" class="text-3xl font-black text-sky-accent mt-1">0.0</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">kilos del día</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">COMP. (Compactadora)</div>
+          <div id="res_comp" class="text-3xl font-black text-amber-accent mt-1">0.0</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">kilos del día</div>
+        </div>
+      </div>
+
+      <!-- Desglose de procesos Bruckner -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.20)">
+          <div class="text-[10px] text-sky-accent font-bold uppercase tracking-wider">Suavizado</div>
+          <div id="res_suavizado" class="text-2xl font-black text-sky-accent mt-1">0.0</div>
+          <div class="text-[10px] text-slate-500">kg</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(245,158,11,0.20)">
+          <div class="text-[10px] text-warn font-bold uppercase tracking-wider">Termofijado</div>
+          <div id="res_termofijado" class="text-2xl font-black text-warn mt-1">0.0</div>
+          <div class="text-[10px] text-slate-500">kg</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(16,185,129,0.20)">
+          <div class="text-[10px] text-emer-accent font-bold uppercase tracking-wider">Empacado</div>
+          <div id="res_empacado" class="text-2xl font-black text-emer-accent mt-1">0.0</div>
+          <div class="text-[10px] text-slate-500">kg</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(148,163,184,0.20)">
+          <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Otros procesos</div>
+          <div id="res_otros" class="text-2xl font-black text-slate-300 mt-1">0.0</div>
+          <div class="text-[10px] text-slate-500">kg</div>
+        </div>
+      </div>
+
+      <!-- Vista previa del mensaje -->
+      <details class="text-xs" id="resumenPreviewWrap">
+        <summary class="cursor-pointer text-slate-400 hover:text-white select-none">👁 Ver mensaje exacto para WhatsApp</summary>
+        <pre id="resumen_preview" class="mt-2 p-3 rounded-lg bg-[#0c1320] border border-slate-800 text-slate-200 font-mono text-xs whitespace-pre-wrap leading-relaxed"></pre>
+      </details>
+    </div>
+
+    <!-- ============================================================ -->
     <!--  PLAN DEL DÍA · Meta de Producción Bruckner (tiempo real)     -->
     <!--  Captura rápida: pegar de Excel / agregar fila / editar       -->
     <!--  Avance vs real automático                                   -->
@@ -3946,6 +4012,7 @@ function init() {
   bindRamaDowntimeForm();
   bindBrucknerForm();
   bindPlanDia();
+  bindResumenTerminado();
   bindPT();
   bindExport();
   bindUserModal();
@@ -7308,6 +7375,9 @@ function renderBruckner() {
   // === Plan del Día · refrescar avance vs real ===
   if (typeof renderPlanAvance === 'function') renderPlanAvance();
 
+  // === Resumen para el jefe · refrescar KPIs y mensaje ===
+  if (typeof renderResumenTerminado === 'function') renderResumenTerminado();
+
   const tb = $('#brTbody');
   if (!rows.length) {
     tb.innerHTML = '';
@@ -8261,6 +8331,134 @@ function _planParsePasted(text) {
 }
 
 /** Conecta todos los handlers del panel Plan del Día. Se invoca una sola vez. */
+/* ===============================================================
+   RESUMEN DEL DÍA · Producción de Terminado (formato WhatsApp)
+   - Bruckner por proceso (Suavizado/Termofijado/Empacado/Otros)
+   - Compactadora (se añadirá cuando el usuario envíe la captura)
+   - Botón "Copiar para WhatsApp" arma el mensaje exacto del jefe
+=============================================================== */
+const DIAS_ES = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+const MESES_ES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+/** Da formato a una fecha YYYY-MM-DD al estilo "LUNES 11 MAYO" */
+function _resumenFechaTitulo(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return `${DIAS_ES[d.getDay()]} ${d.getDate()} ${MESES_ES[d.getMonth()]}`;
+}
+
+/** Formatea un número kg al estilo del jefe (con un decimal y comas miles) */
+function _resumenFmt(n) {
+  if (!n) return '0.0';
+  return Number(n).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** Calcula los kilos por proceso desde state.bruck para una fecha dada */
+function _resumenComputeBruck(fecha) {
+  const rows = (state.bruck||[]).filter(r => r.fecha === fecha && (r.rama||'Bruckner') === 'Bruckner');
+  const totals = { suavizado: 0, termofijado: 0, empacado: 0, otros: 0, total: 0 };
+  rows.forEach(r => {
+    const kg = (r.kilos||0);
+    totals.total += kg;
+    const lc = (r.proceso||'').toString().toLowerCase();
+    if (lc.includes('suav') && lc.includes('termo')) {
+      totals.suavizado   += kg / 2;
+      totals.termofijado += kg / 2;
+    } else if (lc.includes('suav'))  totals.suavizado   += kg;
+    else if (lc.includes('termo')) totals.termofijado += kg;
+    else if (lc.includes('empac')) totals.empacado    += kg;
+    else totals.otros += kg;
+  });
+  return totals;
+}
+
+/** Suma de kilos de la compactadora para una fecha. Por ahora 0 (placeholder hasta
+ *  que el usuario envíe el formato de captura de compactadora). */
+function _resumenComputeComp(fecha) {
+  // TODO(compactadora): cuando exista state.comp ó una colección equivalente,
+  // sumar aquí los kilos. Por ahora regresa 0 para no romper el cálculo.
+  if (Array.isArray(state.comp)) {
+    return state.comp.filter(r => r.fecha === fecha).reduce((a,r) => a + (r.kilos||0), 0);
+  }
+  return 0;
+}
+
+/** Construye el texto exacto del mensaje al jefe */
+function _resumenBuildMessage(fecha, br, comp) {
+  const titulo = _resumenFechaTitulo(fecha);
+  const total  = (br.total||0) + (comp||0);
+  // Solo incluir líneas con valor; el formato original a veces omite procesos sin actividad.
+  const lines = [];
+  lines.push(titulo);
+  lines.push('PRODUCCION DE TERMINADO');
+  lines.push(`TOTAL = ${_resumenFmt(total)}`);
+  lines.push(`RAMA = ${_resumenFmt(br.total)}`);
+  lines.push(`COMP. = ${_resumenFmt(comp)}`);
+  lines.push('');
+  if (br.suavizado > 0)   lines.push(`SUAVIZADO = ${_resumenFmt(br.suavizado)}`);
+  if (br.termofijado > 0) lines.push(`TERMOFIJADO = ${_resumenFmt(br.termofijado)}`);
+  if (br.empacado > 0)    lines.push(`EMPACADO = ${_resumenFmt(br.empacado)}`);
+  if (br.otros > 0)       lines.push(`OTROS = ${_resumenFmt(br.otros)}`);
+  return lines.join('\n');
+}
+
+/** Pinta los KPIs del resumen y el texto del mensaje */
+function renderResumenTerminado() {
+  const fechaInput = document.getElementById('resumen_fecha');
+  if (!fechaInput) return;
+  const fecha = fechaInput.value || todayISO();
+  const br = _resumenComputeBruck(fecha);
+  const comp = _resumenComputeComp(fecha);
+  const total = br.total + comp;
+
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setEl('res_total',       _resumenFmt(total));
+  setEl('res_rama',        _resumenFmt(br.total));
+  setEl('res_comp',        _resumenFmt(comp));
+  setEl('res_suavizado',   _resumenFmt(br.suavizado));
+  setEl('res_termofijado', _resumenFmt(br.termofijado));
+  setEl('res_empacado',    _resumenFmt(br.empacado));
+  setEl('res_otros',       _resumenFmt(br.otros));
+
+  const preEl = document.getElementById('resumen_preview');
+  if (preEl) preEl.textContent = _resumenBuildMessage(fecha, br, comp);
+}
+
+/** Conecta los handlers del card. Se invoca una sola vez al iniciar. */
+function bindResumenTerminado() {
+  const fechaInput = document.getElementById('resumen_fecha');
+  if (!fechaInput) return;
+  fechaInput.value = todayISO();
+  fechaInput.addEventListener('change', renderResumenTerminado);
+
+  document.getElementById('resumenCopyBtn')?.addEventListener('click', async () => {
+    const fecha = fechaInput.value || todayISO();
+    const br = _resumenComputeBruck(fecha);
+    const comp = _resumenComputeComp(fecha);
+    const msg = _resumenBuildMessage(fecha, br, comp);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(msg);
+        toast('Resumen copiado — pégalo en WhatsApp');
+      } else {
+        // Fallback: textarea temporal + execCommand
+        const ta = document.createElement('textarea');
+        ta.value = msg; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+        toast('Resumen copiado — pégalo en WhatsApp');
+      }
+    } catch (e) {
+      console.warn('clipboard error', e);
+      toast('No se pudo copiar automáticamente. Abre la vista previa y cópialo manualmente.', true);
+      // Forzar abrir el details
+      const wrap = document.getElementById('resumenPreviewWrap');
+      if (wrap) wrap.open = true;
+    }
+  });
+
+  renderResumenTerminado();
+}
+
 function bindPlanDia() {
   const fechaInput = document.getElementById('plan_fecha');
   if (!fechaInput) return; // panel no presente
