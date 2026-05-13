@@ -1546,6 +1546,20 @@
       </div>
     </div>
 
+    <!-- Desglose por PROCESO en Tintorería (Pol/Alg, Pol 100%, etc.) -->
+    <div class="card p-5 mb-4">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 class="font-black text-white text-lg">🧪 Producción de Tintorería por Proceso</h3>
+          <p class="text-slate-400 text-xs mt-1">Kilos producidos en máquinas de tintorería agrupados por tipo de proceso de teñido.</p>
+        </div>
+        <span id="eff_dye_proc_total" class="chip chip-info text-xs">0 kg</span>
+      </div>
+      <div id="eff_dye_proc_grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div class="text-slate-500 text-sm col-span-full text-center py-4">Sin datos en el rango seleccionado.</div>
+      </div>
+    </div>
+
     <!-- Tarjetas por máquina (visuales) -->
     <div id="effCards" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
 
@@ -1581,9 +1595,16 @@
             </div>
           </div>
           <!-- % Cumplimiento Meta -->
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between mb-3">
             <span class="text-xs text-slate-400">% Cumplimiento Meta</span>
             <span id="eff_bruck_pct" class="chip chip-info text-xs">0%</span>
+          </div>
+          <!-- Desglose por proceso Bruckner -->
+          <div class="pt-3 border-t border-slate-800">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Kilos por proceso</div>
+            <div id="eff_bruck_procesos" class="space-y-2">
+              <div class="text-slate-500 text-xs">Sin datos en el rango.</div>
+            </div>
           </div>
         </div>
         <!-- Monforts -->
@@ -5915,6 +5936,95 @@ function renderEfficiency() {
     setEl2('eff_monf_m',  fmtKg(mfRecs.reduce((a,r)=>a+r.metros,0)));
     setEl2('eff_monf_f',  mfRecs.length);
     setEl2('eff_monf_v',  velAvg(mfRecs) + (velAvg(mfRecs) !== '—' ? ' m/min' : ''));
+
+    // === Desglose por proceso BRUCKNER (Suavizado/Termofijado/Empacado/Otros) ===
+    const brProcGroups = {};
+    brRecs.forEach(r => {
+      const raw = (r.proceso || 'Sin proceso').toString();
+      // Normalizar categorías conocidas; "Suavizado y Termofijado" cuenta para ambos como 0.5 cada uno
+      const lc = raw.toLowerCase();
+      const buckets = [];
+      if (lc.includes('suav') && lc.includes('termo')) { buckets.push('Suavizado','Termofijado'); }
+      else if (lc.includes('suav'))   buckets.push('Suavizado');
+      else if (lc.includes('termo'))  buckets.push('Termofijado');
+      else if (lc.includes('empac'))  buckets.push('Empacado');
+      else if (lc.includes('seca'))   buckets.push('Secado');
+      else buckets.push(raw);
+      const peso = 1/buckets.length;
+      buckets.forEach(b => {
+        if (!brProcGroups[b]) brProcGroups[b] = { kilos:0, metros:0, fichas:0 };
+        brProcGroups[b].kilos  += (r.kilos||0)  * peso;
+        brProcGroups[b].metros += (r.metros||0) * peso;
+        brProcGroups[b].fichas += peso;
+      });
+    });
+    const procOrder = ['Suavizado','Termofijado','Empacado','Secado'];
+    const procColor = { Suavizado:'sky-accent', Termofijado:'amber-accent', Empacado:'emer-accent', Secado:'warn' };
+    const brProcEl = document.getElementById('eff_bruck_procesos');
+    if (brProcEl) {
+      const entries = Object.entries(brProcGroups);
+      entries.sort((a,b) => {
+        const ai = procOrder.indexOf(a[0]); const bi = procOrder.indexOf(b[0]);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1; if (bi !== -1) return 1;
+        return b[1].kilos - a[1].kilos;
+      });
+      if (!entries.length) {
+        brProcEl.innerHTML = '<div class="text-slate-500 text-xs">Sin datos en el rango.</div>';
+      } else {
+        const max = Math.max(...entries.map(([,v])=>v.kilos), 1);
+        brProcEl.innerHTML = entries.map(([name, v]) => {
+          const pctOfMax = Math.round((v.kilos / max) * 100);
+          const pctOfTotal = brTotKg > 0 ? Math.round((v.kilos / brTotKg) * 100) : 0;
+          const col = procColor[name] || 'slate-400';
+          return `<div>
+            <div class="flex items-baseline justify-between text-xs mb-1">
+              <span class="text-slate-300 font-bold">${name}</span>
+              <span class="text-${col} font-black">${fmtKg(v.kilos)} kg <span class="text-slate-500 font-normal">· ${pctOfTotal}%</span></span>
+            </div>
+            <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+              <div class="h-full bg-${col}" style="width:${pctOfMax}%"></div>
+            </div>
+            <div class="text-[10px] text-slate-500 mt-0.5">${Math.round(v.fichas)} ficha${Math.round(v.fichas)===1?'':'s'} · ${fmtKg(v.metros)} m</div>
+          </div>`;
+        }).join('');
+      }
+    }
+  }
+
+  // === Desglose por proceso de TINTORERÍA (máquinas: JET, PAQUETES, etc.) ===
+  {
+    const dyeProcGroups = {};
+    rows.forEach(r => {
+      const name = (r.proceso || 'Sin proceso').toString().trim() || 'Sin proceso';
+      if (!dyeProcGroups[name]) dyeProcGroups[name] = { kilos:0, banos:0, fichas:0, machines:new Set() };
+      dyeProcGroups[name].kilos  += (r.kilos||0);
+      dyeProcGroups[name].banos  += (r.banos||1);
+      dyeProcGroups[name].fichas += 1;
+      if (r.machine) dyeProcGroups[name].machines.add(r.machine);
+    });
+    const totalDye = rows.reduce((a,r)=>a+(r.kilos||0),0);
+    const totalChip = document.getElementById('eff_dye_proc_total');
+    if (totalChip) totalChip.textContent = `${fmtKg(totalDye)} kg totales`;
+    const grid = document.getElementById('eff_dye_proc_grid');
+    if (grid) {
+      const entries = Object.entries(dyeProcGroups).sort((a,b) => b[1].kilos - a[1].kilos);
+      if (!entries.length) {
+        grid.innerHTML = '<div class="text-slate-500 text-sm col-span-full text-center py-4">Sin datos en el rango seleccionado.</div>';
+      } else {
+        const palette = ['sky-accent','emer-accent','amber-accent','warn','danger','white'];
+        grid.innerHTML = entries.map(([name, v], idx) => {
+          const col = palette[idx % palette.length];
+          const pct = totalDye > 0 ? Math.round((v.kilos/totalDye)*100) : 0;
+          return `<div class="p-3 rounded-lg border border-slate-800" style="background:#0c1320">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1 truncate" title="${name}">${name}</div>
+            <div class="text-2xl font-black text-${col}">${fmtKg(v.kilos)}<span class="text-xs text-slate-500 font-normal ml-1">kg</span></div>
+            <div class="text-[10px] text-slate-400 mt-1">${pct}% · ${v.fichas} ficha${v.fichas===1?'':'s'} · ${v.banos} baño${v.banos===1?'':'s'}</div>
+            <div class="text-[10px] text-slate-500 mt-0.5 truncate" title="${[...v.machines].join(', ')}">${[...v.machines].join(' · ') || '—'}</div>
+          </div>`;
+        }).join('');
+      }
+    }
   }
 
   // Tarjetas por máquina (visuales)
