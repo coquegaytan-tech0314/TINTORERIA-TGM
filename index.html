@@ -448,6 +448,56 @@
     .group-header { background: #eee !important; color: #000 !important; border-top-color: #000 !important; }
     .group-header .m-name, .group-header .m-tot { color: #000 !important; }
   }
+
+  /* Modo de impresión exclusivo del Reporte Semanal: oculta todo lo demás */
+  @media print {
+    body.print-rs-only > *:not(#reporteSemanalCard-wrapper) { display: none !important; }
+    body.print-rs-only #reporteSemanalCard {
+      display: block !important;
+      visibility: visible !important;
+      position: static !important;
+      background: #fff !important;
+      color: #000 !important;
+      border: none !important;
+      box-shadow: none !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 12px !important;
+    }
+    body.print-rs-only #reporteSemanalCard,
+    body.print-rs-only #reporteSemanalCard * {
+      visibility: visible !important;
+    }
+    body.print-rs-only #reporteSemanalCard .text-white,
+    body.print-rs-only #reporteSemanalCard .text-slate-300,
+    body.print-rs-only #reporteSemanalCard .text-slate-400,
+    body.print-rs-only #reporteSemanalCard .text-slate-500,
+    body.print-rs-only #reporteSemanalCard .text-sky-accent,
+    body.print-rs-only #reporteSemanalCard .text-emer-accent,
+    body.print-rs-only #reporteSemanalCard .text-danger,
+    body.print-rs-only #reporteSemanalCard td,
+    body.print-rs-only #reporteSemanalCard th,
+    body.print-rs-only #reporteSemanalCard h3,
+    body.print-rs-only #reporteSemanalCard p,
+    body.print-rs-only #reporteSemanalCard div { color: #000 !important; }
+    body.print-rs-only #reporteSemanalCard table { width: 100% !important; border-collapse: collapse !important; }
+    body.print-rs-only #reporteSemanalCard th,
+    body.print-rs-only #reporteSemanalCard td { border: 1px solid #888 !important; padding: 4px 6px !important; background: #fff !important; }
+    body.print-rs-only #reporteSemanalCard tfoot td { background: #f0f0f0 !important; font-weight: bold; }
+    body.print-rs-only #reporteSemanalCard .rs-prono-input { border: none !important; background: transparent !important; color: #000 !important; }
+    body.print-rs-only #reporteSemanalCard #rs_prevWeek,
+    body.print-rs-only #reporteSemanalCard #rs_nextWeek,
+    body.print-rs-only #reporteSemanalCard #rs_thisWeek,
+    body.print-rs-only #reporteSemanalCard #rs_printBtn,
+    body.print-rs-only #reporteSemanalCard #rs_weekRef { display: none !important; }
+    /* Cualquier ancestro debe ser visible para que el card se muestre */
+    body.print-rs-only main,
+    body.print-rs-only #tabBruckner,
+    body.print-rs-only .tab-panel { display: block !important; visibility: visible !important; }
+    body.print-rs-only main > *:not(#tabBruckner) { display: none !important; }
+    body.print-rs-only #tabBruckner > *:not(#reporteSemanalCard) { display: none !important; }
+  }
 </style>
 </head>
 
@@ -2047,6 +2097,110 @@
         <summary class="cursor-pointer text-slate-400 hover:text-white select-none">👁 Ver mensaje exacto para WhatsApp</summary>
         <pre id="resumen_preview" class="mt-2 p-3 rounded-lg bg-[#0c1320] border border-slate-800 text-slate-200 font-mono text-xs whitespace-pre-wrap leading-relaxed"></pre>
       </details>
+
+      <!-- Pronóstico del día + Causa manual -->
+      <div class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Pronóstico del día (kg)</label>
+          <input type="number" id="res_pronostico" class="field !py-2 !text-sm" step="1" min="0" placeholder="Ej: 15,496" />
+          <p class="text-[10px] text-slate-500 mt-1">Se calcula la eficiencia y el diferencial automáticamente.</p>
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Notas / Causa adicional (opcional)</label>
+          <textarea id="res_causaExtra" class="field !py-2 !text-sm" rows="2" placeholder="A revisar: 2,714 kg pendientes…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!--  REPORTE SEMANAL · Bruckner (mismo formato que hoja impresa)  -->
+    <!--  Lunes a Domingo, con pronóstico/eficiencia/diferencial/causa -->
+    <!-- ============================================================ -->
+    <div class="card p-5 mb-4" id="reporteSemanalCard" style="border-left: 4px solid #38bdf8;">
+      <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h3 class="text-lg font-black text-white">📊 Reporte Semanal Bruckner</h3>
+          <p id="rs_subtitle" class="text-xs text-slate-400 mt-1">Semana actual</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="rs_prevWeek" class="btn btn-secondary !py-2 !px-3 text-sm" title="Semana anterior">←</button>
+          <input type="date" id="rs_weekRef" class="field !py-2 !px-3 text-sm !w-auto" title="Selecciona cualquier día de la semana a ver" />
+          <button id="rs_nextWeek" class="btn btn-secondary !py-2 !px-3 text-sm" title="Semana siguiente">→</button>
+          <button id="rs_thisWeek" class="btn btn-secondary !py-2 !px-3 text-sm" title="Volver a la semana actual">Hoy</button>
+          <button id="rs_printBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Imprimir reporte">🖨️ Imprimir</button>
+        </div>
+      </div>
+
+      <!-- KPIs grandes de la semana -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="rs_kpis">
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.20)">
+          <div class="text-[10px] text-slate-400 uppercase tracking-wider">Pronóstico semana</div>
+          <div id="rs_kpi_prono" class="text-2xl font-black text-slate-300 mt-1">0</div>
+          <div class="text-[10px] text-slate-500">kg</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.20)">
+          <div class="text-[10px] text-sky-accent uppercase tracking-wider">Terminado semana</div>
+          <div id="rs_kpi_term" class="text-2xl font-black text-sky-accent mt-1">0</div>
+          <div class="text-[10px] text-slate-500">kg producidos</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(16,185,129,0.20)">
+          <div class="text-[10px] text-emer-accent uppercase tracking-wider">Eficiencia promedio</div>
+          <div id="rs_kpi_efi" class="text-2xl font-black text-emer-accent mt-1">0%</div>
+          <div class="text-[10px] text-slate-500">Terminado / Pronóstico</div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(239,68,68,0.20)">
+          <div class="text-[10px] text-danger uppercase tracking-wider">T. Muerto total</div>
+          <div id="rs_kpi_tm" class="text-2xl font-black text-danger mt-1">0.0 h</div>
+          <div class="text-[10px] text-slate-500" id="rs_kpi_tm_sub">— paros</div>
+        </div>
+      </div>
+
+      <!-- Gráficas: Pronóstico vs Terminado + Eficiencia -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(148,163,184,0.15)">
+          <div class="text-xs text-slate-400 font-bold mb-2">Pronóstico vs Terminado (kg)</div>
+          <div style="height:200px"><canvas id="rs_chartProdCanvas"></canvas></div>
+        </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(148,163,184,0.15)">
+          <div class="text-xs text-slate-400 font-bold mb-2">Eficiencia diaria (%)</div>
+          <div style="height:200px"><canvas id="rs_chartEfiCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Tabla estilo hoja impresa -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs border-collapse" id="rs_table">
+          <thead>
+            <tr class="text-slate-400 uppercase text-[10px] tracking-wider" style="background:#0c1320">
+              <th class="p-2 text-left border-b border-slate-800">No.</th>
+              <th class="p-2 text-left border-b border-slate-800">Fecha</th>
+              <th class="p-2 text-right border-b border-slate-800">Pronóstico</th>
+              <th class="p-2 text-right border-b border-slate-800">Terminado</th>
+              <th class="p-2 text-right border-b border-slate-800">Suavizado y Termofijado</th>
+              <th class="p-2 text-right border-b border-slate-800">Total diario</th>
+              <th class="p-2 text-right border-b border-slate-800">T. Muertos</th>
+              <th class="p-2 text-right border-b border-slate-800">Diferencial</th>
+              <th class="p-2 text-right border-b border-slate-800">Eficiencia</th>
+              <th class="p-2 text-left border-b border-slate-800" style="min-width:200px">Causa</th>
+            </tr>
+          </thead>
+          <tbody id="rs_tbody"></tbody>
+          <tfoot>
+            <tr class="font-black text-white" style="background:#0c1320">
+              <td class="p-2 border-t-2 border-slate-700" colspan="2">TOTAL</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_prono">0</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_term">0</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_suavTermo">0</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_total">0</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_tm">0.0 h</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_dif">0</td>
+              <td class="p-2 text-right border-t-2 border-slate-700" id="rs_foot_efi">0%</td>
+              <td class="p-2 border-t-2 border-slate-700"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="text-[10px] text-slate-500 mt-2">💡 Tip: edita el pronóstico de cada día directamente en la tabla. La eficiencia, diferencial y causa se calculan en vivo.</p>
     </div>
 
     <!-- ============================================================ -->
@@ -4013,6 +4167,7 @@ function init() {
   bindBrucknerForm();
   bindPlanDia();
   bindResumenTerminado();
+  bindReporteSemanal();
   bindPT();
   bindExport();
   bindUserModal();
@@ -7378,6 +7533,9 @@ function renderBruckner() {
   // === Resumen para el jefe · refrescar KPIs y mensaje ===
   if (typeof renderResumenTerminado === 'function') renderResumenTerminado();
 
+  // === Reporte Semanal Bruckner · refrescar tabla + charts ===
+  if (typeof renderReporteSemanal === 'function') renderReporteSemanal();
+
   const tb = $('#brTbody');
   if (!rows.length) {
     tb.innerHTML = '';
@@ -8424,12 +8582,108 @@ function renderResumenTerminado() {
   if (preEl) preEl.textContent = _resumenBuildMessage(fecha, br, comp);
 }
 
+/* ===============================================================
+   PRONÓSTICO DEL DÍA · colección pronostico_dia
+   Doc ID = YYYY-MM-DD; contiene { pronostico, causaExtra, updatedAt, updatedBy, auth }
+   Cache en memoria para evitar lecturas repetidas + listas semanales.
+=============================================================== */
+const _pronoCache = new Map(); // fecha -> { pronostico, causaExtra }
+if (typeof window !== 'undefined') window._pronoCache = _pronoCache; // debug/inspección
+
+async function _pronoLoad(fecha) {
+  if (!fecha) return { pronostico: 0, causaExtra: '' };
+  if (_pronoCache.has(fecha)) return _pronoCache.get(fecha);
+  try {
+    const FB = await whenFbReady();
+    if (FB && window.TG_AUTH_TOKEN === FB_AUTH_TOKEN) {
+      const snap = await FB.getDoc(FB.doc(FB.db, 'pronostico_dia', fecha));
+      if (snap && snap.exists()) {
+        const d = snap.data() || {};
+        const rec = { pronostico: Number(d.pronostico)||0, causaExtra: d.causaExtra||'' };
+        _pronoCache.set(fecha, rec);
+        return rec;
+      }
+    }
+  } catch (e) { console.warn('[pronostico] load', fecha, e); }
+  const empty = { pronostico: 0, causaExtra: '' };
+  _pronoCache.set(fecha, empty);
+  return empty;
+}
+
+async function _pronoSave(fecha, patch) {
+  if (!fecha) return;
+  const cur = _pronoCache.get(fecha) || { pronostico: 0, causaExtra: '' };
+  const next = Object.assign({}, cur, patch);
+  _pronoCache.set(fecha, next);
+  try {
+    const FB = await whenFbReady();
+    if (!FB) return;
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) {
+      console.warn('[pronostico] sin sesión válida, descartando');
+      return;
+    }
+    fbPendingWrites++;
+    updateCloudUI();
+    await FB.setDoc(FB.doc(FB.db, 'pronostico_dia', fecha), {
+      pronostico: Number(next.pronostico)||0,
+      causaExtra: next.causaExtra || '',
+      updatedAt: new Date().toISOString(),
+      updatedBy: (window.TG_USER && window.TG_USER.name) || 'desconocido',
+      auth: FB_AUTH_TOKEN
+    }, { merge: true });
+    fbLastError = null;
+  } catch (e) {
+    fbLastError = e;
+    console.warn('[pronostico] save error', e);
+  } finally {
+    fbPendingWrites = Math.max(0, fbPendingWrites - 1);
+    updateCloudUI();
+  }
+}
+
+/* Debounce simple por id de input */
+const _debTimers = {};
+function _debounce(key, fn, ms) {
+  clearTimeout(_debTimers[key]);
+  _debTimers[key] = setTimeout(fn, ms);
+}
+
 /** Conecta los handlers del card. Se invoca una sola vez al iniciar. */
 function bindResumenTerminado() {
   const fechaInput = document.getElementById('resumen_fecha');
   if (!fechaInput) return;
   fechaInput.value = todayISO();
-  fechaInput.addEventListener('change', renderResumenTerminado);
+  fechaInput.addEventListener('change', async () => {
+    await _resumenReloadPronostico();
+    renderResumenTerminado();
+  });
+
+  // Pronóstico + Causa Extra → Firestore (con debounce)
+  const pInput = document.getElementById('res_pronostico');
+  const cInput = document.getElementById('res_causaExtra');
+  if (pInput) {
+    pInput.addEventListener('input', () => {
+      const fecha = fechaInput.value || todayISO();
+      const v = Number(pInput.value) || 0;
+      _debounce('prono_'+fecha, () => {
+        _pronoSave(fecha, { pronostico: v }).then(() => {
+          renderResumenTerminado();
+          if (typeof renderReporteSemanal === 'function') renderReporteSemanal();
+        });
+      }, 500);
+    });
+  }
+  if (cInput) {
+    cInput.addEventListener('input', () => {
+      const fecha = fechaInput.value || todayISO();
+      const v = cInput.value || '';
+      _debounce('causa_'+fecha, () => {
+        _pronoSave(fecha, { causaExtra: v }).then(() => {
+          if (typeof renderReporteSemanal === 'function') renderReporteSemanal();
+        });
+      }, 600);
+    });
+  }
 
   document.getElementById('resumenCopyBtn')?.addEventListener('click', async () => {
     const fecha = fechaInput.value || todayISO();
@@ -8456,7 +8710,312 @@ function bindResumenTerminado() {
     }
   });
 
-  renderResumenTerminado();
+  // Carga inicial del pronóstico del día
+  _resumenReloadPronostico().then(() => renderResumenTerminado());
+}
+
+/** Carga el pronóstico/causa para la fecha actual del resumen */
+async function _resumenReloadPronostico() {
+  const fechaInput = document.getElementById('resumen_fecha');
+  const fecha = fechaInput ? (fechaInput.value || todayISO()) : todayISO();
+  const rec = await _pronoLoad(fecha);
+  const p = document.getElementById('res_pronostico');
+  const c = document.getElementById('res_causaExtra');
+  if (p && document.activeElement !== p) p.value = rec.pronostico || '';
+  if (c && document.activeElement !== c) c.value = rec.causaExtra || '';
+}
+
+/* ===============================================================
+   REPORTE SEMANAL BRUCKNER · semana lunes→domingo
+   - Pronóstico editable en línea (guarda en pronostico_dia/{fecha})
+   - Causa automática (motivos de paros) + causaExtra del día
+   - Charts: barras pronóstico-vs-terminado + línea de eficiencia
+=============================================================== */
+let _rsChartProd = null;
+let _rsChartEfi  = null;
+let _rsCurrentMonday = null; // 'YYYY-MM-DD'
+
+/** Devuelve el lunes (00:00) de la semana a la que pertenece la fecha ISO dada */
+function _rsMondayOf(iso) {
+  const d = iso ? new Date(iso + 'T12:00:00') : new Date();
+  const day = d.getDay();           // 0=dom 1=lun ...
+  const diffToMon = (day + 6) % 7;  // domingo→6, lunes→0, ...
+  d.setDate(d.getDate() - diffToMon);
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+/** Devuelve array de 7 fechas ISO (lunes→domingo) a partir del lunes dado */
+function _rsWeekDates(mondayIso) {
+  const out = [];
+  const base = new Date(mondayIso + 'T12:00:00');
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+    out.push(`${y}-${m}-${dd}`);
+  }
+  return out;
+}
+
+/** Etiqueta corta: "LUN 11" para encabezados */
+function _rsFechaShort(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  const dias = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  return `${dias[d.getDay()]} ${d.getDate()}`;
+}
+
+/** Para subtítulo: "Semana del lunes 4 al domingo 10 de mayo 2026" */
+function _rsSubtitulo(mondayIso) {
+  const dates = _rsWeekDates(mondayIso);
+  const mon = new Date(dates[0] + 'T12:00:00');
+  const sun = new Date(dates[6] + 'T12:00:00');
+  const mesM = MESES_ES[mon.getMonth()].toLowerCase();
+  const mesS = MESES_ES[sun.getMonth()].toLowerCase();
+  if (mon.getMonth() === sun.getMonth()) {
+    return `Semana del lunes ${mon.getDate()} al domingo ${sun.getDate()} de ${mesM} ${mon.getFullYear()}`;
+  }
+  return `Semana del lunes ${mon.getDate()} de ${mesM} al domingo ${sun.getDate()} de ${mesS} ${sun.getFullYear()}`;
+}
+
+/** Causa automática: lista de motivos únicos de paros Bruckner en esa fecha + causaExtra */
+function _rsAutoCausa(fecha, causaExtra) {
+  const motivos = new Map(); // motivo -> minutos
+  (state.rd||[]).forEach(r => {
+    if (r.fecha !== fecha) return;
+    if ((r.rama||'Bruckner') !== 'Bruckner') return;
+    const m = (r.motivo||r.categoria||'').toString().trim();
+    if (!m) return;
+    motivos.set(m, (motivos.get(m)||0) + (r.duracionMin||0));
+  });
+  // Ordenar por minutos desc
+  const ordered = [...motivos.entries()].sort((a,b) => b[1]-a[1]).slice(0,3).map(e => e[0]);
+  const partes = [];
+  if (ordered.length) partes.push(ordered.join(', '));
+  if (causaExtra && causaExtra.trim()) partes.push(causaExtra.trim());
+  return partes.join(' · ');
+}
+
+/** Suma de paros Bruckner (en minutos) para una fecha */
+function _rsTMmin(fecha) {
+  return (state.rd||[])
+    .filter(r => r.fecha === fecha && (r.rama||'Bruckner') === 'Bruckner')
+    .reduce((a,r) => a + (r.duracionMin||0), 0);
+}
+
+/** Carga pronósticos para las 7 fechas en paralelo */
+async function _rsLoadPronosticos(dates) {
+  const recs = await Promise.all(dates.map(f => _pronoLoad(f)));
+  const out = {};
+  dates.forEach((f, i) => { out[f] = recs[i]; });
+  return out;
+}
+
+/** Pinta el card completo (KPIs, charts, tabla) */
+async function renderReporteSemanal() {
+  const sub = document.getElementById('rs_subtitle');
+  const tbody = document.getElementById('rs_tbody');
+  if (!tbody) return; // panel no presente
+  if (!_rsCurrentMonday) _rsCurrentMonday = _rsMondayOf(todayISO());
+
+  const dates = _rsWeekDates(_rsCurrentMonday);
+  if (sub) sub.textContent = _rsSubtitulo(_rsCurrentMonday).toUpperCase();
+
+  const pronos = await _rsLoadPronosticos(dates);
+
+  // Acumuladores semanales
+  let wkProno = 0, wkTerm = 0, wkSuavTermo = 0, wkTotal = 0, wkTMmin = 0, wkParos = 0;
+  const chartLabels = [];
+  const chartProno = [];
+  const chartTerm  = [];
+  const chartEfi   = [];
+
+  // Render filas
+  const rows = dates.map((fecha, idx) => {
+    const br   = _resumenComputeBruck(fecha);
+    const comp = _resumenComputeComp(fecha);
+    const term = br.total; // "Terminado" del jefe = total Bruckner del día
+    const suavTermo = (br.suavizado||0) + (br.termofijado||0);
+    const total = term + comp;
+    const tmMin = _rsTMmin(fecha);
+    const paros = (state.rd||[]).filter(r => r.fecha===fecha && (r.rama||'Bruckner')==='Bruckner').length;
+    const prono = Number((pronos[fecha]||{}).pronostico) || 0;
+    const causaExtra = (pronos[fecha]||{}).causaExtra || '';
+    const dif = prono - term;             // negativo = sobreproducción
+    const efi = prono > 0 ? (term / prono * 100) : 0;
+    const causa = _rsAutoCausa(fecha, causaExtra);
+
+    wkProno += prono;
+    wkTerm  += term;
+    wkSuavTermo += suavTermo;
+    wkTotal += total;
+    wkTMmin += tmMin;
+    wkParos += paros;
+
+    chartLabels.push(_rsFechaShort(fecha));
+    chartProno.push(prono);
+    chartTerm.push(term);
+    chartEfi.push(prono > 0 ? Math.round(efi*10)/10 : null);
+
+    const efiColor = efi >= 100 ? '#10b981' : (efi >= 85 ? '#f59e0b' : '#ef4444');
+    const difColor = dif <= 0 ? '#10b981' : '#ef4444';
+    const isToday  = fecha === todayISO();
+
+    return `<tr class="${isToday ? 'bg-sky-500/5' : ''}" style="border-bottom:1px solid #1e293b">
+      <td class="p-2 text-slate-500 font-mono">${idx+1}</td>
+      <td class="p-2 font-bold">${_rsFechaShort(fecha)}${isToday?' <span class="text-[9px] text-sky-accent">HOY</span>':''}</td>
+      <td class="p-2 text-right">
+        <input type="number" min="0" step="1" data-rs-fecha="${fecha}" class="rs-prono-input field !py-1 !px-2 !text-xs !w-24 text-right" value="${prono||''}" placeholder="—" />
+      </td>
+      <td class="p-2 text-right text-sky-accent font-bold">${fmtKg(term)}</td>
+      <td class="p-2 text-right text-slate-300">${fmtKg(suavTermo)}</td>
+      <td class="p-2 text-right text-white font-bold">${fmtKg(total)}</td>
+      <td class="p-2 text-right text-slate-300">${(tmMin/60).toFixed(1)} h</td>
+      <td class="p-2 text-right font-bold" style="color:${difColor}">${prono>0 ? (dif>=0?'+':'') + fmtKg(dif) : '—'}</td>
+      <td class="p-2 text-right font-black" style="color:${efiColor}">${prono>0 ? efi.toFixed(1)+'%' : '—'}</td>
+      <td class="p-2 text-slate-300 text-[11px]">${causa || '<span class="text-slate-600">—</span>'}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+
+  // Footer totales
+  const wkEfi = wkProno > 0 ? (wkTerm / wkProno * 100) : 0;
+  const wkDif = wkProno - wkTerm;
+  const setF = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setF('rs_foot_prono',     fmtKg(wkProno));
+  setF('rs_foot_term',      fmtKg(wkTerm));
+  setF('rs_foot_suavTermo', fmtKg(wkSuavTermo));
+  setF('rs_foot_total',     fmtKg(wkTotal));
+  setF('rs_foot_tm',        (wkTMmin/60).toFixed(1)+' h');
+  setF('rs_foot_dif',       wkProno>0 ? (wkDif>=0?'+':'') + fmtKg(wkDif) : '—');
+  setF('rs_foot_efi',       wkProno>0 ? wkEfi.toFixed(1)+'%' : '—');
+
+  // KPIs
+  setF('rs_kpi_prono', fmtKg(wkProno));
+  setF('rs_kpi_term',  fmtKg(wkTerm));
+  setF('rs_kpi_efi',   wkProno>0 ? wkEfi.toFixed(1)+'%' : '—');
+  setF('rs_kpi_tm',    (wkTMmin/60).toFixed(1)+' h');
+  setF('rs_kpi_tm_sub', `${wkParos} paro${wkParos===1?'':'s'} en la semana`);
+
+  // Wire inputs de pronóstico inline
+  tbody.querySelectorAll('.rs-prono-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const f = inp.getAttribute('data-rs-fecha');
+      const v = Number(inp.value) || 0;
+      _debounce('rs_prono_'+f, () => {
+        _pronoSave(f, { pronostico: v }).then(() => {
+          renderReporteSemanal();
+          // Si la fecha editada es la del resumen, refrescar también
+          const rf = document.getElementById('resumen_fecha');
+          if (rf && rf.value === f) _resumenReloadPronostico();
+        });
+      }, 500);
+    });
+  });
+
+  // Charts
+  _rsRenderCharts(chartLabels, chartProno, chartTerm, chartEfi);
+}
+
+/** Crea o actualiza los dos charts (barras agrupadas + línea) */
+function _rsRenderCharts(labels, prono, term, efi) {
+  if (typeof Chart === 'undefined') return;
+  const prodCv = document.getElementById('rs_chartProdCanvas');
+  const efiCv  = document.getElementById('rs_chartEfiCanvas');
+  if (prodCv) {
+    if (_rsChartProd) _rsChartProd.destroy();
+    _rsChartProd = new Chart(prodCv.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Pronóstico', data: prono, backgroundColor: 'rgba(148,163,184,0.5)', borderColor:'#94a3b8', borderWidth:1 },
+          { label: 'Terminado',  data: term,  backgroundColor: 'rgba(56,189,248,0.7)', borderColor:'#38bdf8', borderWidth:1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color:'#cbd5e1', font:{size:10} } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtKg(ctx.raw||0)} kg` } }
+        },
+        scales: {
+          x: { ticks: { color:'#94a3b8', font:{size:10} }, grid:{display:false} },
+          y: { ticks: { color:'#94a3b8', font:{size:10}, callback: v => fmtKg(v) }, grid:{color:'rgba(148,163,184,0.10)'} }
+        }
+      }
+    });
+  }
+  if (efiCv) {
+    if (_rsChartEfi) _rsChartEfi.destroy();
+    const targetLine = labels.map(() => 100);
+    _rsChartEfi = new Chart(efiCv.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Eficiencia (%)', data: efi, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.15)', tension:0.3, pointRadius:4, pointBackgroundColor:'#10b981', fill:true, spanGaps:true },
+          { label: 'Meta 100%', data: targetLine, borderColor:'rgba(239,68,68,0.6)', borderDash:[6,4], pointRadius:0, fill:false }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins: {
+          legend: { labels: { color:'#cbd5e1', font:{size:10} } },
+          tooltip: { callbacks: { label: (ctx) => ctx.raw==null ? `${ctx.dataset.label}: —` : `${ctx.dataset.label}: ${ctx.raw}%` } }
+        },
+        scales: {
+          x: { ticks: { color:'#94a3b8', font:{size:10} }, grid:{display:false} },
+          y: { ticks: { color:'#94a3b8', font:{size:10}, callback: v => v+'%' }, grid:{color:'rgba(148,163,184,0.10)'}, suggestedMin:0, suggestedMax:130 }
+        }
+      }
+    });
+  }
+}
+
+/** Conecta los handlers del card de reporte semanal */
+function bindReporteSemanal() {
+  const ref = document.getElementById('rs_weekRef');
+  if (!ref) return;
+  _rsCurrentMonday = _rsMondayOf(todayISO());
+  ref.value = _rsCurrentMonday;
+
+  ref.addEventListener('change', () => {
+    _rsCurrentMonday = _rsMondayOf(ref.value || todayISO());
+    ref.value = _rsCurrentMonday;
+    renderReporteSemanal();
+  });
+  document.getElementById('rs_prevWeek')?.addEventListener('click', () => {
+    const d = new Date(_rsCurrentMonday + 'T12:00:00');
+    d.setDate(d.getDate() - 7);
+    _rsCurrentMonday = _rsMondayOf(d.toISOString().slice(0,10));
+    ref.value = _rsCurrentMonday;
+    renderReporteSemanal();
+  });
+  document.getElementById('rs_nextWeek')?.addEventListener('click', () => {
+    const d = new Date(_rsCurrentMonday + 'T12:00:00');
+    d.setDate(d.getDate() + 7);
+    _rsCurrentMonday = _rsMondayOf(d.toISOString().slice(0,10));
+    ref.value = _rsCurrentMonday;
+    renderReporteSemanal();
+  });
+  document.getElementById('rs_thisWeek')?.addEventListener('click', () => {
+    _rsCurrentMonday = _rsMondayOf(todayISO());
+    ref.value = _rsCurrentMonday;
+    renderReporteSemanal();
+  });
+  document.getElementById('rs_printBtn')?.addEventListener('click', () => {
+    // Marca el body para imprimir sólo el card; estilos en <style>
+    document.body.classList.add('print-rs-only');
+    setTimeout(() => {
+      window.print();
+      // Quitar la marca después de un pequeño delay
+      setTimeout(() => document.body.classList.remove('print-rs-only'), 500);
+    }, 50);
+  });
+
+  renderReporteSemanal();
 }
 
 function bindPlanDia() {
