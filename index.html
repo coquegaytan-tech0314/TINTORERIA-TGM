@@ -234,6 +234,27 @@
   .aging-warn .of-aging-chip { background: rgba(245,158,11,0.15);  color:#fbbf24; border:1px solid rgba(245,158,11,0.35); }
   .aging-late .of-aging-chip { background: rgba(244,63,94,0.18);   color:#fb7185; border:1px solid rgba(244,63,94,0.45); }
 
+  /* Motivo de retraso (por qué la ficha sigue abierta) */
+  .of-motivo-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:8px 0 10px; padding:8px 10px; background:rgba(15,23,42,0.45); border:1px dashed rgba(148,163,184,0.22); border-radius:10px; }
+  .of-motivo-row .lbl-mini { font-size:0.62rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; }
+  .of-motivo-row select, .of-motivo-row input {
+    background:#0b0f16; color:#e2e8f0; border:1px solid #253149; border-radius:8px;
+    padding:6px 10px; font-size:0.85rem; font-weight:600;
+    min-width:0; flex:1 1 140px;
+  }
+  .of-motivo-row input { flex:2 1 180px; }
+  .of-motivo-row select:focus, .of-motivo-row input:focus { outline:none; border-color:#38bdf8; }
+  .of-motivo-chip { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:800; padding:4px 9px; border-radius:999px; letter-spacing:0.04em; text-transform:uppercase; }
+  .motivo-reproceso     { background:rgba(168,85,247,0.16); color:#c4b5fd; border:1px solid rgba(168,85,247,0.4); }
+  .motivo-carros        { background:rgba(245,158,11,0.16); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); }
+  .motivo-operativo     { background:rgba(244,63,94,0.16);  color:#fb7185; border:1px solid rgba(244,63,94,0.4); }
+  .motivo-tela          { background:rgba(14,165,233,0.16); color:#7dd3fc; border:1px solid rgba(14,165,233,0.4); }
+  .motivo-lab           { background:rgba(236,72,153,0.16); color:#f9a8d4; border:1px solid rgba(236,72,153,0.4); }
+  .motivo-programa      { background:rgba(99,102,241,0.16); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4); }
+  .motivo-mantenimiento { background:rgba(234,179,8,0.16);  color:#fde047; border:1px solid rgba(234,179,8,0.4); }
+  .motivo-otro          { background:rgba(148,163,184,0.16); color:#cbd5e1; border:1px solid rgba(148,163,184,0.4); }
+  .of-motivo-note { font-size:0.78rem; color:#cbd5e1; font-style:italic; margin-top:4px; }
+
   /* Navegación inferior tipo iPad */
   .tab-btn {
     flex: 1;
@@ -4850,6 +4871,14 @@ function renderOpenFichasPanel(){
       ? `${Math.round(ag.hours*60)} min`
       : `${ag.hours.toFixed(1)} h`;
     const fechaTxt = r.fecha ? new Date(r.fecha + 'T00:00:00').toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'}) : '—';
+    const motivo = r.motivoApertura || '';
+    const motivoNotas = r.motivoNotas || '';
+    const motivoChipCls = MOTIVO_CLASS[motivo] || 'motivo-otro';
+    const motivoLabel = MOTIVO_LABEL[motivo] || '';
+    const motivoChip = motivo ? `<span class="of-motivo-chip ${motivoChipCls}">⚠ ${motivoLabel}</span>` : '';
+    const motivoOptions = MOTIVO_LIST.map(m =>
+      `<option value="${m.key}" ${motivo===m.key?'selected':''}>${m.label}</option>`
+    ).join('');
     return `
       <div class="open-ficha-card ${ag.klass}">
         <div class="of-head">
@@ -4857,7 +4886,10 @@ function renderOpenFichasPanel(){
             <span class="of-mach">${r.machine || '—'}</span>
             <span class="of-meta">· Lote ${r.lote || '—'} · ${fechaTxt}</span>
           </div>
-          <span class="of-aging-chip">${ag.label} · ${hLabel}</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            ${motivoChip}
+            <span class="of-aging-chip">${ag.label} · ${hLabel}</span>
+          </div>
         </div>
         <div class="of-body">
           <div class="of-cell"><div class="lbl-mini">Entrada</div><div class="val">${r.hEntrada || '--'}</div></div>
@@ -4867,6 +4899,14 @@ function renderOpenFichasPanel(){
           <div class="of-cell"><div class="lbl-mini">Color</div><div class="val">${(r.color || '—').slice(0,18)}</div></div>
           <div class="of-cell"><div class="lbl-mini">Turno entrada</div><div class="val">${r.shiftAbrir || r.shift || '—'}</div></div>
         </div>
+        <div class="of-motivo-row">
+          <span class="lbl-mini">¿Por qué sigue abierta?</span>
+          <select onchange="saveOpenFichaMotivo('${r.id}', this.value)">
+            <option value="">— Sin motivo —</option>
+            ${motivoOptions}
+          </select>
+          <input type="text" placeholder="Nota opcional (ej. lote 26-1234)" value="${motivoNotas.replace(/"/g,'&quot;')}" onchange="saveOpenFichaMotivoNotas('${r.id}', this.value)" />
+        </div>
         <div class="of-actions">
           <button class="btn btn-primary !py-2 !px-3 text-sm" onclick="openCerrarFichaModal('${r.id}')">Cerrar ficha</button>
           <button class="btn btn-secondary !py-2 !px-3 text-sm" onclick="openEditFicha('${r.id}')" title="Editar campos">Editar</button>
@@ -4874,6 +4914,47 @@ function renderOpenFichasPanel(){
       </div>`;
   }).join('');
 }
+
+// === Motivos por los que una ficha sigue abierta ===
+const MOTIVO_LIST = [
+  { key:'reproceso',     label:'Reproceso' },
+  { key:'carros',        label:'Faltan carros' },
+  { key:'operativo',     label:'Problema operativo' },
+  { key:'tela',          label:'Falta tela' },
+  { key:'lab',           label:'Espera laboratorio' },
+  { key:'programa',      label:'Cambio de programa' },
+  { key:'mantenimiento', label:'Mantenimiento' },
+  { key:'otro',          label:'Otro' },
+];
+const MOTIVO_LABEL = Object.fromEntries(MOTIVO_LIST.map(m => [m.key, m.label]));
+const MOTIVO_CLASS = Object.fromEntries(MOTIVO_LIST.map(m => [m.key, 'motivo-' + m.key]));
+
+window.saveOpenFichaMotivo = function(id, motivo) {
+  const f = state.prod.find(r => r.id === id);
+  if (!f) return;
+  const prev = f.motivoApertura || '';
+  f.motivoApertura = motivo || '';
+  f._editedAt = Date.now();
+  save(LS_KEYS.prod, state.prod);
+  saveToCloud('prod', f);
+  if (motivo && motivo !== prev) {
+    logChange({ module:'Ficha', action:'Motivo actualizado', machine:f.machine, lote:f.lote, detail: MOTIVO_LABEL[motivo] || motivo });
+    toast('Motivo: ' + (MOTIVO_LABEL[motivo] || motivo));
+  } else if (!motivo && prev) {
+    logChange({ module:'Ficha', action:'Motivo borrado', machine:f.machine, lote:f.lote, detail: '' });
+  }
+  renderOpenFichasPanel();
+};
+
+window.saveOpenFichaMotivoNotas = function(id, notas) {
+  const f = state.prod.find(r => r.id === id);
+  if (!f) return;
+  f.motivoNotas = (notas || '').trim();
+  f._editedAt = Date.now();
+  save(LS_KEYS.prod, state.prod);
+  saveToCloud('prod', f);
+  // No re-render — keep cursor focus in input
+};
 
 // Auto-refresh aging cada 60s para que los colores avancen sin recargar
 setInterval(() => { try { renderOpenFichasPanel(); } catch(e) {} }, 60000);
