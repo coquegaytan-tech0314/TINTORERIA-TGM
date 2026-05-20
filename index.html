@@ -2029,7 +2029,7 @@
     <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="text-2xl font-black text-white">Rama · Acabados (Bruckner + Monforts)</h2>
-        <p class="text-slate-400 text-sm">Vista del operador — Plan del día + captura de fichas</p>
+        <p class="text-slate-400 text-sm">Vista del operador — Captura de fichas + plan del día</p>
       </div>
     </div>
 
@@ -2038,74 +2038,6 @@
     <!--  Captura rápida: pegar de Excel / agregar fila / editar       -->
     <!--  Avance vs real automático                                   -->
     <!-- ============================================================ -->
-    <div class="card p-5 mb-4" id="planDiaCard">
-      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <h3 class="text-lg font-black text-white">🎯 Plan del Día · Bruckner</h3>
-          <p class="text-xs text-slate-400">Meta de producción diaria · sincronizado en tiempo real con todo el equipo</p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <input type="date" id="plan_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
-          <button id="planPasteBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Copiar tabla desde Excel y pegar aquí">📋 Pegar de Excel</button>
-          <button id="planAddRowBtn" class="btn btn-secondary !py-2 !px-3 text-sm">+ Fila</button>
-          <button id="planClearBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Borrar el plan del día">Vaciar</button>
-        </div>
-      </div>
-
-      <!-- Banner de avance global -->
-      <div id="planAvanceBanner" class="mb-3 grid grid-cols-1 sm:grid-cols-4 gap-2">
-        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Meta total</div>
-          <div id="plan_metaTotal" class="text-xl font-black text-white">0 <span class="text-xs text-slate-500">kg</span></div>
-        </div>
-        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Real hoy</div>
-          <div id="plan_realTotal" class="text-xl font-black text-sky-accent">0 <span class="text-xs text-slate-500">kg</span></div>
-        </div>
-        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Avance</div>
-          <div id="plan_avancePct" class="text-xl font-black text-emer-accent">0%</div>
-          <div class="w-full h-1.5 rounded-full bg-slate-800 mt-1.5 overflow-hidden">
-            <div id="plan_avanceBar" class="h-full bg-emer-accent transition-all" style="width:0%"></div>
-          </div>
-        </div>
-        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Falta</div>
-          <div id="plan_faltaTotal" class="text-xl font-black text-amber-accent">0 <span class="text-xs text-slate-500">kg</span></div>
-        </div>
-      </div>
-
-      <!-- Sub-totales por proceso -->
-      <div id="planSubtotals" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-xs"></div>
-
-      <!-- Tabla del plan -->
-      <div class="scroll-x rounded-lg border border-slate-800">
-        <table class="tbl text-sm">
-          <thead class="sticky top-0 bg-[#0c1320]">
-            <tr>
-              <th style="width:36px">#</th>
-              <th>Tela</th>
-              <th>Color</th>
-              <th>Lote</th>
-              <th>KG meta</th>
-              <th>Rend.</th>
-              <th>Vel.</th>
-              <th>Proceso</th>
-              <th>Real kg</th>
-              <th>%</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="planTbody"></tbody>
-        </table>
-      </div>
-      <p id="planEmpty" class="text-center text-slate-500 text-sm py-6 hidden">Sin plan capturado todavía. Pega la tabla del Excel o agrega filas.</p>
-      <p class="text-[11px] text-slate-500 mt-2">💡 Tip: copia desde Excel/Sheets las columnas <b>Tela, Color, Lote, KG, Rend, Vel, Proceso</b> y haz clic en "Pegar de Excel".</p>
-    </div>
-
-
-
-
     <!-- Formulario Bruckner -->
     <div class="card p-5 mb-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2217,6 +2149,74 @@
         <button id="brSave" class="btn btn-primary touch-xl">Guardar</button>
         <button id="brClear" class="btn btn-secondary touch-xl">Limpiar</button>
       </div>
+    </div>
+
+
+
+
+    <div class="card p-5 mb-4" id="planDiaCard">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 class="text-lg font-black text-white">🎯 Plan del Día · Bruckner</h3>
+          <p class="text-xs text-slate-400">Meta de producción diaria · sincronizado en tiempo real con todo el equipo</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="date" id="plan_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
+          <button id="planPasteBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Copiar tabla desde Excel y pegar aquí">📋 Pegar de Excel</button>
+          <button id="planAddRowBtn" class="btn btn-secondary !py-2 !px-3 text-sm">+ Fila</button>
+          <button id="planClearBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Borrar el plan del día">Vaciar</button>
+        </div>
+      </div>
+
+      <!-- Banner de avance global -->
+      <div id="planAvanceBanner" class="mb-3 grid grid-cols-1 sm:grid-cols-4 gap-2">
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Meta total</div>
+          <div id="plan_metaTotal" class="text-xl font-black text-white">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Real hoy</div>
+          <div id="plan_realTotal" class="text-xl font-black text-sky-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Avance</div>
+          <div id="plan_avancePct" class="text-xl font-black text-emer-accent">0%</div>
+          <div class="w-full h-1.5 rounded-full bg-slate-800 mt-1.5 overflow-hidden">
+            <div id="plan_avanceBar" class="h-full bg-emer-accent transition-all" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Falta</div>
+          <div id="plan_faltaTotal" class="text-xl font-black text-amber-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+      </div>
+
+      <!-- Sub-totales por proceso -->
+      <div id="planSubtotals" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-xs"></div>
+
+      <!-- Tabla del plan -->
+      <div class="scroll-x rounded-lg border border-slate-800">
+        <table class="tbl text-sm">
+          <thead class="sticky top-0 bg-[#0c1320]">
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Tela</th>
+              <th>Color</th>
+              <th>Lote</th>
+              <th>KG meta</th>
+              <th>Rend.</th>
+              <th>Vel.</th>
+              <th>Proceso</th>
+              <th>Real kg</th>
+              <th>%</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="planTbody"></tbody>
+        </table>
+      </div>
+      <p id="planEmpty" class="text-center text-slate-500 text-sm py-6 hidden">Sin plan capturado todavía. Pega la tabla del Excel o agrega filas.</p>
+      <p class="text-[11px] text-slate-500 mt-2">💡 Tip: copia desde Excel/Sheets las columnas <b>Tela, Color, Lote, KG, Rend, Vel, Proceso</b> y haz clic en "Pegar de Excel".</p>
     </div>
 
     <!-- KPIs Bruckner -->
