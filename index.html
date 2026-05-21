@@ -255,6 +255,46 @@
   .motivo-otro          { background:rgba(148,163,184,0.16); color:#cbd5e1; border:1px solid rgba(148,163,184,0.4); }
   .of-motivo-note { font-size:0.78rem; color:#cbd5e1; font-style:italic; margin-top:4px; }
 
+  /* === Banner prominente: por qué la ficha sigue abierta === */
+  /* Se muestra arriba de la ficha cuando hay motivo asignado */
+  .of-motivo-banner {
+    display:flex; align-items:center; gap:12px;
+    margin:-1px -1px 12px -1px;            /* sale del borde del card */
+    padding:10px 14px;
+    border-radius: 14px 14px 0 0;          /* respeta el redondeo del card */
+    font-weight: 900; font-size: 0.95rem; letter-spacing:0.04em;
+    text-transform: uppercase;
+    border-bottom: 2px solid currentColor;
+    animation: motivoPulse 2.5s ease-in-out infinite;
+  }
+  .of-motivo-banner .mb-icon { font-size:1.2rem; line-height:1; }
+  .of-motivo-banner .mb-label { flex:0 0 auto; }
+  .of-motivo-banner .mb-note { flex:1 1 auto; font-weight:600; font-style:italic; text-transform:none; font-size:0.82rem; opacity:0.95; letter-spacing:0; }
+  @keyframes motivoPulse {
+    0%,100% { box-shadow: inset 0 0 0 0 rgba(255,255,255,0); }
+    50%     { box-shadow: inset 0 -16px 40px -10px currentColor; }
+  }
+
+  /* Variantes por motivo — cada motivo da color al banner Y al borde del card */
+  .open-ficha-card.has-motivo { border-width: 2px; }
+
+  .has-motivo-reproceso     { border-color:#a855f7 !important; box-shadow: 0 0 0 1px rgba(168,85,247,0.4), 0 0 28px -8px rgba(168,85,247,0.5); }
+  .has-motivo-reproceso .of-motivo-banner    { background:rgba(168,85,247,0.18); color:#d8b4fe; }
+  .has-motivo-carros        { border-color:#f59e0b !important; box-shadow: 0 0 0 1px rgba(245,158,11,0.5), 0 0 28px -8px rgba(245,158,11,0.6); }
+  .has-motivo-carros .of-motivo-banner       { background:rgba(245,158,11,0.18); color:#fcd34d; }
+  .has-motivo-operativo     { border-color:#f43f5e !important; box-shadow: 0 0 0 1px rgba(244,63,94,0.5),  0 0 28px -8px rgba(244,63,94,0.6); }
+  .has-motivo-operativo .of-motivo-banner    { background:rgba(244,63,94,0.20); color:#fda4af; }
+  .has-motivo-tela          { border-color:#0ea5e9 !important; box-shadow: 0 0 0 1px rgba(14,165,233,0.5), 0 0 28px -8px rgba(14,165,233,0.6); }
+  .has-motivo-tela .of-motivo-banner         { background:rgba(14,165,233,0.18); color:#7dd3fc; }
+  .has-motivo-lab           { border-color:#ec4899 !important; box-shadow: 0 0 0 1px rgba(236,72,153,0.5), 0 0 28px -8px rgba(236,72,153,0.6); }
+  .has-motivo-lab .of-motivo-banner          { background:rgba(236,72,153,0.18); color:#f9a8d4; }
+  .has-motivo-programa      { border-color:#6366f1 !important; box-shadow: 0 0 0 1px rgba(99,102,241,0.5), 0 0 28px -8px rgba(99,102,241,0.6); }
+  .has-motivo-programa .of-motivo-banner     { background:rgba(99,102,241,0.18); color:#a5b4fc; }
+  .has-motivo-mantenimiento { border-color:#eab308 !important; box-shadow: 0 0 0 1px rgba(234,179,8,0.5),  0 0 28px -8px rgba(234,179,8,0.6); }
+  .has-motivo-mantenimiento .of-motivo-banner{ background:rgba(234,179,8,0.20); color:#fde047; }
+  .has-motivo-otro          { border-color:#94a3b8 !important; box-shadow: 0 0 0 1px rgba(148,163,184,0.5), 0 0 28px -8px rgba(148,163,184,0.5); }
+  .has-motivo-otro .of-motivo-banner         { background:rgba(148,163,184,0.20); color:#e2e8f0; }
+
   /* Navegación inferior tipo iPad */
   .tab-btn {
     flex: 1;
@@ -4873,23 +4913,27 @@ function renderOpenFichasPanel(){
     const fechaTxt = r.fecha ? new Date(r.fecha + 'T00:00:00').toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'}) : '—';
     const motivo = r.motivoApertura || '';
     const motivoNotas = r.motivoNotas || '';
-    const motivoChipCls = MOTIVO_CLASS[motivo] || 'motivo-otro';
     const motivoLabel = MOTIVO_LABEL[motivo] || '';
-    const motivoChip = motivo ? `<span class="of-motivo-chip ${motivoChipCls}">⚠ ${motivoLabel}</span>` : '';
+    const motivoIcon  = MOTIVO_ICON[motivo]  || '⚠️';
+    const motivoBanner = motivo ? `
+          <div class="of-motivo-banner">
+            <span class="mb-icon">${motivoIcon}</span>
+            <span class="mb-label">${motivoLabel}</span>
+            ${motivoNotas ? `<span class="mb-note">— ${motivoNotas.replace(/</g,'&lt;')}</span>` : ''}
+          </div>` : '';
+    const cardMotivoCls = motivo ? `has-motivo has-motivo-${motivo}` : '';
     const motivoOptions = MOTIVO_LIST.map(m =>
       `<option value="${m.key}" ${motivo===m.key?'selected':''}>${m.label}</option>`
     ).join('');
     return `
-      <div class="open-ficha-card ${ag.klass}">
+      <div class="open-ficha-card ${ag.klass} ${cardMotivoCls}">
+        ${motivoBanner}
         <div class="of-head">
           <div>
             <span class="of-mach">${r.machine || '—'}</span>
             <span class="of-meta">· Lote ${r.lote || '—'} · ${fechaTxt}</span>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            ${motivoChip}
-            <span class="of-aging-chip">${ag.label} · ${hLabel}</span>
-          </div>
+          <span class="of-aging-chip">${ag.label} · ${hLabel}</span>
         </div>
         <div class="of-body">
           <div class="of-cell"><div class="lbl-mini">Entrada</div><div class="val">${r.hEntrada || '--'}</div></div>
@@ -4928,6 +4972,16 @@ const MOTIVO_LIST = [
 ];
 const MOTIVO_LABEL = Object.fromEntries(MOTIVO_LIST.map(m => [m.key, m.label]));
 const MOTIVO_CLASS = Object.fromEntries(MOTIVO_LIST.map(m => [m.key, 'motivo-' + m.key]));
+const MOTIVO_ICON = {
+  reproceso: '🔄',
+  carros: '🚨',
+  operativo: '⚡',
+  tela: '🧵',
+  lab: '🧪',
+  programa: '📅',
+  mantenimiento: '🔧',
+  otro: 'ℹ️',
+};
 
 window.saveOpenFichaMotivo = function(id, motivo) {
   const f = state.prod.find(r => r.id === id);
