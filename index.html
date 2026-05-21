@@ -767,22 +767,60 @@
       location.reload();
     };
 
+    // -------- PASO 2: nombre del usuario (definido antes de los early-returns) --------
+    const stepPw    = document.getElementById('lockStepPw');
+    const stepName  = document.getElementById('lockStepName');
+    const nameInput = document.getElementById('lockNameInput');
+    const nameBtn   = document.getElementById('lockNameSubmit');
+    const nameMsg   = document.getElementById('lockNameMsg');
+    const LS_USER   = 'tg_tint_user_session';
+
+    function goToNameStep(){
+      // Pre-llenar con el último nombre usado en este dispositivo, si existe
+      try {
+        const prev = localStorage.getItem(LS_USER) || '';
+        if (prev && prev !== 'Invitado') nameInput.value = prev;
+      } catch(e){}
+      stepPw.style.display = 'none';
+      stepName.style.display = '';
+      setTimeout(() => nameInput.focus(), 80);
+    }
+
+    function finishLogin(){
+      const name = (nameInput.value || '').trim();
+      if (name.length < 2){
+        nameMsg.textContent = 'Escribe tu nombre (mínimo 2 letras).';
+        nameInput.focus();
+        return;
+      }
+      try { localStorage.setItem(LS_USER, name); } catch(e){}
+      try { sessionStorage.setItem(LS_USER, name); } catch(e){}
+      try { localStorage.removeItem('tg_tint_user_skipped'); } catch(e){}
+      const pill = document.getElementById('userPillName');
+      if (pill) pill.textContent = name;
+      overlay.style.transition = 'opacity .25s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.style.opacity = '';
+        window.dispatchEvent(new Event('tg-auth-ready'));
+      }, 260);
+    }
+    nameBtn.addEventListener('click', finishLogin);
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') finishLogin(); });
+
     // Si ya hay sesión válida...
     const existingToken = localStorage.getItem(LS_AUTH_TOKEN);
     if (existingToken === PW_HASH) {
       window.TG_AUTH_TOKEN = existingToken;
       // ...pero aún así necesitamos un nombre asignado a este dispositivo
-      const existingName = (localStorage.getItem('tg_tint_user_session') || '').trim();
+      const existingName = (localStorage.getItem(LS_USER) || '').trim();
       if (existingName && existingName !== 'Invitado') {
         overlay.classList.add('hidden');
         return;
       }
       // tiene contraseña guardada pero todavía no tiene nombre → saltar al paso 2
-      setTimeout(() => {
-        document.getElementById('lockStepPw').style.display = 'none';
-        document.getElementById('lockStepName').style.display = '';
-        document.getElementById('lockNameInput').focus();
-      }, 0);
+      setTimeout(() => { goToNameStep(); }, 0);
       return;
     }
 
@@ -854,53 +892,7 @@
     // Auto-focus al abrir
     setTimeout(() => { if (!input.disabled) input.focus(); }, 100);
 
-    // -------- PASO 2: nombre del usuario --------
-    const stepPw    = document.getElementById('lockStepPw');
-    const stepName  = document.getElementById('lockStepName');
-    const nameInput = document.getElementById('lockNameInput');
-    const nameBtn   = document.getElementById('lockNameSubmit');
-    const nameMsg   = document.getElementById('lockNameMsg');
-    const LS_USER   = 'tg_tint_user_session';
-
-    function goToNameStep(){
-      // Pre-llenar con el último nombre usado en este dispositivo, si existe
-      try {
-        const prev = localStorage.getItem(LS_USER) || '';
-        if (prev && prev !== 'Invitado') nameInput.value = prev;
-      } catch(e){}
-      stepPw.style.display = 'none';
-      stepName.style.display = '';
-      setTimeout(() => nameInput.focus(), 80);
-    }
-
-    function finishLogin(){
-      const name = (nameInput.value || '').trim();
-      if (name.length < 2){
-        nameMsg.textContent = 'Escribe tu nombre (mínimo 2 letras).';
-        nameInput.focus();
-        return;
-      }
-      // Guardar en la misma key que el resto del dashboard usa
-      try { localStorage.setItem(LS_USER, name); } catch(e){}
-      try { sessionStorage.setItem(LS_USER, name); } catch(e){}
-      // Que la app no muestre el modal de bienvenida
-      try { localStorage.removeItem('tg_tint_user_skipped'); } catch(e){}
-      // Pintar el chip ya mismo (si existe)
-      const pill = document.getElementById('userPillName');
-      if (pill) pill.textContent = name;
-      // Suave transición y mostrar dashboard
-      overlay.style.transition = 'opacity .25s ease';
-      overlay.style.opacity = '0';
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-        overlay.style.opacity = '';
-        window.dispatchEvent(new Event('tg-auth-ready'));
-      }, 260);
-    }
-    nameBtn.addEventListener('click', finishLogin);
-    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') finishLogin(); });
-
-    // (tgSignOut ya se definió arriba antes de los early-returns)
+    // (Los handlers del paso 2 ya quedaron registrados arriba)
   })();
 </script>
 
