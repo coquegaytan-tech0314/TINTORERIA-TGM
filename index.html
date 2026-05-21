@@ -718,7 +718,7 @@
   //  - Sesión persistente en localStorage (no caduca hasta cerrar sesión).
   // ============================================================
   (function(){
-    const PW_HASH = '5ae770242d3a41112163262b59baf33f595cd54af8d5046bbe1600d944325280'; // sha256('tenido2026')
+    const PW_HASH = '5ae770242d3a41112163262b59baf33f595cd54af8d5046bbe1600d944325280';
     const LS_AUTH_TOKEN = 'tg_tint_auth_v1';
     const LS_AUTH_ATTEMPTS = 'tg_tint_auth_attempts_v1';
     const LS_AUTH_LOCKED_UNTIL = 'tg_tint_auth_locked_until_v1';
@@ -3754,8 +3754,8 @@ function whenFbReady() {
 
 /**
  * Token compartido del equipo que se inserta en cada documento.
- * Coincide con el hash sha256('tenido2026'). Las reglas de Firestore
- * exigen este valor exacto en cada lectura/escritura.
+ * Coincide con el hash de la contraseña del equipo. Las reglas de
+ * Firestore exigen este valor exacto en cada lectura/escritura.
  */
 const FB_AUTH_TOKEN = '5ae770242d3a41112163262b59baf33f595cd54af8d5046bbe1600d944325280';
 
