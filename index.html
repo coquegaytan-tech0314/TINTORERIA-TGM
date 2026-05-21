@@ -295,6 +295,55 @@
   .has-motivo-otro          { border-color:#94a3b8 !important; box-shadow: 0 0 0 1px rgba(148,163,184,0.5), 0 0 28px -8px rgba(148,163,184,0.5); }
   .has-motivo-otro .of-motivo-banner         { background:rgba(148,163,184,0.20); color:#e2e8f0; }
 
+  /* === Ficha SIN motivo asignado — alerta para que el operador lo capture === */
+  .open-ficha-card.needs-motivo {
+    border: 2px dashed #f43f5e !important;
+    box-shadow: 0 0 0 1px rgba(244,63,94,0.4), 0 0 32px -8px rgba(244,63,94,0.7);
+    animation: needsMotivoPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes needsMotivoPulse {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(244,63,94,0.4), 0 0 16px -8px rgba(244,63,94,0.5); }
+    50%      { box-shadow: 0 0 0 2px rgba(244,63,94,0.7), 0 0 36px -4px rgba(244,63,94,0.9); }
+  }
+  .of-needs-motivo-banner {
+    display:flex; align-items:center; gap:12px;
+    margin:-1px -1px 12px -1px;
+    padding:10px 14px;
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(90deg, rgba(244,63,94,0.30), rgba(244,63,94,0.18));
+    color:#fecdd3;
+    font-weight: 900; font-size: 0.95rem; letter-spacing:0.04em;
+    text-transform: uppercase;
+    border-bottom: 2px solid #f43f5e;
+  }
+  .of-needs-motivo-banner .nm-icon { font-size:1.25rem; line-height:1; animation: needsBlink 1s steps(2, start) infinite; }
+  .of-needs-motivo-banner .nm-text { flex:1 1 auto; }
+  .of-needs-motivo-banner .nm-arrow { font-size:0.78rem; font-weight:700; text-transform:none; font-style:italic; opacity:0.95; letter-spacing:0; }
+  @keyframes needsBlink { 50% { opacity: 0.25; } }
+
+  /* Resaltar el select del motivo cuando está vacío */
+  .needs-motivo .of-motivo-row { border: 1px solid rgba(244,63,94,0.5); background: rgba(244,63,94,0.08); }
+  .needs-motivo .of-motivo-row .lbl-mini { color:#fda4af; }
+  .needs-motivo .of-motivo-row select {
+    border-color: #f43f5e;
+    box-shadow: 0 0 0 2px rgba(244,63,94,0.25), 0 0 12px -2px rgba(244,63,94,0.6);
+    animation: selectGlow 1.5s ease-in-out infinite;
+  }
+  @keyframes selectGlow {
+    0%,100% { box-shadow: 0 0 0 2px rgba(244,63,94,0.25), 0 0 8px -2px rgba(244,63,94,0.5); }
+    50%     { box-shadow: 0 0 0 3px rgba(244,63,94,0.5),  0 0 18px -2px rgba(244,63,94,0.9); }
+  }
+
+  /* Contador en encabezado */
+  .of-needs-count {
+    display:inline-flex; align-items:center; gap:6px;
+    background: rgba(244,63,94,0.18); color:#fda4af;
+    border:1px solid rgba(244,63,94,0.5);
+    padding:4px 10px; border-radius:999px;
+    font-size:0.72rem; font-weight:800; letter-spacing:0.04em; text-transform:uppercase;
+    animation: needsMotivoPulse 1.8s ease-in-out infinite;
+  }
+
   /* Navegación inferior tipo iPad */
   .tab-btn {
     flex: 1;
@@ -959,7 +1008,10 @@
     <div id="openFichasPanel" class="card p-5 mb-4">
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <h3 class="text-lg font-black text-white">Fichas Abiertas</h3>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="text-lg font-black text-white">Fichas Abiertas</h3>
+            <span id="openFichasNeedsCount" class="of-needs-count hidden">⚠ 0 sin motivo</span>
+          </div>
           <p class="text-slate-400 text-xs">El turno entrante cierra estas fichas con la <b>hora de salida</b> y los <b>kilos finales</b>.</p>
         </div>
         <div class="flex items-center gap-3 text-xs flex-wrap">
@@ -4920,8 +4972,12 @@ function renderOpenFichasPanel(){
             <span class="mb-icon">${motivoIcon}</span>
             <span class="mb-label">${motivoLabel}</span>
             ${motivoNotas ? `<span class="mb-note">— ${motivoNotas.replace(/</g,'&lt;')}</span>` : ''}
-          </div>` : '';
-    const cardMotivoCls = motivo ? `has-motivo has-motivo-${motivo}` : '';
+          </div>` : `
+          <div class="of-needs-motivo-banner">
+            <span class="nm-icon">⚠</span>
+            <span class="nm-text">Falta motivo — <span class="nm-arrow">selecciona por qué sigue abierta ↓</span></span>
+          </div>`;
+    const cardMotivoCls = motivo ? `has-motivo has-motivo-${motivo}` : 'needs-motivo';
     const motivoOptions = MOTIVO_LIST.map(m =>
       `<option value="${m.key}" ${motivo===m.key?'selected':''}>${m.label}</option>`
     ).join('');
@@ -4944,9 +5000,9 @@ function renderOpenFichasPanel(){
           <div class="of-cell"><div class="lbl-mini">Turno entrada</div><div class="val">${r.shiftAbrir || r.shift || '—'}</div></div>
         </div>
         <div class="of-motivo-row">
-          <span class="lbl-mini">¿Por qué sigue abierta?</span>
+          <span class="lbl-mini">${motivo ? '¿Por qué sigue abierta?' : '¡ASIGNA EL MOTIVO!'}</span>
           <select onchange="saveOpenFichaMotivo('${r.id}', this.value)">
-            <option value="">— Sin motivo —</option>
+            <option value="">${motivo ? '— Sin motivo —' : '— Selecciona aquí —'}</option>
             ${motivoOptions}
           </select>
           <input type="text" placeholder="Nota opcional (ej. lote 26-1234)" value="${motivoNotas.replace(/"/g,'&quot;')}" onchange="saveOpenFichaMotivoNotas('${r.id}', this.value)" />
@@ -4957,6 +5013,18 @@ function renderOpenFichasPanel(){
         </div>
       </div>`;
   }).join('');
+
+  // Contador de fichas sin motivo asignado
+  const needsCountEl = document.getElementById('openFichasNeedsCount');
+  if (needsCountEl) {
+    const needsCount = abiertas.filter(r => !r.motivoApertura).length;
+    if (needsCount > 0) {
+      needsCountEl.textContent = `⚠ ${needsCount} sin motivo`;
+      needsCountEl.classList.remove('hidden');
+    } else {
+      needsCountEl.classList.add('hidden');
+    }
+  }
 }
 
 // === Motivos por los que una ficha sigue abierta ===
