@@ -3732,6 +3732,10 @@ const FB_COLLECTIONS = {
 };
 let fbPendingWrites = 0;       // contador de escrituras en vuelo
 let fbLastError = null;
+let fbLastErrorSig = '';       // firma del último error mostrado (para no repetir toasts)
+let fbRetryTimer = null;       // timer de reintento exponencial silencioso
+let fbRetryDelay = 30000;      // arranca en 30s, sube hasta 5 min
+let fbConsecutiveFails = 0;    // # de loadFromCloud que fallaron parcial/total seguidos
 
 /** Espera a que el SDK de Firebase esté listo */
 function whenFbReady() {
@@ -3823,8 +3827,32 @@ function mergeById(localArr, cloudArr) {
   return Array.from(map.values()).sort((a,b) => (+b.ts||0) - (+a.ts||0));
 }
 
-/** Baja todas las colecciones de Firestore, mezcla con estado local y re-renderiza */
-async function loadFromCloud({ silent = false } = {}) {
+/** Programa un reintento silencioso con backoff exponencial */
+function scheduleSilentRetry() {
+  if (fbRetryTimer) return; // ya hay uno programado
+  fbRetryTimer = setTimeout(() => {
+    fbRetryTimer = null;
+    // sólo reintenta si seguimos online y con FB
+    if (navigator.onLine !== false && window.TG_FB && window.TG_FB.ready) {
+      console.log('[FB] reintento silencioso de sync…');
+      loadFromCloud({ silent: true, fromRetry: true });
+    }
+  }, fbRetryDelay);
+  // sube el delay para el siguiente (máx 5 min)
+  fbRetryDelay = Math.min(fbRetryDelay * 2, 300000);
+}
+
+/** Cancela cualquier reintento pendiente (se llama al recuperar) */
+function cancelSilentRetry() {
+  if (fbRetryTimer) { clearTimeout(fbRetryTimer); fbRetryTimer = null; }
+  fbRetryDelay = 30000;
+  fbConsecutiveFails = 0;
+}
+
+/** Baja todas las colecciones de Firestore, mezcla con estado local y re-renderiza.
+ *  Tolerante a fallos: si una colección falla, las demás siguen.
+ */
+async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
   const FB = await whenFbReady();
   if (!FB) {
     if (!silent) toast('Sin conexión con la nube', true);
@@ -3833,30 +3861,105 @@ async function loadFromCloud({ silent = false } = {}) {
   try {
     setSyncSpinning(true);
     const keys = Object.keys(FB_COLLECTIONS); // prod, down, bruck, history
-    const snaps = await Promise.all(
+
+    // Promise.allSettled: cada colección sucede/falla independiente
+    const results = await Promise.allSettled(
       keys.map(k => FB.getDocs(FB.collection(FB.db, FB_COLLECTIONS[k])))
     );
+
     let totalNew = 0;
-    keys.forEach((k, i) => {
-      const cloudArr = [];
-      snaps[i].forEach(d => cloudArr.push(d.data()));
-      const beforeCount = (state[k] || []).length;
-      const merged = mergeById(state[k] || [], cloudArr);
-      totalNew += Math.max(0, merged.length - beforeCount);
-      state[k] = merged;
-      save(LS_KEYS[k], merged);
+    let okCount = 0;
+    const failures = []; // { key, collection, code, message }
+
+    results.forEach((res, i) => {
+      const k = keys[i];
+      const colName = FB_COLLECTIONS[k];
+      if (res.status === 'fulfilled') {
+        try {
+          const cloudArr = [];
+          res.value.forEach(d => cloudArr.push(d.data()));
+          const beforeCount = (state[k] || []).length;
+          const merged = mergeById(state[k] || [], cloudArr);
+          totalNew += Math.max(0, merged.length - beforeCount);
+          state[k] = merged;
+          save(LS_KEYS[k], merged);
+          okCount++;
+        } catch (mergeErr) {
+          failures.push({
+            key: k,
+            collection: colName,
+            code: 'merge-error',
+            message: mergeErr && mergeErr.message || String(mergeErr)
+          });
+          console.warn(`[FB] error procesando '${colName}':`, mergeErr);
+        }
+      } else {
+        const err = res.reason || {};
+        failures.push({
+          key: k,
+          collection: colName,
+          code: err.code || 'unknown',
+          message: err.message || String(err)
+        });
+        console.warn(`[FB] colección '${colName}' falló:`, err.code || '', err.message || err);
+      }
     });
-    fbLastError = null;
+
+    // Render aunque haya fallos parciales — lo que sí cargó es útil
     if (typeof renderAll === 'function') renderAll();
-    if (!silent) {
-      toast(totalNew > 0 ? `Sincronizado · ${totalNew} nuevo${totalNew===1?'':'s'}` : 'Ya estás al día');
+
+    if (failures.length === 0) {
+      // Éxito total — limpia estado de error y cancela reintentos
+      fbLastError = null;
+      fbLastErrorSig = '';
+      cancelSilentRetry();
+      if (!silent) {
+        toast(totalNew > 0 ? `Sincronizado · ${totalNew} nuevo${totalNew===1?'':'s'}` : 'Ya estás al día');
+      }
+      updateCloudUI();
+      return { ok:true, newCount: totalNew };
     }
+
+    // Hubo fallos — pero quizás algunas colecciones sí cargaron
+    fbConsecutiveFails++;
+    const sig = failures.map(f => `${f.collection}:${f.code}`).sort().join('|');
+    const isDuplicate = (sig === fbLastErrorSig);
+    fbLastErrorSig = sig;
+
+    if (okCount > 0) {
+      // Éxito parcial — no marcamos el indicador como rojo persistente
+      fbLastError = null;
+      console.warn(`[FB] sync parcial: ${okCount}/${keys.length} colecciones OK, fallaron:`,
+        failures.map(f => `${f.collection}(${f.code})`).join(', '));
+      if (!silent && !isDuplicate) {
+        const failNames = failures.map(f => f.collection).join(', ');
+        toast(`Sincronización parcial · falló: ${failNames}`, true);
+      }
+    } else {
+      // Falló todo
+      fbLastError = failures[0] && (new Error(failures[0].message)) || new Error('sync failed');
+      console.warn('[FB] sync falló completamente:',
+        failures.map(f => `${f.collection}(${f.code})`).join(', '));
+      if (!silent && !isDuplicate) {
+        toast('Error al sincronizar · reintentando en segundo plano', true);
+      }
+    }
+
+    // Programa reintento silencioso (sólo si no veníamos de uno)
+    if (!fromRetry) scheduleSilentRetry();
+
     updateCloudUI();
-    return { ok:true, newCount: totalNew };
+    return { ok: okCount > 0, newCount: totalNew, failures };
   } catch (e) {
+    // Error inesperado (fuera del per-collection settle)
+    fbConsecutiveFails++;
     fbLastError = e;
-    console.warn('[FB] loadFromCloud error', e);
-    if (!silent) toast('Error al sincronizar', true);
+    const sig = `fatal:${e && e.code || e && e.message || 'unknown'}`;
+    const isDuplicate = (sig === fbLastErrorSig);
+    fbLastErrorSig = sig;
+    console.warn('[FB] loadFromCloud error inesperado', e);
+    if (!silent && !isDuplicate) toast('Error al sincronizar · reintentando en segundo plano', true);
+    if (!fromRetry) scheduleSilentRetry();
     updateCloudUI();
     return { ok:false, reason:'error', error:e };
   } finally {
