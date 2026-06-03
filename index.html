@@ -1278,7 +1278,7 @@
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
           <h3 class="font-black text-white text-sm">Calendario de producción</h3>
-          <p class="text-xs text-slate-400" id="reportHeatmapSub">Click en un día para verlo · intensidad según kilos</p>
+          <p class="text-xs text-slate-400" id="reportHeatmapSub">Click en un día para verlo · <span class="text-sky-400">■</span> Tintorería · <span class="text-emerald-400">■</span> Rama · <span class="text-purple-400">■</span> Ambos</p>
         </div>
         <div class="flex items-center gap-2">
           <button type="button" id="heatPrev" class="btn btn-ghost text-xs" title="Mes anterior">‹</button>
@@ -1287,15 +1287,40 @@
         </div>
       </div>
       <div id="reportHeatmap" class="grid grid-cols-7 gap-1.5"></div>
-      <div class="flex items-center justify-end gap-2 mt-3 text-xs text-slate-400">
-        <span>0 kg</span>
-        <div class="w-4 h-4 rounded" style="background:#1e293b"></div>
-        <div class="w-4 h-4 rounded" style="background:#0c4a6e"></div>
-        <div class="w-4 h-4 rounded" style="background:#0369a1"></div>
-        <div class="w-4 h-4 rounded" style="background:#0284c7"></div>
-        <div class="w-4 h-4 rounded" style="background:#0ea5e9"></div>
-        <div class="w-4 h-4 rounded" style="background:#38bdf8"></div>
-        <span>máx</span>
+      <div class="mt-3 text-xs text-slate-400 space-y-1.5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="w-16 text-slate-500">Tintorería</span>
+          <span>0</span>
+          <div class="w-4 h-4 rounded" style="background:#1e293b"></div>
+          <div class="w-4 h-4 rounded" style="background:#0c4a6e"></div>
+          <div class="w-4 h-4 rounded" style="background:#0369a1"></div>
+          <div class="w-4 h-4 rounded" style="background:#0284c7"></div>
+          <div class="w-4 h-4 rounded" style="background:#0ea5e9"></div>
+          <div class="w-4 h-4 rounded" style="background:#38bdf8"></div>
+          <span>máx</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="w-16 text-slate-500">Rama</span>
+          <span>0</span>
+          <div class="w-4 h-4 rounded" style="background:#064e3b"></div>
+          <div class="w-4 h-4 rounded" style="background:#065f46"></div>
+          <div class="w-4 h-4 rounded" style="background:#047857"></div>
+          <div class="w-4 h-4 rounded" style="background:#059669"></div>
+          <div class="w-4 h-4 rounded" style="background:#10b981"></div>
+          <div class="w-4 h-4 rounded" style="background:#34d399"></div>
+          <span>máx</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="w-16 text-slate-500">Ambos</span>
+          <span>0</span>
+          <div class="w-4 h-4 rounded" style="background:#581c87"></div>
+          <div class="w-4 h-4 rounded" style="background:#6b21a8"></div>
+          <div class="w-4 h-4 rounded" style="background:#7e22ce"></div>
+          <div class="w-4 h-4 rounded" style="background:#9333ea"></div>
+          <div class="w-4 h-4 rounded" style="background:#a855f7"></div>
+          <div class="w-4 h-4 rounded" style="background:#c084fc"></div>
+          <span>máx</span>
+        </div>
       </div>
     </div>
 
@@ -6059,6 +6084,16 @@ function renderReportHeatmap() {
   });
   const maxKg = Math.max(0, ...Object.values(kgByDay));
 
+  // Aggregate RAMA (Bruckner) kg + lote count per day in this month
+  const bruckByDay = {};
+  const bruckLotesByDay = {};
+  (state.bruck || []).forEach(r => {
+    if ((r.fecha||'').startsWith(ym)) {
+      bruckByDay[r.fecha] = (bruckByDay[r.fecha] || 0) + (Number(r.kilos) || 0);
+      bruckLotesByDay[r.fecha] = (bruckLotesByDay[r.fecha] || 0) + 1;
+    }
+  });
+
   function bucketColor(kg) {
     if (!kg || maxKg === 0) return '#1e293b';
     const r = kg / maxKg;
@@ -6077,20 +6112,61 @@ function renderReportHeatmap() {
   // Espacios vacíos antes del día 1
   for (let i = 0; i < startCol; i++) html += `<div style="height:36px"></div>`;
 
+  // Color scales:
+  //  - Tintorería only → BLUE  (existing bucketColor)
+  //  - Rama only       → GREEN (emerald scale)
+  //  - Both depts      → PURPLE (violet scale, mix of blue + green identity)
+  const maxBruck = Math.max(0, ...Object.values(bruckByDay));
+  function greenScale(kg) {
+    if (!kg || maxBruck === 0) return '#064e3b';
+    const r = kg / maxBruck;
+    if (r > 0.83) return '#34d399';
+    if (r > 0.66) return '#10b981';
+    if (r > 0.50) return '#059669';
+    if (r > 0.33) return '#047857';
+    if (r > 0.16) return '#065f46';
+    return '#064e3b';
+  }
+  function purpleScale(kg, bKg) {
+    // Intensity = combined relative load of both departments
+    const t = maxKg ? (kg / maxKg) : 0;
+    const b = maxBruck ? (bKg / maxBruck) : 0;
+    const r = Math.max(t, b);
+    if (r > 0.83) return '#c084fc';
+    if (r > 0.66) return '#a855f7';
+    if (r > 0.50) return '#9333ea';
+    if (r > 0.33) return '#7e22ce';
+    if (r > 0.16) return '#6b21a8';
+    return '#581c87';
+  }
+
   const selectedDay = ($('#reportDate')?.value || '');
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${yy}-${String(mm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const kg = kgByDay[iso] || 0;
-    const bg = bucketColor(kg);
+    const bKg = bruckByDay[iso] || 0;
+    const bLotes = bruckLotesByDay[iso] || 0;
     const isSel = iso === selectedDay;
+    const hasTint = kg > 0;
+    const hasRama = bKg > 0 || bLotes > 0;
+    // Pick background color by department combination
+    let bg;
+    if (hasTint && hasRama)      bg = purpleScale(kg, bKg);   // both
+    else if (hasRama && !hasTint) bg = greenScale(bKg);        // rama only
+    else                          bg = bucketColor(kg);        // tintor only or empty
     const ring = isSel ? 'ring-2 ring-amber-400' : '';
-    const tip = kg > 0 ? `${fmtKg(kg)} kg` : 'Sin datos';
+    // Tooltip: combine both departments
+    const tipParts = [];
+    if (hasTint) tipParts.push(`Tintorería ${fmtKg(kg)} kg`);
+    if (hasRama) tipParts.push(`Rama ${fmtKg(bKg)} kg · ${bLotes} lote${bLotes===1?'':'s'}`);
+    const tip = tipParts.length ? tipParts.join(' · ') : 'Sin datos';
+    const fg = (hasTint || hasRama) ? '#fff' : '#64748b';
     html += `
       <button type="button"
         onclick="jumpToDay('${iso}')"
         title="${iso} · ${tip}"
         class="rounded text-[11px] font-bold ${ring} hover:opacity-80 transition flex items-center justify-center"
-        style="background:${bg};color:${kg > 0 ? '#fff' : '#64748b'};height:36px;">
+        style="background:${bg};color:${fg};height:36px;">
         ${d}
       </button>`;
   }
