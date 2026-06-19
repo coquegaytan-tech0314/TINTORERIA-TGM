@@ -7973,7 +7973,7 @@ function renderBruckner() {
         <td>${r.vel||'—'}</td>
         <td>${r.temp? r.temp+'°':'—'}</td>
         <td class="text-slate-400 text-sm">${r.proceso||'—'}</td>
-        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteBruck('${r.id}')">✕</button></td>
+        <td><div class="flex gap-1"><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="editBruck('${r.id}')" title="Editar">✎</button><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteBruck('${r.id}')" title="Borrar">✕</button></div></td>
       </tr>`).join('');
   }
 }
@@ -7986,6 +7986,158 @@ window.deleteBruck = function(id) {
   if (rec) logChange({ module:'Bruckner', action:'Borrado', lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg` });
   renderAll();
 };
+
+/* ---------------------------------------------------------------
+   BRUCKNER · EDIT (in-place modal)
+   Opens a modal pre-filled with the record's current values.
+   On Save: updates state.bruck, persists local + cloud, logs change.
+--------------------------------------------------------------- */
+window.editBruck = function(id) {
+  const rec = state.bruck.find(r => r.id === id);
+  if (!rec) return toast('Registro no encontrado', true);
+  requireUserThen(() => openBruckEditModal(rec));
+};
+
+function openBruckEditModal(rec) {
+  // Lazy-build the modal once
+  let modal = document.getElementById('bruckEditModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'bruckEditModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;';
+    modal.innerHTML = `
+      <div class="card p-5" style="max-width:720px;width:100%;background:#0c1320;border:1px solid rgba(56,189,248,0.35);">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-black text-white">✎ Editar registro Bruckner</h3>
+          <button id="bruckEditClose" class="btn btn-ghost !py-1 !px-2 text-lg" title="Cerrar">✕</button>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">Corrige cualquier campo y guarda. Los cambios se sincronizan al instante.</p>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div><label class="text-[11px] text-slate-400">Fecha</label><input type="date" id="be_fecha" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Rama</label><select id="be_rama" class="field w-full"><option>Bruckner</option><option>Monforts</option></select></div>
+          <div><label class="text-[11px] text-slate-400">Turno</label><select id="be_turno" class="field w-full"><option value=""></option><option>1</option><option>2</option><option>3</option></select></div>
+          <div><label class="text-[11px] text-slate-400">Lote</label><input id="be_lote" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Tela / Diseño</label><input id="be_tela" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Color</label><input id="be_color" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Operador</label><input id="be_operador" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Kilos</label><input type="number" step="0.01" id="be_kilos" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Metros</label><input type="number" step="0.01" id="be_metros" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Rend. (m/kg)</label><input type="number" step="0.01" id="be_rend" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Vel.</label><input type="number" step="0.01" id="be_vel" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Temp. (°C)</label><input type="number" step="0.1" id="be_temp" class="field w-full"></div>
+          <div class="col-span-2 md:col-span-3"><label class="text-[11px] text-slate-400">Proceso</label><input id="be_proceso" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Ancho</label><input type="number" step="0.01" id="be_ancho" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Rollos Ini.</label><input type="number" id="be_rollosIni" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Rollos Fin.</label><input type="number" id="be_rollosFin" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Kg Ini.</label><input type="number" step="0.01" id="be_kgIni" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Kg Fin.</label><input type="number" step="0.01" id="be_kgFin" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Mermas</label><input type="number" step="0.01" id="be_mermas" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Costo Fórmula ($/kg)</label><input type="number" step="0.01" id="be_costoFormula" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Costo Color ($/kg)</label><input type="number" step="0.01" id="be_costoColor" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Costo Quím. ($/kg)</label><input type="number" step="0.01" id="be_costoQuim" class="field w-full"></div>
+          <div><label class="text-[11px] text-slate-400">Costo Apresto ($/kg)</label><input type="number" step="0.01" id="be_costoApresto" class="field w-full"></div>
+          <div class="col-span-2 md:col-span-3"><label class="text-[11px] text-slate-400">Notas / Observaciones</label><textarea id="be_notas" class="field w-full" rows="2"></textarea></div>
+        </div>
+        <div class="flex items-center justify-end gap-2 mt-5">
+          <button id="bruckEditCancel" class="btn btn-ghost">Cancelar</button>
+          <button id="bruckEditSave" class="btn btn-primary">💾 Guardar cambios</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    // Wire close handlers
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeBruckEditModal(); });
+    document.getElementById('bruckEditClose').addEventListener('click', closeBruckEditModal);
+    document.getElementById('bruckEditCancel').addEventListener('click', closeBruckEditModal);
+    document.getElementById('bruckEditSave').addEventListener('click', saveBruckEdit);
+  }
+  // Pre-fill fields
+  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === undefined || v === null) ? '' : v; };
+  modal.dataset.editingId = rec.id;
+  setV('be_fecha', rec.fecha);
+  setV('be_rama', rec.rama || 'Bruckner');
+  setV('be_turno', rec.turno || '');
+  setV('be_lote', rec.lote || '');
+  setV('be_tela', rec.tela || '');
+  setV('be_color', rec.color || '');
+  setV('be_operador', rec.operador || '');
+  setV('be_kilos', rec.kilos);
+  setV('be_metros', rec.metros);
+  setV('be_rend', rec.rend);
+  setV('be_vel', rec.vel);
+  setV('be_temp', rec.temp);
+  setV('be_proceso', rec.proceso || '');
+  setV('be_ancho', rec.ancho);
+  setV('be_rollosIni', rec.rollosIni);
+  setV('be_rollosFin', rec.rollosFin);
+  setV('be_kgIni', rec.kgIni);
+  setV('be_kgFin', rec.kgFin);
+  setV('be_mermas', rec.mermas);
+  setV('be_costoFormula', rec.costoFormula);
+  setV('be_costoColor', rec.costoColor);
+  setV('be_costoQuim', rec.costoQuim);
+  setV('be_costoApresto', rec.costoApresto);
+  setV('be_notas', rec.notas || '');
+  modal.style.display = 'flex';
+}
+
+function closeBruckEditModal() {
+  const m = document.getElementById('bruckEditModal');
+  if (m) m.style.display = 'none';
+}
+
+function saveBruckEdit() {
+  const modal = document.getElementById('bruckEditModal');
+  const id = modal?.dataset.editingId;
+  if (!id) return closeBruckEditModal();
+  const idx = state.bruck.findIndex(r => r.id === id);
+  if (idx === -1) { toast('Registro no encontrado', true); return closeBruckEditModal(); }
+  const old = state.bruck[idx];
+  const getV = (id) => document.getElementById(id)?.value;
+  const getN = (id) => { const v = getV(id); if (v === '' || v === undefined || v === null) return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const k = getN('be_kilos');
+  if (k === null || k <= 0) return toast('Captura los kilos (mayor a 0)', true);
+  const updated = {
+    ...old,
+    fecha:        getV('be_fecha') || old.fecha,
+    rama:         getV('be_rama') || 'Bruckner',
+    turno:        getV('be_turno') || '',
+    lote:         (getV('be_lote') || '').trim(),
+    tela:         (getV('be_tela') || '').trim(),
+    color:        (getV('be_color') || '').trim(),
+    operador:     (getV('be_operador') || '').trim(),
+    kilos:        k,
+    metros:       getN('be_metros') || 0,
+    rend:         getN('be_rend') || 0,
+    vel:          getN('be_vel') || 0,
+    temp:         getN('be_temp') || 0,
+    proceso:      getV('be_proceso') || '',
+    ancho:        getN('be_ancho'),
+    rollosIni:    getN('be_rollosIni'),
+    rollosFin:    getN('be_rollosFin'),
+    kgIni:        getN('be_kgIni'),
+    kgFin:        getN('be_kgFin'),
+    mermas:       getN('be_mermas'),
+    costoFormula: getN('be_costoFormula') || 0,
+    costoColor:   getN('be_costoColor')   || 0,
+    costoQuim:    getN('be_costoQuim')    || 0,
+    costoApresto: getN('be_costoApresto') || 0,
+    notas:        (getV('be_notas') || '').trim(),
+    ts: Date.now() // touch timestamp so sync ordering reflects the edit
+  };
+  state.bruck[idx] = updated;
+  save(LS_KEYS.bruck, state.bruck);
+  saveToCloud('bruck', updated); // fire-and-forget
+  // Build a short diff summary for the change log
+  const fields = ['fecha','turno','lote','tela','color','kilos','metros','rend','vel','temp','proceso','ancho','rollosIni','rollosFin','kgIni','kgFin','mermas','costoFormula','costoColor','costoQuim','costoApresto','notas','operador','rama'];
+  const changes = fields.filter(f => String(old[f] ?? '') !== String(updated[f] ?? ''));
+  const detail = changes.length
+    ? `${fmtKg(updated.kilos)} kg · cambios: ${changes.slice(0,5).join(', ')}${changes.length>5?'…':''}`
+    : `${fmtKg(updated.kilos)} kg · sin cambios`;
+  logChange({ module:'Bruckner', action:'Editado', lote:updated.lote, detail });
+  toast('Registro actualizado');
+  closeBruckEditModal();
+  renderAll();
+}
 
 /* ---------------------------------------------------------------
    PRODUCTO TERMINADO · render + filters
