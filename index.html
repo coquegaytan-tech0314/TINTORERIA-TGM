@@ -2288,13 +2288,38 @@
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
           <h3 class="text-lg font-black text-white">🎯 Plan del Día · Bruckner</h3>
-          <p class="text-xs text-slate-400">Meta de producción diaria · sincronizado en tiempo real con todo el equipo</p>
+          <p class="text-xs text-slate-400">Meta de producción diaria · sincronizado en tiempo real con todo el equipo · <button onclick="document.getElementById('planHelp').classList.toggle('hidden')" class="text-sky-accent underline hover:text-sky-300">¿Cómo se usa?</button></p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <input type="date" id="plan_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
           <button id="planPasteBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Copiar tabla desde Excel y pegar aquí">📋 Pegar de Excel</button>
           <button id="planAddRowBtn" class="btn btn-secondary !py-2 !px-3 text-sm">+ Fila</button>
           <button id="planClearBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Borrar el plan del día">Vaciar</button>
+        </div>
+      </div>
+
+      <!-- Panel de ayuda (cómo se usa) · colapsable -->
+      <div id="planHelp" class="hidden mb-3 rounded-lg bg-[#0c1320] border border-sky-accent/30 p-4 text-sm text-slate-300">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-bold text-white">📖 Cómo se usa el Plan del Día</h4>
+          <button onclick="document.getElementById('planHelp').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg" title="Cerrar">✕</button>
+        </div>
+        <p class="mb-2 text-slate-400">El Plan del Día es la <b>meta de producción</b> para hoy. Al guardar lotes Bruckner, el sistema compara automáticamente el <b>real</b> contra esta meta y muestra el avance %.</p>
+        <ol class="list-decimal list-inside space-y-1.5 text-slate-300">
+          <li><b>Selecciona la fecha</b> (arriba a la derecha). Por defecto es hoy.</li>
+          <li>Carga el plan en una de tres formas:
+            <ul class="list-disc list-inside ml-4 mt-1 text-slate-400 text-xs">
+              <li><b>📋 Pegar de Excel</b> — copia desde Excel/Sheets las columnas <i>Tela, Color, Lote, KG meta, Rend, Vel, Proceso</i> y pega.</li>
+              <li><b>+ Fila</b> — agrega filas vacías una por una.</li>
+              <li><b>Vaciar</b> — borra todo el plan del día.</li>
+            </ul>
+          </li>
+          <li>Cuando captures lotes Bruckner que coincidan por <b>Lote</b>, el sistema rellena la columna "Real kg" y el % automáticamente.</li>
+          <li>Los KPIs de arriba (<b>Meta total / Real hoy / Avance / Falta</b>) se actualizan en tiempo real.</li>
+          <li>Sub-totales por <b>Proceso</b> aparecen debajo del banner.</li>
+        </ol>
+        <div class="mt-3 p-2 rounded bg-emerald-900/20 border border-emerald-500/30 text-xs">
+          <b class="text-emer-accent">💡 Tip:</b> Si no usas Excel, simplemente haz clic en <b>+ Fila</b> y captura manualmente los lotes que planeas correr hoy. El sistema te irá mostrando cuánto llevas vs la meta.
         </div>
       </div>
 
@@ -2349,43 +2374,104 @@
       <p class="text-[11px] text-slate-500 mt-2">💡 Tip: copia desde Excel/Sheets las columnas <b>Tela, Color, Lote, KG, Rend, Vel, Proceso</b> y haz clic en "Pegar de Excel".</p>
     </div>
 
-    <!-- KPIs Bruckner -->
+    <!-- KPIs Bruckner (clickeables · click = ver detalle) -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-      <div class="card p-5">
-        <div class="kpi-lbl">Kilos (hoy)</div>
+      <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('kilosHoy')" title="Ver lotes de hoy">
+        <div class="kpi-lbl flex items-center justify-between">Kilos (hoy) <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="br_kpiKilos" class="kpi-num text-sky-accent mt-1">0</div>
       </div>
-      <div class="card p-5">
-        <div class="kpi-lbl">Metros (hoy)</div>
+      <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('metrosHoy')" title="Ver metros de hoy">
+        <div class="kpi-lbl flex items-center justify-between">Metros (hoy) <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="br_kpiMts" class="kpi-num text-emer-accent mt-1">0</div>
       </div>
-      <div class="card p-5">
-        <div class="kpi-lbl">Fichas</div>
+      <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('fichas')" title="Ver fichas totales">
+        <div class="kpi-lbl flex items-center justify-between">Fichas <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="br_kpiFichas" class="kpi-num text-white mt-1">0</div>
       </div>
-      <div class="card p-5">
-        <div class="kpi-lbl">Kilos totales</div>
+      <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('kilosTotales')" title="Ver historial completo">
+        <div class="kpi-lbl flex items-center justify-between">Kilos totales <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="br_kpiTot" class="kpi-num text-white mt-1">0</div>
       </div>
     </div>
 
-    <!-- Costos del día -->
+    <!-- Costos del día (clickeables) -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-      <div class="card p-4">
-        <div class="kpi-lbl text-xs">💰 Costo total hoy</div>
+      <div class="card p-4 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('costoTotalHoy')" title="Ver desglose de costos">
+        <div class="kpi-lbl text-xs flex items-center justify-between">💰 Costo total hoy <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="costos_total" class="text-xl font-black text-amber-accent mt-1">$0</div>
       </div>
-      <div class="card p-4">
-        <div class="kpi-lbl text-xs">$ / kg promedio</div>
+      <div class="card p-4 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('costoPromedio')" title="Ver lotes con costo">
+        <div class="kpi-lbl text-xs flex items-center justify-between">$ / kg promedio <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="costos_avg" class="text-xl font-black text-white mt-1">$0</div>
       </div>
-      <div class="card p-4">
-        <div class="kpi-lbl text-xs">Lotes con costo</div>
+      <div class="card p-4 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('lotesConCosto')" title="Ver lotes con costo">
+        <div class="kpi-lbl text-xs flex items-center justify-between">Lotes con costo <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="costos_lotes" class="text-xl font-black text-white mt-1">0</div>
       </div>
-      <div class="card p-4">
-        <div class="kpi-lbl text-xs">Lote más caro</div>
+      <div class="card p-4 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('loteMasCaro')" title="Ver el lote más caro del día">
+        <div class="kpi-lbl text-xs flex items-center justify-between">Lote más caro <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="costos_topLote" class="text-sm font-bold text-amber-accent mt-1 leading-tight">—</div>
+      </div>
+    </div>
+
+    <!-- Filtros Bruckner (buscar por día / lote / etc.) -->
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <h4 class="font-bold text-white text-sm">🔎 Filtrar historial Bruckner</h4>
+        <div class="flex items-center gap-2">
+          <span id="br_filterCount" class="text-xs text-slate-400">—</span>
+          <button id="br_filterClear" class="btn btn-ghost !py-1 !px-3 text-xs">Limpiar</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div>
+          <label class="lbl text-xs">Desde</label>
+          <input type="date" id="br_from" class="field !py-2 !text-sm" />
+        </div>
+        <div>
+          <label class="lbl text-xs">Hasta</label>
+          <input type="date" id="br_to" class="field !py-2 !text-sm" />
+        </div>
+        <div>
+          <label class="lbl text-xs">Lote</label>
+          <input type="text" id="br_filterLote" class="field !py-2 !text-sm" placeholder="Ej: 0892" />
+        </div>
+        <div>
+          <label class="lbl text-xs">Tela / Diseño</label>
+          <input type="text" id="br_filterTela" class="field !py-2 !text-sm" placeholder="Ej: Olimpus" />
+        </div>
+        <div>
+          <label class="lbl text-xs">Color</label>
+          <input type="text" id="br_filterColor" class="field !py-2 !text-sm" placeholder="Ej: Negro" />
+        </div>
+        <div>
+          <label class="lbl text-xs">Turno</label>
+          <select id="br_filterTurno" class="field !py-2 !text-sm">
+            <option value="">Todos</option>
+            <option value="1">1°</option>
+            <option value="2">2°</option>
+            <option value="3">3°</option>
+          </select>
+        </div>
+      </div>
+      <!-- Resumen del filtro (KPIs dinámicos del rango filtrado) -->
+      <div id="br_filterSummary" class="hidden grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+        <div class="rounded bg-[#0c1320] p-2 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase">Lotes</div>
+          <div id="br_filterLotes" class="text-base font-black text-white">0</div>
+        </div>
+        <div class="rounded bg-[#0c1320] p-2 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase">Kilos</div>
+          <div id="br_filterKilos" class="text-base font-black text-sky-accent">0</div>
+        </div>
+        <div class="rounded bg-[#0c1320] p-2 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase">Metros</div>
+          <div id="br_filterMetros" class="text-base font-black text-emer-accent">0</div>
+        </div>
+        <div class="rounded bg-[#0c1320] p-2 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase">Costo total</div>
+          <div id="br_filterCosto" class="text-base font-black text-amber-accent">$0</div>
+        </div>
       </div>
     </div>
 
@@ -4438,6 +4524,7 @@ function init() {
   bindDowntimeForm();
   bindRamaDowntimeForm();
   bindBrucknerForm();
+  bindBruckFilters();
   bindPlanDia();
   bindResumenTerminado();
   bindReporteSemanal();
@@ -7903,6 +7990,27 @@ function bindBrAutoCalc() {
     });
   });
 }
+// Bruckner filter state (persisted in memory only — not localStorage)
+if (!state.brFilters) state.brFilters = { from:'', to:'', lote:'', tela:'', color:'', turno:'' };
+
+function brApplyFilters(rows) {
+  const f = state.brFilters || {};
+  return rows.filter(r => {
+    if (f.from  && (r.fecha||'') < f.from) return false;
+    if (f.to    && (r.fecha||'') > f.to)   return false;
+    if (f.lote  && !(r.lote ||'').toLowerCase().includes(f.lote.toLowerCase()))   return false;
+    if (f.tela  && !(r.tela ||'').toLowerCase().includes(f.tela.toLowerCase()))   return false;
+    if (f.color && !(r.color||'').toLowerCase().includes(f.color.toLowerCase())) return false;
+    if (f.turno && String(r.turno||'') !== String(f.turno))                       return false;
+    return true;
+  });
+}
+
+function brFiltersActive() {
+  const f = state.brFilters || {};
+  return !!(f.from || f.to || f.lote || f.tela || f.color || f.turno);
+}
+
 function renderBruckner() {
   const rows = state.bruck;
   const today = todayISO();
@@ -7953,13 +8061,45 @@ function renderBruckner() {
   // === Reporte Semanal Bruckner · refrescar tabla + charts ===
   if (typeof renderReporteSemanal === 'function') renderReporteSemanal();
 
+  // Aplicar filtros sobre el historial completo
+  const filtered = brApplyFilters(rows);
+  // Actualizar contador y resumen del filtro
+  const elFC = $('#br_filterCount');
+  if (elFC) elFC.textContent = brFiltersActive()
+    ? `${filtered.length} de ${rows.length} registros`
+    : `${rows.length} registros`;
+  const summaryEl = $('#br_filterSummary');
+  if (summaryEl) {
+    if (brFiltersActive()) {
+      const fKg  = filtered.reduce((a,r)=>a+(r.kilos||0),0);
+      const fM   = filtered.reduce((a,r)=>a+(r.metros||0),0);
+      const fCos = filtered.reduce((a,r)=>{
+        const cKg = (r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoApresto||0);
+        return a + (cKg * (r.kilos||0));
+      },0);
+      summaryEl.classList.remove('hidden');
+      summaryEl.classList.add('grid');
+      $('#br_filterLotes').textContent  = filtered.length;
+      $('#br_filterKilos').textContent  = fmtKg(fKg) + ' kg';
+      $('#br_filterMetros').textContent = fmtKg(fM) + ' m';
+      $('#br_filterCosto').textContent  = fCos > 0 ? ('$' + fCos.toLocaleString('es-MX',{maximumFractionDigits:0})) : '$0';
+    } else {
+      summaryEl.classList.add('hidden');
+      summaryEl.classList.remove('grid');
+    }
+  }
+
   const tb = $('#brTbody');
-  if (!rows.length) {
+  if (!filtered.length) {
     tb.innerHTML = '';
+    const emptyMsg = brFiltersActive()
+      ? `<div class="text-6xl mb-3 opacity-40">🔍</div><p class="text-slate-400 font-semibold">Sin resultados con los filtros actuales.</p><button class="btn btn-secondary mt-3 text-xs" onclick="clearBruckFilters()">Limpiar filtros</button>`
+      : `<div class="text-6xl mb-3 opacity-40">🧵</div><p class="text-slate-400 font-semibold">Sin registros de Bruckner todavía.</p>`;
+    $('#brEmpty').innerHTML = emptyMsg;
     $('#brEmpty').classList.remove('hidden');
   } else {
     $('#brEmpty').classList.add('hidden');
-    tb.innerHTML = rows.map(r => `
+    tb.innerHTML = filtered.map(r => `
       <tr>
         <td>${r.fecha}</td>
         <td><span class="chip ${(r.rama||'Bruckner')==='Monforts'?'chip-warn':'chip-info'}">${r.rama||'Bruckner'}</span></td>
@@ -7976,6 +8116,167 @@ function renderBruckner() {
         <td><div class="flex gap-1"><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="editBruck('${r.id}')" title="Editar">✎</button><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="deleteBruck('${r.id}')" title="Borrar">✕</button></div></td>
       </tr>`).join('');
   }
+}
+
+window.clearBruckFilters = function() {
+  state.brFilters = { from:'', to:'', lote:'', tela:'', color:'', turno:'' };
+  ['br_from','br_to','br_filterLote','br_filterTela','br_filterColor'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const t = document.getElementById('br_filterTurno'); if (t) t.value = '';
+  renderBruckner();
+};
+
+function bindBruckFilters() {
+  const wire = (id, key, isText) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const ev = isText ? 'input' : 'change';
+    el.addEventListener(ev, () => {
+      state.brFilters[key] = el.value;
+      renderBruckner();
+    });
+  };
+  wire('br_from',        'from',  false);
+  wire('br_to',          'to',    false);
+  wire('br_filterLote',  'lote',  true);
+  wire('br_filterTela',  'tela',  true);
+  wire('br_filterColor', 'color', true);
+  wire('br_filterTurno', 'turno', false);
+  document.getElementById('br_filterClear')?.addEventListener('click', clearBruckFilters);
+}
+
+/* ---------------------------------------------------------------
+   BRUCKNER · KPI drill-down modal
+   Each KPI card opens a modal listing the underlying records.
+--------------------------------------------------------------- */
+window.openBruckKpiDrill = function(kind) {
+  const today = todayISO();
+  const all = state.bruck || [];
+  const todayRows = all.filter(r => r.fecha === today);
+  const withCost = (r) => (r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoApresto||0) > 0;
+
+  let title = '', subtitle = '', rows = [], showCost = false;
+  switch (kind) {
+    case 'kilosHoy':
+      title = `📊 Kilos de hoy (${today})`;
+      subtitle = `${todayRows.length} lote(s) · ${fmtKg(todayRows.reduce((a,r)=>a+(r.kilos||0),0))} kg total`;
+      rows = todayRows.slice().sort((a,b)=>(b.kilos||0)-(a.kilos||0));
+      break;
+    case 'metrosHoy':
+      title = `📏 Metros de hoy (${today})`;
+      subtitle = `${todayRows.length} lote(s) · ${fmtKg(todayRows.reduce((a,r)=>a+(r.metros||0),0))} m total`;
+      rows = todayRows.slice().sort((a,b)=>(b.metros||0)-(a.metros||0));
+      break;
+    case 'fichas':
+      title = `📄 Todas las fichas`;
+      subtitle = `${all.length} fichas totales en el historial`;
+      rows = all.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).slice(0, 200);
+      if (all.length > 200) subtitle += ` · mostrando las 200 más recientes`;
+      break;
+    case 'kilosTotales':
+      title = `📈 Kilos totales — historial`;
+      subtitle = `${all.length} lotes · ${fmtKg(all.reduce((a,r)=>a+(r.kilos||0),0))} kg total`;
+      rows = all.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).slice(0, 200);
+      if (all.length > 200) subtitle += ` · mostrando las 200 más recientes`;
+      break;
+    case 'costoTotalHoy':
+    case 'costoPromedio':
+    case 'lotesConCosto':
+      rows = todayRows.filter(withCost).sort((a,b)=>{
+        const ca = ((a.costoFormula||0)+(a.costoColor||0)+(a.costoQuim||0)+(a.costoApresto||0)) * (a.kilos||0);
+        const cb = ((b.costoFormula||0)+(b.costoColor||0)+(b.costoQuim||0)+(b.costoApresto||0)) * (b.kilos||0);
+        return cb - ca;
+      });
+      showCost = true;
+      const totC = rows.reduce((a,r)=>{ const cKg=(r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoApresto||0); return a + cKg*(r.kilos||0); },0);
+      const totKg = rows.reduce((a,r)=>a+(r.kilos||0),0);
+      const avg = totKg ? (totC/totKg) : 0;
+      title = kind==='costoTotalHoy' ? `💰 Costo total hoy (${today})`
+            : kind==='costoPromedio'  ? `💵 $ / kg promedio (${today})`
+            : `📝 Lotes con costo (${today})`;
+      subtitle = `${rows.length} lote(s) · $${totC.toLocaleString('es-MX',{maximumFractionDigits:0})} total · $${avg.toFixed(2)}/kg prom.`;
+      break;
+    case 'loteMasCaro':
+      const costoRows = todayRows.filter(withCost);
+      if (!costoRows.length) {
+        title = `🔥 Lote más caro (${today})`;
+        subtitle = 'Sin lotes con costo capturado hoy.';
+        rows = [];
+        showCost = true;
+        break;
+      }
+      let top = costoRows[0], topC = 0;
+      costoRows.forEach(r => {
+        const c = ((r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoApresto||0)) * (r.kilos||0);
+        if (c > topC) { topC = c; top = r; }
+      });
+      title = `🔥 Lote más caro (${today})`;
+      subtitle = `${top.lote||'—'} · ${top.tela||''} · ${fmtKg(top.kilos)} kg · $${topC.toLocaleString('es-MX',{maximumFractionDigits:0})}`;
+      rows = [top];
+      showCost = true;
+      break;
+  }
+  showBruckDrillModal(title, subtitle, rows, showCost);
+};
+
+function showBruckDrillModal(title, subtitle, rows, showCost) {
+  let modal = document.getElementById('bruckDrillModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'bruckDrillModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto;';
+    modal.innerHTML = `
+      <div class="card p-5" style="max-width:1000px;width:100%;background:#0c1320;border:1px solid rgba(56,189,248,0.35);">
+        <div class="flex items-start justify-between mb-3 gap-2">
+          <div>
+            <h3 id="bruckDrillTitle" class="text-lg font-black text-white">—</h3>
+            <p id="bruckDrillSubtitle" class="text-xs text-slate-400 mt-1">—</p>
+          </div>
+          <button id="bruckDrillClose" class="btn btn-ghost !py-1 !px-2 text-lg">✕</button>
+        </div>
+        <div id="bruckDrillBody" class="scroll-x"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display='none'; });
+    document.getElementById('bruckDrillClose').addEventListener('click', () => modal.style.display='none');
+  }
+  document.getElementById('bruckDrillTitle').textContent = title;
+  document.getElementById('bruckDrillSubtitle').textContent = subtitle;
+  const body = document.getElementById('bruckDrillBody');
+  if (!rows.length) {
+    body.innerHTML = '<p class="text-center text-slate-500 text-sm py-8">Sin registros para mostrar.</p>';
+  } else {
+    const costHeader = showCost ? '<th>$/kg</th><th>Costo lote</th>' : '';
+    body.innerHTML = `
+      <table class="tbl text-sm">
+        <thead class="sticky top-0 bg-[#0c1320]">
+          <tr>
+            <th>Fecha</th><th>Turno</th><th>Lote</th><th>Tela</th><th>Color</th><th>Kilos</th><th>Metros</th><th>Proceso</th>${costHeader}<th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => {
+            const cKg = (r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoApresto||0);
+            const cLote = cKg * (r.kilos||0);
+            const costCells = showCost
+              ? `<td>${cKg>0?'$'+cKg.toFixed(2):'—'}</td><td class="text-amber-accent font-bold">${cLote>0?'$'+cLote.toLocaleString('es-MX',{maximumFractionDigits:0}):'—'}</td>`
+              : '';
+            return `<tr class="hover:bg-slate-800/30">
+              <td>${r.fecha||'—'}</td>
+              <td>${r.turno||'—'}</td>
+              <td><b>${r.lote||'—'}</b></td>
+              <td>${r.tela||'—'}</td>
+              <td>${r.color||'—'}</td>
+              <td><b>${fmtKg(r.kilos)}</b> kg</td>
+              <td>${fmtKg(r.metros)} m</td>
+              <td class="text-slate-400 text-xs">${r.proceso||'—'}</td>
+              ${costCells}
+              <td><button class="btn btn-secondary !py-1 !px-2 text-xs" onclick="document.getElementById('bruckDrillModal').style.display='none'; editBruck('${r.id}')" title="Editar">✎</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+  modal.style.display = 'flex';
 }
 window.deleteBruck = function(id) {
   if (!confirm('¿Borrar este registro?')) return;
