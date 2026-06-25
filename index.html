@@ -2482,6 +2482,7 @@
           <thead>
             <tr>
               <th>Fecha</th>
+              <th title="Hora exacta en que se guardó el registro">Hora reg.</th>
               <th>Rama</th>
               <th>Turno</th>
               <th>Lote</th>
@@ -4241,6 +4242,24 @@ const fmtDur = (mins) => {
 };
 const fmtKg = (n) => (Number(n)||0).toLocaleString('es-MX', { maximumFractionDigits: 1 });
 
+/**
+ * Format a timestamp (ms) into HH:MM local time (24h, es-MX).
+ * Used for the "Hora registro" column in production tables.
+ */
+const fmtHora = (ts) => {
+  if (!ts) return '—';
+  try {
+    return new Date(ts).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', hour12:false });
+  } catch(e) { return '—'; }
+};
+/** Format a timestamp into DD/MM HH:MM — used in tooltips. */
+const fmtFechaHora = (ts) => {
+  if (!ts) return '—';
+  try {
+    return new Date(ts).toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
+  } catch(e) { return '—'; }
+};
+
 function toast(msg, isErr=false) {
   const t = $('#toast');
   // Prefijo visual claro: ✓ (éxito) o ⚠ (error)
@@ -5406,6 +5425,7 @@ function renderReport() {
                 <th>Proceso</th>
                 <th>Hr. Ent.</th>
                 <th>Hr. Sal.</th>
+                <th title="Hora exacta en que se guardó la ficha">Hora reg.</th>
                 <th>Químico/kg</th>
                 <th>Costo Químico</th>
                 <th>Operador</th>
@@ -5425,6 +5445,7 @@ function renderReport() {
                   <td class="text-slate-300">${r.proceso||'—'}</td>
                   <td class="text-slate-400">${r.hEntrada||'—'}</td>
                   <td class="text-slate-400">${r.hSalida||'—'}</td>
+                  <td class="text-slate-500 text-xs" title="${fmtFechaHora(r.ts)}">${fmtHora(r.ts)}</td>
                   <td>${r.apq ? `<span class="${r.apq>=15?'text-amber-400 font-bold':''}" title="${r.apq>=15?'Costo químico por kilo alto':''}">$${r.apq.toFixed(2)}${r.apq>=15?' ⚠':''}</span>` : '—'}</td>
                   <td class="text-slate-300">${(r.apq && r.kilos) ? '$'+Math.round(r.apq*r.kilos).toLocaleString('es-MX') : '—'}</td>
                   <td class="text-slate-400 text-sm">${r.operador||'—'}</td>
@@ -8102,6 +8123,7 @@ function renderBruckner() {
     tb.innerHTML = filtered.map(r => `
       <tr>
         <td>${r.fecha}</td>
+        <td class="text-slate-500 text-xs" title="${fmtFechaHora(r.ts)}">${fmtHora(r.ts)}</td>
         <td><span class="chip ${(r.rama||'Bruckner')==='Monforts'?'chip-warn':'chip-info'}">${r.rama||'Bruckner'}</span></td>
         <td>${r.turno}</td>
         <td>${r.lote||'—'}</td>
@@ -8250,7 +8272,7 @@ function showBruckDrillModal(title, subtitle, rows, showCost) {
       <table class="tbl text-sm">
         <thead class="sticky top-0 bg-[#0c1320]">
           <tr>
-            <th>Fecha</th><th>Turno</th><th>Lote</th><th>Tela</th><th>Color</th><th>Kilos</th><th>Metros</th><th>Proceso</th>${costHeader}<th></th>
+            <th>Fecha</th><th title="Hora exacta en que se guardó el registro">Hora reg.</th><th>Turno</th><th>Lote</th><th>Tela</th><th>Color</th><th>Kilos</th><th>Metros</th><th>Proceso</th>${costHeader}<th></th>
           </tr>
         </thead>
         <tbody>
@@ -8262,6 +8284,7 @@ function showBruckDrillModal(title, subtitle, rows, showCost) {
               : '';
             return `<tr class="hover:bg-slate-800/30">
               <td>${r.fecha||'—'}</td>
+              <td class="text-slate-500 text-xs" title="${fmtFechaHora(r.ts)}">${fmtHora(r.ts)}</td>
               <td>${r.turno||'—'}</td>
               <td><b>${r.lote||'—'}</b></td>
               <td>${r.tela||'—'}</td>
