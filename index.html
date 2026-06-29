@@ -2646,6 +2646,21 @@
           <div class="text-[10px] text-sky-accent uppercase tracking-wider">Terminado semana</div>
           <div id="rs_kpi_term" class="text-2xl font-black text-sky-accent mt-1">0</div>
           <div class="text-[10px] text-slate-500">kg producidos</div>
+          <!-- Desglose por proceso · Suavizado / Termofijado / Empacado -->
+          <div id="rs_kpi_term_breakdown" class="mt-2 pt-2 border-t border-slate-800 space-y-0.5">
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-slate-400">● Suavizado</span>
+              <span id="rs_kpi_term_suav" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+            </div>
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-amber-accent">● Termofijado</span>
+              <span id="rs_kpi_term_termo" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+            </div>
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-emer-accent">● Empacado</span>
+              <span id="rs_kpi_term_empac" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+            </div>
+          </div>
         </div>
         <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(16,185,129,0.20)">
           <div class="text-[10px] text-emer-accent uppercase tracking-wider">Eficiencia promedio</div>
@@ -9720,8 +9735,9 @@ async function renderReporteSemanal() {
 
   const pronos = await _rsLoadPronosticos(dates);
 
-  // Acumuladores semanales
+  // Acumuladores semanales (Terminado se desglosa por proceso)
   let wkProno = 0, wkTerm = 0, wkSuavTermo = 0, wkTotal = 0, wkTMmin = 0, wkParos = 0;
+  let wkSuav = 0, wkTermo = 0, wkEmpac = 0;
   const chartLabels = [];
   const chartProno = [];
   const chartTerm  = [];
@@ -9745,6 +9761,9 @@ async function renderReporteSemanal() {
     wkProno += prono;
     wkTerm  += term;
     wkSuavTermo += suavTermo;
+    wkSuav  += (br.suavizado||0);
+    wkTermo += (br.termofijado||0);
+    wkEmpac += (br.empacado||0);
     wkTotal += total;
     wkTMmin += tmMin;
     wkParos += paros;
@@ -9794,6 +9813,16 @@ async function renderReporteSemanal() {
   setF('rs_kpi_efi',   wkProno>0 ? wkEfi.toFixed(1)+'%' : '—');
   setF('rs_kpi_tm',    (wkTMmin/60).toFixed(1)+' h');
   setF('rs_kpi_tm_sub', `${wkParos} paro${wkParos===1?'':'s'} en la semana`);
+
+  // Desglose del Terminado semana por proceso (Suavizado / Termofijado / Empacado)
+  const _pctTerm = (v) => wkTerm > 0 ? Math.round((v / wkTerm) * 100) : 0;
+  const setBD = (id, kg) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `${fmtKg(kg)} <span class="text-slate-500">(${_pctTerm(kg)}%)</span>`;
+  };
+  setBD('rs_kpi_term_suav',  wkSuav);
+  setBD('rs_kpi_term_termo', wkTermo);
+  setBD('rs_kpi_term_empac', wkEmpac);
 
   // Wire inputs de pronóstico inline
   tbody.querySelectorAll('.rs-prono-input').forEach(inp => {
