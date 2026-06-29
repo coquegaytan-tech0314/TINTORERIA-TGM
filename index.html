@@ -9210,7 +9210,7 @@ function renderPlanAvance() {
         <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="kg" type="number" step="1" min="0" value="${meta||''}" style="width:80px" /></td>
         <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="rend" type="number" step="0.01" min="0" value="${it.rend||''}" style="width:70px" /></td>
         <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="vel" type="number" step="0.1" min="0" value="${it.vel||''}" style="width:60px" /></td>
-        <td><span class="chip ${catChip} text-[10px]">${(it.proceso||cat).slice(0,18)}</span></td>
+        <td><button type="button" class="chip ${catChip} text-[10px] plan-proceso-btn" data-act="cycleProceso" title="Click para cambiar · Suavizado → Termofijado → Empacado → Otros" style="cursor:pointer;border:none">${(it.proceso||cat).slice(0,18)}</button></td>
         <td class="text-right font-bold">${real ? fmtKg(real) : '—'}</td>
         <td class="text-right font-bold ${pctColor}">${pct}%</td>
         <td><button class="btn btn-secondary !py-1 !px-2 text-xs" data-act="del">✕</button></td>
@@ -9238,6 +9238,21 @@ function renderPlanAvance() {
         const tr = btn.closest('tr');
         const pid = tr?.dataset.pid;
         PLAN_STATE.items = PLAN_STATE.items.filter(x => x.id !== pid);
+        savePlanDia();
+        renderPlanAvance();
+      });
+    });
+    // Cycle Proceso on click: Suavizado → Termofijado → Empacado → Otros → Suavizado
+    tb.querySelectorAll('button[data-act="cycleProceso"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tr = btn.closest('tr');
+        const pid = tr?.dataset.pid;
+        const it = PLAN_STATE.items.find(x => x.id === pid);
+        if (!it) return;
+        const order = ['Suavizado','Termofijado','Empacado','Otros'];
+        const cur = _planCatProceso(it.proceso);
+        const next = order[(order.indexOf(cur) + 1) % order.length];
+        it.proceso = next;
         savePlanDia();
         renderPlanAvance();
       });
