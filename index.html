@@ -2635,43 +2635,105 @@
         </div>
       </div>
 
-      <!-- KPIs grandes de la semana -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="rs_kpis">
-        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.20)">
-          <div class="text-[10px] text-slate-400 uppercase tracking-wider">Pronóstico semana</div>
-          <div id="rs_kpi_prono" class="text-2xl font-black text-slate-300 mt-1">0</div>
-          <div class="text-[10px] text-slate-500">kg</div>
+      <!-- KPIs grandes de la semana · con desglose por proceso, mini barras y delta vs semana anterior -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="rs_kpis">
+
+        <!-- KPI: Pronóstico semana -->
+        <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(148,163,184,0.25)">
+          <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Pronóstico semana</div>
+          <div id="rs_kpi_prono" class="text-4xl font-black text-slate-200 mt-1 leading-none">0</div>
+          <div class="text-xs text-slate-500 mt-1">kg planeados</div>
+          <div id="rs_kpi_prono_avg" class="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-800">— kg/día promedio</div>
         </div>
-        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.20)">
-          <div class="text-[10px] text-sky-accent uppercase tracking-wider">Terminado semana</div>
-          <div id="rs_kpi_term" class="text-2xl font-black text-sky-accent mt-1">0</div>
-          <div class="text-[10px] text-slate-500">kg producidos</div>
-          <!-- Desglose por proceso · Suavizado / Termofijado / Empacado -->
-          <div id="rs_kpi_term_breakdown" class="mt-2 pt-2 border-t border-slate-800 space-y-0.5">
-            <div class="flex items-center justify-between text-[10px]">
-              <span class="text-slate-400">● Suavizado</span>
-              <span id="rs_kpi_term_suav" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+
+        <!-- KPI: Terminado semana · con breakdown por proceso -->
+        <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.30)">
+          <div class="flex items-center justify-between">
+            <div class="text-xs text-sky-accent uppercase tracking-wider font-bold">Terminado semana</div>
+            <span id="rs_kpi_term_delta" class="text-[10px] font-bold text-slate-500">—</span>
+          </div>
+          <div id="rs_kpi_term" class="text-4xl font-black text-sky-accent mt-1 leading-none">0</div>
+          <div class="text-xs text-slate-500 mt-1">kg producidos</div>
+          <!-- Desglose por proceso con mini-barras -->
+          <div id="rs_kpi_term_breakdown" class="mt-3 pt-3 border-t border-slate-800 space-y-2">
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="text-slate-300 font-bold">● Suavizado</span>
+                <span id="rs_kpi_term_suav" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div id="rs_bar_suav" class="h-full bg-slate-400 transition-all" style="width:0%"></div>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-[10px]">
-              <span class="text-amber-accent">● Termofijado</span>
-              <span id="rs_kpi_term_termo" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="text-amber-accent font-bold">● Termofijado</span>
+                <span id="rs_kpi_term_termo" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div id="rs_bar_termo" class="h-full bg-amber-accent transition-all" style="width:0%"></div>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-[10px]">
-              <span class="text-emer-accent">● Empacado</span>
-              <span id="rs_kpi_term_empac" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="text-emer-accent font-bold">● Empacado</span>
+                <span id="rs_kpi_term_empac" class="font-bold text-slate-200">0 <span class="text-slate-500">(0%)</span></span>
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div id="rs_bar_empac" class="h-full bg-emer-accent transition-all" style="width:0%"></div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- KPI: Eficiencia -->
+        <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(16,185,129,0.30)">
+          <div class="text-xs text-emer-accent uppercase tracking-wider font-bold">Eficiencia promedio</div>
+          <div id="rs_kpi_efi" class="text-4xl font-black text-emer-accent mt-1 leading-none">0%</div>
+          <div class="text-xs text-slate-500 mt-1">Terminado / Pronóstico</div>
+          <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+            <div class="flex justify-between"><span>✅ Días ≥ 100%</span><span id="rs_kpi_diasOk" class="font-bold text-emer-accent">0/7</span></div>
+            <div class="flex justify-between mt-0.5"><span>⚠️ Días &lt; 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/7</span></div>
+          </div>
+        </div>
+
+        <!-- KPI: T. Muerto · con top motivo -->
+        <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(239,68,68,0.30)">
+          <div class="text-xs text-danger uppercase tracking-wider font-bold">T. Muerto total</div>
+          <div id="rs_kpi_tm" class="text-4xl font-black text-danger mt-1 leading-none">0.0 h</div>
+          <div class="text-xs text-slate-500 mt-1" id="rs_kpi_tm_sub">— paros</div>
+          <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+            <div class="text-slate-500 uppercase text-[10px] tracking-wider mb-0.5">Top motivo de la semana</div>
+            <div id="rs_kpi_topMotivo" class="font-bold text-amber-accent truncate" title="—">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banda de insights dinámicos · mejor/peor día, lote estrella, acciones -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" id="rs_insights">
         <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(16,185,129,0.20)">
-          <div class="text-[10px] text-emer-accent uppercase tracking-wider">Eficiencia promedio</div>
-          <div id="rs_kpi_efi" class="text-2xl font-black text-emer-accent mt-1">0%</div>
-          <div class="text-[10px] text-slate-500">Terminado / Pronóstico</div>
+          <div class="text-[10px] text-emer-accent uppercase tracking-wider font-bold mb-1">🏆 Mejor día</div>
+          <div id="rs_ins_bestDay" class="text-base font-black text-white">—</div>
+          <div id="rs_ins_bestDayDetail" class="text-xs text-slate-400 mt-0.5">—</div>
         </div>
         <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(239,68,68,0.20)">
-          <div class="text-[10px] text-danger uppercase tracking-wider">T. Muerto total</div>
-          <div id="rs_kpi_tm" class="text-2xl font-black text-danger mt-1">0.0 h</div>
-          <div class="text-[10px] text-slate-500" id="rs_kpi_tm_sub">— paros</div>
+          <div class="text-[10px] text-danger uppercase tracking-wider font-bold mb-1">⚠️ Peor día</div>
+          <div id="rs_ins_worstDay" class="text-base font-black text-white">—</div>
+          <div id="rs_ins_worstDayDetail" class="text-xs text-slate-400 mt-0.5">—</div>
         </div>
+        <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.20)">
+          <div class="text-[10px] text-sky-accent uppercase tracking-wider font-bold mb-1">📊 Lotes / Fichas</div>
+          <div id="rs_ins_lotes" class="text-base font-black text-white">—</div>
+          <div id="rs_ins_lotesDetail" class="text-xs text-slate-400 mt-0.5">—</div>
+        </div>
+      </div>
+
+      <!-- Botones de acción dinámicos -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button id="rs_actCopyResumen" class="btn btn-secondary !py-2 !px-3 text-xs" title="Copiar resumen al portapapeles (para WhatsApp / correo)">📋 Copiar resumen</button>
+        <button id="rs_actExportCSV" class="btn btn-secondary !py-2 !px-3 text-xs" title="Descargar la tabla semanal en CSV (Excel)">⬇️ Exportar CSV</button>
+        <button id="rs_actCopyKPIs" class="btn btn-secondary !py-2 !px-3 text-xs" title="Copiar solo los KPIs y desglose">📊 Copiar KPIs</button>
+        <span class="text-[11px] text-slate-500 self-center ml-2" id="rs_actHint">💡 Click en cualquier fila para ver el detalle del día en el historial Bruckner</span>
       </div>
 
       <!-- Gráficas: Pronóstico vs Terminado + Eficiencia -->
@@ -9735,9 +9797,14 @@ async function renderReporteSemanal() {
 
   const pronos = await _rsLoadPronosticos(dates);
 
-  // Acumuladores semanales (Terminado se desglosa por proceso)
+  // Acumuladores semanales (Terminado se desglosa por proceso, más insights)
   let wkProno = 0, wkTerm = 0, wkSuavTermo = 0, wkTotal = 0, wkTMmin = 0, wkParos = 0;
   let wkSuav = 0, wkTermo = 0, wkEmpac = 0;
+  let wkLotes = 0; // # de fichas Bruckner de la semana
+  let diasOk = 0, diasBad = 0, diasConDato = 0;
+  let bestDay = { fecha:null, kg:-1, efi:0 };
+  let worstDay = { fecha:null, kg:Infinity, efi:0 };
+  const tmMotivosWk = new Map(); // motivo -> minutos en la semana
   const chartLabels = [];
   const chartProno = [];
   const chartTerm  = [];
@@ -9767,6 +9834,27 @@ async function renderReporteSemanal() {
     wkTotal += total;
     wkTMmin += tmMin;
     wkParos += paros;
+    // Lotes / fichas del día
+    const lotesDia = (state.bruck||[]).filter(r => r.fecha === fecha && (r.rama||'Bruckner') === 'Bruckner').length;
+    wkLotes += lotesDia;
+    // Mejor / peor día (sólo días con producción)
+    if (term > 0) {
+      diasConDato++;
+      if (prono > 0) {
+        if (efi >= 100) diasOk++;
+        else if (efi < 85) diasBad++;
+      }
+      if (term > bestDay.kg) bestDay = { fecha, kg: term, efi };
+      if (term < worstDay.kg) worstDay = { fecha, kg: term, efi };
+    }
+    // Acumular motivos de paro de la semana
+    (state.rd||[]).forEach(r => {
+      if (r.fecha !== fecha) return;
+      if ((r.rama||'Bruckner') !== 'Bruckner') return;
+      const m = (r.motivo||r.categoria||'').toString().trim();
+      if (!m) return;
+      tmMotivosWk.set(m, (tmMotivosWk.get(m)||0) + (r.duracionMin||0));
+    });
 
     chartLabels.push(_rsFechaShort(fecha));
     chartProno.push(prono);
@@ -9777,7 +9865,7 @@ async function renderReporteSemanal() {
     const difColor = dif <= 0 ? '#10b981' : '#ef4444';
     const isToday  = fecha === todayISO();
 
-    return `<tr class="${isToday ? 'bg-sky-500/5' : ''}" style="border-bottom:1px solid #1e293b">
+    return `<tr class="rs-row ${isToday ? 'bg-sky-500/5' : ''}" data-rs-row-fecha="${fecha}" title="Click para ver el detalle del día en el historial Bruckner" style="border-bottom:1px solid #1e293b;cursor:pointer">
       <td class="p-2 text-slate-500 font-mono">${idx+1}</td>
       <td class="p-2 font-bold">${_rsFechaShort(fecha)}${isToday?' <span class="text-[9px] text-sky-accent">HOY</span>':''}</td>
       <td class="p-2 text-right">
@@ -9794,6 +9882,23 @@ async function renderReporteSemanal() {
   });
 
   tbody.innerHTML = rows.join('');
+
+  // Click en fila → saltar al tab Bruckner con la fecha filtrada
+  tbody.querySelectorAll('tr.rs-row').forEach(tr => {
+    tr.addEventListener('click', (ev) => {
+      // No interferir con el input de pronóstico
+      if (ev.target.closest('input, button, select, textarea')) return;
+      const f = tr.getAttribute('data-rs-row-fecha');
+      if (!f) return;
+      const fromEl = document.getElementById('br_from');
+      const toEl = document.getElementById('br_to');
+      if (fromEl) { fromEl.value = f; fromEl.dispatchEvent(new Event('change', {bubbles:true})); }
+      if (toEl)   { toEl.value   = f; toEl.dispatchEvent(new Event('change', {bubbles:true})); }
+      // Cambiar al tab Bruckner
+      const brBtn = document.querySelector('.tab-btn[data-tab="tab-bruckner"]');
+      if (brBtn) brBtn.click();
+    });
+  });
 
   // Footer totales
   const wkEfi = wkProno > 0 ? (wkTerm / wkProno * 100) : 0;
@@ -9823,6 +9928,107 @@ async function renderReporteSemanal() {
   setBD('rs_kpi_term_suav',  wkSuav);
   setBD('rs_kpi_term_termo', wkTermo);
   setBD('rs_kpi_term_empac', wkEmpac);
+  // Mini-barras del desglose
+  const setBar = (id, kg) => { const el = document.getElementById(id); if (el) el.style.width = _pctTerm(kg) + '%'; };
+  setBar('rs_bar_suav',  wkSuav);
+  setBar('rs_bar_termo', wkTermo);
+  setBar('rs_bar_empac', wkEmpac);
+
+  // Promedio diario del pronóstico (sobre 7 días)
+  const elPronoAvg = document.getElementById('rs_kpi_prono_avg');
+  if (elPronoAvg) elPronoAvg.textContent = `${fmtKg(Math.round(wkProno/7))} kg/día promedio`;
+
+  // Días ≥ 100% / < 85%
+  setF('rs_kpi_diasOk',  `${diasOk}/7`);
+  setF('rs_kpi_diasBad', `${diasBad}/7`);
+
+  // Top motivo de paros de la semana
+  const elTopMot = document.getElementById('rs_kpi_topMotivo');
+  if (elTopMot) {
+    const arr = [...tmMotivosWk.entries()].sort((a,b) => b[1]-a[1]);
+    if (arr.length) {
+      const [mot, min] = arr[0];
+      elTopMot.textContent = `${mot} · ${(min/60).toFixed(1)} h`;
+      elTopMot.title = arr.slice(0,3).map(e => `${e[0]}: ${(e[1]/60).toFixed(1)} h`).join('  ·  ');
+    } else {
+      elTopMot.textContent = '— sin paros registrados';
+      elTopMot.title = '—';
+    }
+  }
+
+  // Banda de insights: mejor / peor día + total lotes
+  const fmtDayLabel = (f) => {
+    if (!f) return '—';
+    const d = new Date(f + 'T12:00:00');
+    const dn = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d.getDay()];
+    return `${dn} ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`;
+  };
+  const elBest = document.getElementById('rs_ins_bestDay');
+  const elBestD = document.getElementById('rs_ins_bestDayDetail');
+  if (bestDay.fecha) {
+    if (elBest) elBest.textContent = `${fmtKg(bestDay.kg)} kg · ${fmtDayLabel(bestDay.fecha)}`;
+    if (elBestD) elBestD.textContent = bestDay.efi > 0 ? `Eficiencia ${bestDay.efi.toFixed(1)}%` : 'Sin pronóstico capturado';
+  } else {
+    if (elBest) elBest.textContent = '—';
+    if (elBestD) elBestD.textContent = 'Sin producción esta semana';
+  }
+  const elWorst = document.getElementById('rs_ins_worstDay');
+  const elWorstD = document.getElementById('rs_ins_worstDayDetail');
+  if (worstDay.fecha && worstDay.kg !== Infinity) {
+    if (elWorst) elWorst.textContent = `${fmtKg(worstDay.kg)} kg · ${fmtDayLabel(worstDay.fecha)}`;
+    if (elWorstD) elWorstD.textContent = worstDay.efi > 0 ? `Eficiencia ${worstDay.efi.toFixed(1)}%` : 'Sin pronóstico capturado';
+  } else {
+    if (elWorst) elWorst.textContent = '—';
+    if (elWorstD) elWorstD.textContent = 'Sin producción esta semana';
+  }
+  const elLotes = document.getElementById('rs_ins_lotes');
+  const elLotesD = document.getElementById('rs_ins_lotesDetail');
+  if (elLotes) elLotes.textContent = `${wkLotes} lote${wkLotes===1?'':'s'} · ${diasConDato}/7 días con producción`;
+  if (elLotesD) elLotesD.textContent = wkLotes > 0 && diasConDato > 0
+    ? `Promedio ${Math.round(wkTerm/diasConDato)} kg/día activo · ${(wkLotes/diasConDato).toFixed(1)} lotes/día`
+    : '—';
+
+  // Delta vs semana anterior (Terminado)
+  try {
+    const prevMonday = (() => {
+      const d = new Date(_rsCurrentMonday + 'T12:00:00');
+      d.setDate(d.getDate() - 7);
+      return d.toISOString().slice(0,10);
+    })();
+    const prevDates = _rsWeekDates(prevMonday);
+    const prevTerm = prevDates.reduce((a, f) => a + (_resumenComputeBruck(f).total || 0), 0);
+    const elDelta = document.getElementById('rs_kpi_term_delta');
+    if (elDelta) {
+      if (prevTerm > 0) {
+        const delta = wkTerm - prevTerm;
+        const pct = Math.round((delta / prevTerm) * 100);
+        const arrow = delta > 0 ? '▲' : (delta < 0 ? '▼' : '●');
+        const color = delta > 0 ? 'text-emer-accent' : (delta < 0 ? 'text-danger' : 'text-slate-500');
+        elDelta.className = `text-[11px] font-bold ${color}`;
+        elDelta.textContent = `${arrow} ${pct >= 0 ? '+' : ''}${pct}% vs sem. ant.`;
+      } else {
+        elDelta.textContent = '— sem. ant. sin datos';
+        elDelta.className = 'text-[10px] font-bold text-slate-500';
+      }
+    }
+  } catch(e) { /* silent */ }
+
+  // Guarda contexto para los botones de acción
+  window._rsLastCtx = {
+    monday: _rsCurrentMonday,
+    dates,
+    wkProno, wkTerm, wkSuav, wkTermo, wkEmpac,
+    wkTMmin, wkParos, wkLotes,
+    wkEfi: wkProno > 0 ? (wkTerm/wkProno*100) : 0,
+    diasOk, diasBad, diasConDato,
+    bestDay, worstDay,
+    topMotivo: (() => {
+      const arr = [...tmMotivosWk.entries()].sort((a,b) => b[1]-a[1]);
+      return arr[0] ? { motivo: arr[0][0], horas: arr[0][1]/60 } : null;
+    })(),
+    subtitulo: _rsSubtitulo(_rsCurrentMonday),
+    pronos
+  };
 
   // Wire inputs de pronóstico inline
   tbody.querySelectorAll('.rs-prono-input').forEach(inp => {
@@ -9939,6 +10145,137 @@ function bindReporteSemanal() {
       // Quitar la marca después de un pequeño delay
       setTimeout(() => document.body.classList.remove('print-rs-only'), 500);
     }, 50);
+  });
+
+  // ===== Acciones dinámicas del Reporte Semanal =====
+  const _rsToast = (msg) => {
+    try {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#10b981;color:#0a0a0a;padding:10px 18px;border-radius:8px;font-weight:bold;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-size:14px';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2200);
+    } catch(_) {}
+  };
+  const _rsCopyToClipboard = async (txt) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(txt);
+        return true;
+      }
+    } catch(_) {}
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      return true;
+    } catch(_) { return false; }
+  };
+  const _rsBuildResumenText = () => {
+    const c = window._rsLastCtx;
+    if (!c) return '';
+    const lines = [];
+    lines.push(`📊 REPORTE SEMANAL BRUCKNER`);
+    lines.push(c.subtitulo);
+    lines.push('');
+    lines.push(`Pronóstico: ${fmtKg(c.wkProno)} kg`);
+    lines.push(`Terminado: ${fmtKg(c.wkTerm)} kg  (${c.wkEfi.toFixed(1)}% eficiencia)`);
+    if (c.wkTerm > 0) {
+      lines.push('');
+      lines.push(`Desglose por proceso:`);
+      const _p = (v) => c.wkTerm > 0 ? Math.round(v/c.wkTerm*100) : 0;
+      lines.push(`  • Suavizado:   ${fmtKg(c.wkSuav)} kg (${_p(c.wkSuav)}%)`);
+      lines.push(`  • Termofijado: ${fmtKg(c.wkTermo)} kg (${_p(c.wkTermo)}%)`);
+      lines.push(`  • Empacado:    ${fmtKg(c.wkEmpac)} kg (${_p(c.wkEmpac)}%)`);
+    }
+    lines.push('');
+    lines.push(`T. Muerto: ${(c.wkTMmin/60).toFixed(1)} h en ${c.wkParos} paros`);
+    if (c.topMotivo) lines.push(`  Top motivo: ${c.topMotivo.motivo} (${c.topMotivo.horas.toFixed(1)} h)`);
+    lines.push('');
+    lines.push(`Días ≥ 100%: ${c.diasOk}/7   Días < 85%: ${c.diasBad}/7`);
+    lines.push(`Lotes capturados: ${c.wkLotes}`);
+    if (c.bestDay && c.bestDay.fecha)  lines.push(`🏆 Mejor día:  ${c.bestDay.fecha}  ·  ${fmtKg(c.bestDay.kg)} kg`);
+    if (c.worstDay && c.worstDay.fecha && c.worstDay.kg !== Infinity)
+      lines.push(`⚠️ Peor día:   ${c.worstDay.fecha}  ·  ${fmtKg(c.worstDay.kg)} kg`);
+    lines.push('');
+    lines.push(`Detalle diario:`);
+    c.dates.forEach((f, i) => {
+      const br = _resumenComputeBruck(f);
+      const prono = Number((c.pronos[f]||{}).pronostico) || 0;
+      const efi = prono > 0 ? (br.total/prono*100).toFixed(0)+'%' : '—';
+      lines.push(`  ${f}: ${fmtKg(br.total)} kg / ${prono?fmtKg(prono):'—'} (${efi})`);
+    });
+    return lines.join('\n');
+  };
+  const _rsBuildKPIsText = () => {
+    const c = window._rsLastCtx;
+    if (!c) return '';
+    const _p = (v) => c.wkTerm > 0 ? Math.round(v/c.wkTerm*100) : 0;
+    return [
+      `📊 SEMANAL BRUCKNER · ${c.subtitulo}`,
+      `Pronóstico: ${fmtKg(c.wkProno)} kg  ·  Terminado: ${fmtKg(c.wkTerm)} kg  ·  Eficiencia: ${c.wkEfi.toFixed(1)}%`,
+      `Suavizado: ${fmtKg(c.wkSuav)} (${_p(c.wkSuav)}%)  ·  Termofijado: ${fmtKg(c.wkTermo)} (${_p(c.wkTermo)}%)  ·  Empacado: ${fmtKg(c.wkEmpac)} (${_p(c.wkEmpac)}%)`,
+      `T. Muerto: ${(c.wkTMmin/60).toFixed(1)} h · ${c.wkParos} paros · Lotes: ${c.wkLotes}`
+    ].join('\n');
+  };
+  const _rsBuildCSV = () => {
+    const c = window._rsLastCtx;
+    if (!c) return '';
+    const rows = [['Fecha','Pronóstico (kg)','Terminado (kg)','Suavizado','Termofijado','Empacado','Total + comp','T. Muerto (h)','# Paros','Diferencial','Eficiencia (%)','Causa']];
+    c.dates.forEach(f => {
+      const br = _resumenComputeBruck(f);
+      const comp = _resumenComputeComp(f);
+      const prono = Number((c.pronos[f]||{}).pronostico) || 0;
+      const term = br.total;
+      const total = term + comp;
+      const tmMin = _rsTMmin(f);
+      const paros = (state.rd||[]).filter(r => r.fecha===f && (r.rama||'Bruckner')==='Bruckner').length;
+      const dif = prono - term;
+      const efi = prono > 0 ? (term/prono*100) : 0;
+      const causa = _rsAutoCausa(f, (c.pronos[f]||{}).causaExtra || '');
+      rows.push([f, prono, term, br.suavizado||0, br.termofijado||0, br.empacado||0, total, (tmMin/60).toFixed(2), paros, dif, efi.toFixed(1), (causa||'').replace(/"/g,'""')]);
+    });
+    // Fila TOTAL
+    rows.push(['TOTAL', c.wkProno, c.wkTerm, c.wkSuav, c.wkTermo, c.wkEmpac, '', (c.wkTMmin/60).toFixed(2), c.wkParos, c.wkProno-c.wkTerm, c.wkEfi.toFixed(1), '']);
+    return rows.map(r => r.map(v => {
+      const s = String(v ?? '');
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(',')).join('\n');
+  };
+  document.getElementById('rs_actCopyResumen')?.addEventListener('click', async () => {
+    const txt = _rsBuildResumenText();
+    if (!txt) { _rsToast('Esperando datos…'); return; }
+    const ok = await _rsCopyToClipboard(txt);
+    _rsToast(ok ? '✅ Resumen copiado al portapapeles' : '⚠️ No se pudo copiar');
+  });
+  document.getElementById('rs_actCopyKPIs')?.addEventListener('click', async () => {
+    const txt = _rsBuildKPIsText();
+    if (!txt) { _rsToast('Esperando datos…'); return; }
+    const ok = await _rsCopyToClipboard(txt);
+    _rsToast(ok ? '✅ KPIs copiados' : '⚠️ No se pudo copiar');
+  });
+  document.getElementById('rs_actExportCSV')?.addEventListener('click', () => {
+    const csv = _rsBuildCSV();
+    if (!csv) { _rsToast('Esperando datos…'); return; }
+    try {
+      const c = window._rsLastCtx || {};
+      const fname = `reporte_semanal_bruckner_${(c.monday||todayISO())}.csv`;
+      // BOM para que Excel detecte UTF-8
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+      _rsToast('⬇️ CSV descargado');
+    } catch(e) {
+      _rsToast('⚠️ Error exportando CSV');
+    }
   });
 
   renderReporteSemanal();
