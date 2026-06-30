@@ -2736,6 +2736,42 @@
         <span class="text-[11px] text-slate-500 self-center ml-2" id="rs_actHint">💡 Click en cualquier fila para ver el detalle del día en el historial Bruckner</span>
       </div>
 
+      <!-- Regla del proceso (recordatorio del manager) -->
+      <div class="mb-4 p-4 rounded-lg" style="background:linear-gradient(135deg, #0c1320 0%, #0a1530 100%); border:1px solid rgba(56,189,248,0.35)">
+        <div class="flex items-start gap-3">
+          <div class="text-2xl leading-none mt-0.5">📖</div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-sm font-black text-sky-accent uppercase tracking-wider">Regla del proceso · explicación del gerente</div>
+              <button id="rs_reglaToggle" class="btn btn-ghost !py-1 !px-2 text-[10px] text-slate-400" title="Mostrar / ocultar">Ocultar ▲</button>
+            </div>
+            <div id="rs_reglaBody">
+              <blockquote class="text-[13px] text-slate-200 italic leading-relaxed border-l-4 pl-3 mb-3" style="border-color:#38bdf8">
+                “Si es <b class="not-italic text-white">licra</b>, se <b class="not-italic" style="color:#f97316">termofija</b>, después se tiñe, y se empaca. Cuando es <b class="not-italic text-white">felpa</b> se tiñe, se <b class="not-italic" style="color:#a855f7">suaviza</b>, se carda, y se pasa a <b class="not-italic" style="color:#38bdf8">empacado por la rama</b>. En esos dos casos la pasamos dos veces. <b class="not-italic text-white">Empacado en la rama es la parte final</b>, porque de ahí se pone en el tubo y se le pone la bolsa. Prácticamente es el mismo proceso, sólo cambia la velocidad, dependiendo de la tela.”
+              </blockquote>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+                <div class="p-2 rounded" style="background:#0a0f1a; border:1px solid rgba(249,115,22,0.30)">
+                  <div class="font-black uppercase tracking-wider mb-1" style="color:#f97316">🧵 Licra</div>
+                  <div class="text-slate-300">Termofijado → Teñido → <span class="font-bold" style="color:#38bdf8">Empacado</span></div>
+                  <div class="text-slate-500 mt-1 text-[10px]">Pasa por la RAMA 2 veces</div>
+                </div>
+                <div class="p-2 rounded" style="background:#0a0f1a; border:1px solid rgba(168,85,247,0.30)">
+                  <div class="font-black uppercase tracking-wider mb-1" style="color:#a855f7">🧶 Felpa</div>
+                  <div class="text-slate-300">Teñido → Suavizado → Cardado → <span class="font-bold" style="color:#38bdf8">Empacado</span></div>
+                  <div class="text-slate-500 mt-1 text-[10px]">Pasa por la RAMA 2 veces</div>
+                </div>
+                <div class="p-2 rounded" style="background:#0a0f1a; border:1px solid rgba(56,189,248,0.35)">
+                  <div class="font-black uppercase tracking-wider mb-1" style="color:#38bdf8">✅ Empacado = Terminado</div>
+                  <div class="text-slate-300">Tubo + bolsa, listo para mercado.</div>
+                  <div class="text-slate-500 mt-1 text-[10px]">Solo Empacado cuenta como kg terminados</div>
+                </div>
+              </div>
+              <div class="mt-2 text-[10px] text-slate-500 italic">⚠️ Por eso un mismo lote puede aparecer 2 veces en la semana (etapa intermedia + Empacado). Eso es normal — ver panel de auditoría abajo.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Panel de calidad de datos: lotes duplicados / posibles errores -->
       <div id="rs_qaPanel" class="mb-4 hidden">
         <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(245,158,11,0.40)">
@@ -10360,6 +10396,25 @@ function bindReporteSemanal() {
       setTimeout(() => document.body.classList.remove('print-rs-only'), 500);
     }, 50);
   });
+  // Toggle de la regla del proceso (recordatorio del manager). Estado persistido en localStorage.
+  (() => {
+    const tog = document.getElementById('rs_reglaToggle');
+    const body = document.getElementById('rs_reglaBody');
+    if (!tog || !body) return;
+    const apply = (collapsed) => {
+      if (collapsed) { body.classList.add('hidden'); tog.textContent = 'Mostrar ▼'; }
+      else            { body.classList.remove('hidden'); tog.textContent = 'Ocultar ▲'; }
+    };
+    // Estado inicial desde localStorage (default: visible)
+    let collapsed = false;
+    try { collapsed = localStorage.getItem('rs_regla_collapsed') === '1'; } catch {}
+    apply(collapsed);
+    tog.addEventListener('click', () => {
+      collapsed = !collapsed;
+      try { localStorage.setItem('rs_regla_collapsed', collapsed ? '1' : '0'); } catch {}
+      apply(collapsed);
+    });
+  })();
 
   // ===== Acciones dinámicas del Reporte Semanal =====
   const _rsToast = (msg) => {
