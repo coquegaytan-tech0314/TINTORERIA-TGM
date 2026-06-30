@@ -2736,6 +2736,20 @@
         <span class="text-[11px] text-slate-500 self-center ml-2" id="rs_actHint">💡 Click en cualquier fila para ver el detalle del día en el historial Bruckner</span>
       </div>
 
+      <!-- Panel de calidad de datos: lotes duplicados / posibles errores -->
+      <div id="rs_qaPanel" class="mb-4 hidden">
+        <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(245,158,11,0.40)">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <div class="text-sm font-black text-amber-accent uppercase tracking-wider">🔍 Auditoría de calidad · lotes repetidos</div>
+              <div id="rs_qaSubtitle" class="text-[11px] text-slate-400 mt-0.5">—</div>
+            </div>
+            <button id="rs_qaToggle" class="btn btn-secondary !py-1 !px-3 text-xs">Mostrar detalle ▼</button>
+          </div>
+          <div id="rs_qaBody" class="hidden mt-3 space-y-3"></div>
+        </div>
+      </div>
+
       <!-- Gráficas: Pronóstico vs Terminado + Eficiencia -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
         <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(148,163,184,0.15)">
@@ -9810,11 +9824,64 @@ async function renderReporteSemanal() {
   const chartTerm  = [];
   const chartEfi   = [];
 
+  // ----------------------------------------------------------------------
+  // QUALITY-AUDIT: agrupar lotes de la semana por nombre y clasificar en 3 buckets
+  //   1) processOK    → lote tiene etapa intermedia (Suav/Termo) + Empacado.
+  //                     Es el flujo correcto (doble pasada). No es error.
+  //   2) empacDup     → mismo lote registrado 2+ veces como Empacado. Error real.
+  //   3) interDup     → mismo lote registrado 2+ veces en etapa intermedia. Error real.
+  // ----------------------------------------------------------------------
+  const _procKind = (proceso) => {
+    const lc = (proceso||'').toString().toLowerCase();
+    if (lc.includes('suav')) return 'suav';
+    if (lc.includes('termo')) return 'termo';
+    if (lc.includes('empac')) return 'empac';
+    return 'empac'; // "otros" → cuenta como empacado para el detector (mismo bucket final)
+  };
+  // Filtrar lotes guardados como "OK" por el usuario (ignorar para alertas)
+  const _dismissed = (() => {
+    try { return new Set(JSON.parse(localStorage.getItem('rs_dup_dismissed') || '[]')); }
+    catch { return new Set(); }
+  })();
+  const lotesWeek = new Map(); // lote_norm → [registros]
+  (state.bruck||[]).forEach(r => {
+    if ((r.rama||'Bruckner') !== 'Bruckner') return;
+    if (!dates.includes(r.fecha)) return;
+    const lote = (r.lote||'').toString().trim().toLowerCase();
+    if (!lote) return;
+    if (!lotesWeek.has(lote)) lotesWeek.set(lote, []);
+    lotesWeek.get(lote).push(r);
+  });
+  const qaProcessOK = []; // doble pasada normal
+  const qaEmpacDup = [];  // Empacado duplicado (error)
+  const qaInterDup = [];  // Etapa intermedia duplicada (error)
+  lotesWeek.forEach((rows, lote) => {
+    if (rows.length < 2) return;
+    const kinds = rows.map(r => _procKind(r.proceso));
+    const nEmpac = kinds.filter(k => k === 'empac').length;
+    const nInter = kinds.filter(k => k === 'suav' || k === 'termo').length;
+    const sampleLote = (rows[0].lote || '').toString();
+    const dismissKey = `${lote}::${rows.map(r => r.id).sort().join(',')}`;
+    if (_dismissed.has(dismissKey)) return;
+    if (nEmpac >= 2) {
+      qaEmpacDup.push({ lote: sampleLote, dismissKey, rows: rows.filter(r => _procKind(r.proceso)==='empac') });
+    } else if (nInter >= 2 && nEmpac === 0) {
+      qaInterDup.push({ lote: sampleLote, dismissKey, rows: rows.filter(r => _procKind(r.proceso)!=='empac') });
+    } else if (nInter >= 1 && nEmpac >= 1) {
+      // Doble pasada normal (felpa: tiendo + suavizo + empaco; lycra: termofijo + tiendo + empaco)
+      qaProcessOK.push({ lote: sampleLote, dismissKey, rows });
+    }
+  });
+
   // Render filas
   const rows = dates.map((fecha, idx) => {
     const br   = _resumenComputeBruck(fecha);
     const comp = _resumenComputeComp(fecha);
-    const term = br.total; // "Terminado" del jefe = total Bruckner del día
+    // "Terminado" = SOLO Empacado + Otros (proceso final con bolsa/tubo, listo para mercado).
+    // Suavizado (felpa) y Termofijado (lycra) son etapas intermedias: el mismo lote pasa
+    // por la RAMA dos veces y termina en Empacado. Si contáramos las 3 etapas, el lote
+    // se contaría dos veces. (Confirmado por el manager: 22-28/Jun real ≈ 59,720 kg.)
+    const term = (br.empacado||0) + (br.otros||0);
     const suavTermo = (br.suavizado||0) + (br.termofijado||0);
     const total = term + comp;
     const tmMin = _rsTMmin(fecha);
@@ -10048,6 +10115,153 @@ async function renderReporteSemanal() {
 
   // Charts
   _rsRenderCharts(chartLabels, chartProno, chartTerm, chartEfi);
+
+  // Panel de calidad: lotes duplicados
+  _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup });
+}
+
+/* ---------------------------------------------------------------
+   SEMANAL · Panel de calidad de datos (lotes duplicados)
+   Tres buckets:
+     - processOK : doble pasada normal (Suav/Termo + Empacado) → informativo
+     - empacDup  : Empacado registrado 2+ veces → error real
+     - interDup  : Suavizado/Termofijado 2+ veces sin Empacado → error real
+--------------------------------------------------------------- */
+function _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup }) {
+  const panel = document.getElementById('rs_qaPanel');
+  const body  = document.getElementById('rs_qaBody');
+  const sub   = document.getElementById('rs_qaSubtitle');
+  const tog   = document.getElementById('rs_qaToggle');
+  if (!panel || !body || !sub || !tog) return;
+
+  const nErr = qaEmpacDup.length + qaInterDup.length;
+  const nOK  = qaProcessOK.length;
+
+  if (nErr === 0 && nOK === 0) {
+    panel.classList.add('hidden');
+    return;
+  }
+  panel.classList.remove('hidden');
+
+  // Subtítulo resumen
+  const parts = [];
+  if (nErr > 0) parts.push(`<span class="text-danger font-bold">${nErr} posible${nErr===1?'':'s'} error${nErr===1?'':'es'}</span>`);
+  if (nOK > 0)  parts.push(`<span class="text-emer-accent font-bold">${nOK} doble${nOK===1?'':'s'} pasada${nOK===1?'':'s'} normal${nOK===1?'':'es'}</span>`);
+  sub.innerHTML = parts.join(' · ') + ` · <span class="text-slate-500">lotes con más de un registro en la semana</span>`;
+
+  // Toggle abrir / cerrar
+  tog.onclick = () => {
+    const open = !body.classList.contains('hidden');
+    if (open) { body.classList.add('hidden'); tog.textContent = 'Mostrar detalle ▼'; }
+    else      { body.classList.remove('hidden'); tog.textContent = 'Ocultar ▲'; }
+  };
+
+  // Helpers de render de fila
+  const _kindLabel = (proceso) => {
+    const lc = (proceso||'').toString().toLowerCase();
+    if (lc.includes('suav')) return '<span style="color:#a855f7">Suavizado</span>';
+    if (lc.includes('termo')) return '<span style="color:#f97316">Termofijado</span>';
+    if (lc.includes('empac')) return '<span style="color:#38bdf8">Empacado</span>';
+    return `<span class="text-slate-400">${proceso || 'Otros'}</span>`;
+  };
+  const _rowLine = (r) => `
+    <div class="flex flex-wrap items-center gap-2 text-[11px] py-1.5 px-2 rounded" style="background:#0a0f1a; border:1px solid #1e293b">
+      <span class="text-slate-500 font-mono">${r.fecha}</span>
+      <span class="text-slate-400">·</span>
+      <span class="font-bold text-white">${(r.lote||'—')}</span>
+      <span class="text-slate-400">·</span>
+      <span>${_kindLabel(r.proceso)}</span>
+      <span class="text-slate-400">·</span>
+      <span class="text-sky-accent font-bold">${fmtKg(r.kilos||0)} kg</span>
+      <span class="text-slate-500 truncate max-w-[180px]" title="${(r.tela||'')+' '+(r.color||'')}">${[r.tela, r.color].filter(Boolean).join(' · ')}</span>
+      <span class="ml-auto flex gap-1">
+        <button class="btn btn-secondary !py-1 !px-2 text-[10px]" onclick="editBruck('${r.id}')" title="Editar este registro (cambiar proceso, kg, etc.)">✎ Editar</button>
+        <button class="btn btn-secondary !py-1 !px-2 text-[10px]" data-rs-reclass="${r.id}" title="Reclasificar proceso rápidamente">🔄 Reclasificar</button>
+        <button class="btn btn-secondary !py-1 !px-2 text-[10px]" style="color:#ef4444" onclick="deleteBruck('${r.id}')" title="Borrar este registro">✕</button>
+      </span>
+    </div>`;
+
+  const _groupBlock = (titleHTML, descHTML, items, color) => {
+    if (!items.length) return '';
+    const cards = items.slice(0, 50).map((g, i) => `
+      <div class="p-2 rounded" style="background:#101725; border:1px solid ${color}">
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-xs font-bold text-white">LOTE <span class="font-mono">${g.lote}</span> · <span class="text-slate-400">${g.rows.length} registros</span></div>
+          <button class="btn btn-ghost !py-1 !px-2 text-[10px] text-slate-400" data-rs-dismiss="${g.dismissKey}" title="Marcar como correcto y no mostrar de nuevo">✓ Es correcto</button>
+        </div>
+        <div class="space-y-1">${g.rows.map(_rowLine).join('')}</div>
+      </div>`).join('');
+    const more = items.length > 50 ? `<div class="text-[11px] text-slate-500 italic">+ ${items.length-50} grupos más no mostrados</div>` : '';
+    return `
+      <div>
+        <div class="text-[11px] font-black uppercase tracking-wider mb-2" style="color:${color}">${titleHTML}</div>
+        <div class="text-[11px] text-slate-400 mb-2">${descHTML}</div>
+        <div class="space-y-2">${cards}</div>
+        ${more}
+      </div>`;
+  };
+
+  body.innerHTML = [
+    _groupBlock(
+      `⚠️ Empacado duplicado (${qaEmpacDup.length}) · ERROR PROBABLE`,
+      `El mismo lote aparece registrado 2+ veces como Empacado. Probablemente es captura repetida. Revisa y borra o reclasifica uno.`,
+      qaEmpacDup, '#ef4444'
+    ),
+    _groupBlock(
+      `⚠️ Etapa intermedia duplicada (${qaInterDup.length}) · REVISAR`,
+      `El mismo lote aparece 2+ veces en Suavizado/Termofijado sin un Empacado final. Verifica que no falte capturar el Empacado o borrar el duplicado.`,
+      qaInterDup, '#f59e0b'
+    ),
+    _groupBlock(
+      `✅ Doble pasada normal (${qaProcessOK.length}) · PROCESO CORRECTO`,
+      `Lotes con etapa intermedia + Empacado. Es el flujo normal (felpa o lycra pasa por la RAMA dos veces). Solo cuenta el Empacado como Terminado. No requiere acción.`,
+      qaProcessOK, '#10b981'
+    )
+  ].join('');
+
+  // Wire "Es correcto" → dismiss
+  body.querySelectorAll('[data-rs-dismiss]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-rs-dismiss');
+      try {
+        const arr = JSON.parse(localStorage.getItem('rs_dup_dismissed') || '[]');
+        if (!arr.includes(key)) arr.push(key);
+        localStorage.setItem('rs_dup_dismissed', JSON.stringify(arr));
+      } catch {}
+      toast('Marcado como correcto');
+      renderReporteSemanal();
+    });
+  });
+  // Wire "Reclasificar" → prompt rápido para cambiar proceso
+  body.querySelectorAll('[data-rs-reclass]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-rs-reclass');
+      _rsReclassifyProceso(id);
+    });
+  });
+}
+
+/* Reclasificación rápida del campo "proceso" de un lote Bruckner */
+function _rsReclassifyProceso(id) {
+  const rec = (state.bruck||[]).find(r => r.id === id);
+  if (!rec) return toast('Registro no encontrado', true);
+  const opciones = ['Suavizado','Termofijado','Empacado','Otros'];
+  const actual = (rec.proceso||'').trim();
+  const lista = opciones.map((p,i) => `${i+1}) ${p}${p===actual?'  ← actual':''}`).join('\n');
+  const ans = prompt(`Reclasificar LOTE ${rec.lote||'—'} (${fmtKg(rec.kilos||0)} kg)\n\nProceso actual: ${actual || 'sin definir'}\n\nElige el nuevo proceso:\n${lista}\n\nEscribe 1, 2, 3 o 4:`);
+  if (!ans) return;
+  const idx = parseInt(ans.trim(), 10) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= opciones.length) return toast('Opción inválida', true);
+  const nuevo = opciones[idx];
+  if (nuevo === actual) return toast('Sin cambios');
+  requireUserThen(() => {
+    rec.proceso = nuevo;
+    save(LS_KEYS.bruck, state.bruck);
+    try { saveToCloud('bruck', rec); } catch {}
+    logChange({ module:'Bruckner', action:'Reclasificado', lote:rec.lote, detail:`${actual||'—'} → ${nuevo}` });
+    toast(`Reclasificado como ${nuevo}`);
+    renderAll();
+  });
 }
 
 /** Crea o actualiza los dos charts (barras agrupadas + línea) */
