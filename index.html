@@ -3138,6 +3138,103 @@
     </div>
   </section>
 
+  <!-- ============================================================= -->
+  <!-- TAB: CATÁLOGO DE TELAS  (Phase 1 · additive polish)          -->
+  <!-- Fuente: Rogelio, actualización 25 May 2026                    -->
+  <!-- ============================================================= -->
+  <section id="tab-catalogo" class="tab-panel hidden">
+    <!-- Encabezado -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Catálogo de Telas</h2>
+        <p class="text-slate-400 text-sm">Ficha técnica de cada tela · <span id="cat_versionInfo">—</span></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="cat_counter" class="chip chip-info">0 telas</span>
+        <button id="cat_exportCsv" class="btn btn-secondary !py-2 !px-3 text-sm" title="Descargar CSV">⬇️ CSV</button>
+      </div>
+    </div>
+
+    <!-- Panel de límites de la RAMA (informativo) -->
+    <div class="card mb-4 p-4" style="background:linear-gradient(135deg, #0c1320 0%, #0a1530 100%); border-color:rgba(56,189,248,0.35)">
+      <div class="flex items-start gap-3 flex-wrap">
+        <div class="text-2xl leading-none">⚙️</div>
+        <div class="flex-1 min-w-[240px]">
+          <div class="text-sm font-black text-sky-accent uppercase tracking-wider mb-1">Rango RAMA Bruckner TGM</div>
+          <div class="text-[13px] text-slate-200 leading-relaxed" id="cat_ramaLimits">—</div>
+          <div class="text-[11px] text-slate-500 italic mt-1" id="cat_ramaNotas">—</div>
+        </div>
+        <div class="flex gap-1.5 flex-wrap">
+          <div class="chip" style="background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#10b981">🟢 Compatible <span id="cat_countCompat" class="ml-1 font-bold">0</span></div>
+          <div class="chip" style="background:rgba(245,158,11,0.15); border:1px solid #f59e0b; color:#f59e0b">🟡 Zona teórica <span id="cat_countTeo" class="ml-1 font-bold">0</span></div>
+          <div class="chip" style="background:rgba(239,68,68,0.15); border:1px solid #ef4444; color:#ef4444">🔴 Bajo mínimo <span id="cat_countMin" class="ml-1 font-bold">0</span></div>
+          <div class="chip" style="background:rgba(148,163,184,0.15); border:1px solid #64748b; color:#94a3b8">⚪ Sobre máx <span id="cat_countMax" class="ml-1 font-bold">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de búsqueda + filtros -->
+    <div class="card mb-4 p-3">
+      <div class="flex gap-2 flex-wrap items-center">
+        <div class="flex-1 min-w-[220px] relative">
+          <input id="cat_search" type="text" placeholder="🔍 Buscar tela por nombre, composición..." class="w-full px-3 py-2 pr-8 rounded bg-ink-800 border border-ink-700 text-white text-sm placeholder:text-slate-500 focus:border-sky-accent focus:outline-none">
+          <button id="cat_clearSearch" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs hidden">✕</button>
+        </div>
+        <select id="cat_filterCompat" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
+          <option value="">Compat. RAMA: todas</option>
+          <option value="compatible">🟢 Compatible (1.40–2.10m)</option>
+          <option value="bajo_minimo">🔴 Bajo mínimo (&lt;1.40m)</option>
+          <option value="zona_teorica">🟡 Zona teórica (2.10–2.20m)</option>
+          <option value="sobre_maximo">⚪ Sobre máx (&gt;2.20m)</option>
+        </select>
+        <select id="cat_filterComp" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
+          <option value="">Composición: todas</option>
+        </select>
+        <button id="cat_resetFilters" class="btn btn-secondary !py-2 !px-3 text-xs" title="Limpiar filtros">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- Tabla de telas -->
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-ink-900 text-slate-300 uppercase text-[10px] tracking-wider">
+            <tr>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-cat-sort="nombre">Tela <span class="cat-sort-arrow"></span></th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-cat-sort="composicion">Composición <span class="cat-sort-arrow"></span></th>
+              <th class="px-3 py-2 text-right cursor-pointer select-none" data-cat-sort="anchoUtil">Ancho útil <span class="cat-sort-arrow"></span></th>
+              <th class="px-3 py-2 text-right cursor-pointer select-none" data-cat-sort="rendimiento">M/KG <span class="cat-sort-arrow"></span></th>
+              <th class="px-3 py-2 text-right cursor-pointer select-none" data-cat-sort="pesoGm2">Peso G/M² <span class="cat-sort-arrow"></span></th>
+              <th class="px-3 py-2 text-center">Compat. RAMA</th>
+              <th class="px-3 py-2 text-center">Malla / Cols. / Estab.</th>
+            </tr>
+          </thead>
+          <tbody id="cat_tbody" class="divide-y divide-ink-700"></tbody>
+        </table>
+      </div>
+      <div id="cat_empty" class="hidden text-center py-16 px-6">
+        <div class="text-6xl mb-3 opacity-40">📚</div>
+        <p class="text-slate-400 font-semibold" id="cat_emptyMsg">Cargando catálogo...</p>
+        <p class="text-slate-500 text-sm mt-1" id="cat_emptyHint">Un momento por favor.</p>
+      </div>
+    </div>
+
+    <!-- Nota inferior -->
+    <div class="mt-3 text-[11px] text-slate-500">
+      <p><b>Malla / Columnas por cm / Estabilidad</b> — datos pendientes de entrega por parte de Rogelio. Se llenarán aquí cuando estén disponibles.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- MODAL: Detalle de una tela (abierto al hacer click en fila)  -->
+  <!-- ============================================================= -->
+  <div id="catDetailModal" class="hidden fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card max-w-2xl w-full p-5 relative" style="max-height:88vh; overflow-y:auto">
+      <button id="catDetailClose" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl leading-none">✕</button>
+      <div id="catDetailBody">—</div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ============================================================= -->
@@ -3180,6 +3277,10 @@
     <button class="tab-btn" data-tab="tab-history">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 14"/></svg>
       <span>Historial</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-catalogo" title="Catálogo de telas: composición, ancho, rendimiento, peso">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      <span>Catálogo</span>
     </button>
   </div>
 </nav>
@@ -3437,7 +3538,9 @@ const LS_KEYS = {
   bruck:   'tg_tint_bruck_v2',   // Bruckner
   history: 'tg_tint_history_v2', // bitácora de cambios
   metas:   'tg_tint_metas_v2',   // metas diarias por máquina (kg)
-  rd:      'tg_tint_ramadown_v2' // tiempos muertos de rama (Bruckner/Monforts)
+  rd:      'tg_tint_ramadown_v2',// tiempos muertos de rama (Bruckner/Monforts)
+  telas:   'tg_tint_telas_v1',   // catálogo de telas (composición, ancho, rendimiento, peso)
+  cfgRama: 'tg_tint_cfg_rama_v1' // config de la RAMA Bruckner (limites de ancho)
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -3967,7 +4070,16 @@ const FB_COLLECTIONS = {
   prod:    'produccion',
   down:    'tiempos_muertos',
   bruck:   'bruckner',
-  history: 'historial'
+  history: 'historial',
+  telas:   'catalogo_telas'
+};
+// Constantes de máquina RAMA Bruckner (confirmadas por Rogelio, 02/Jul/2026)
+// Se cargan de Firestore config/rama_bruckner si existen; fallback a estos defaults.
+const RAMA_DEFAULTS = {
+  anchoMin: 1.40,
+  anchoMaxOperativo: 2.10,
+  anchoMaxTeorico: 2.20,
+  notas: 'Máximo teórico 2.20m. En TGM trabajamos como máximo 2.10m. Confirmado por Rogelio, 02/Jul/2026.'
 };
 let fbPendingWrites = 0;       // contador de escrituras en vuelo
 let fbLastError = null;
@@ -4251,6 +4363,12 @@ let state = {
   bruck:   load(LS_KEYS.bruck),
   history: load(LS_KEYS.history),
   rd:      load(LS_KEYS.rd),
+  telas:   load(LS_KEYS.telas),                                         // catálogo de telas
+  cfgRama: (function(){                                                 // config de la RAMA
+    try { return JSON.parse(localStorage.getItem(LS_KEYS.cfgRama)) || RAMA_DEFAULTS; }
+    catch(e){ return RAMA_DEFAULTS; }
+  })(),
+  telasFilter: { q:'', compat:'', composicion:'', sortBy:'nombre', sortDir:'asc' }, // filtros UI del catálogo
   pt:       JSON.parse(localStorage.getItem(LS_KEYS.pt) || '[]'),
   ptSheets: JSON.parse(localStorage.getItem(LS_KEYS.ptSheets) || '[]'),
   ptFilters: { from:'', to:'', diseno:'', lote:'', turno:'', flagsOnly:false },
@@ -4860,6 +4978,9 @@ function bindTabs() {
     }
     if (tab === 'tab-weekly') {
       requestAnimationFrame(() => { try { renderReporteSemanal(); } catch(e){} });
+    }
+    if (tab === 'tab-catalogo') {
+      requestAnimationFrame(() => { try { _catBindEventsOnce(); renderCatalogoTelas(); } catch(e){} });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -10614,6 +10735,400 @@ function renderAll() {
   renderBruckner();
   renderPT();
   renderHistory();
+  try { renderCatalogoTelas(); } catch(e){}
+}
+
+
+/* ================================================================= */
+/* CATÁLOGO DE TELAS — Phase 1 (read-first)                          */
+/* Seed 2026-05-25 (Rogelio, 4 páginas). Estructura: additive.       */
+/* ================================================================= */
+
+const TELAS_SEED_2026_05_25 = [{"id":"aba-sport","nombre":"ABA SPORT","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.4,"pesoGm2":138},{"id":"acrilon","nombre":"ACRILÓN","composicion":"Poliéster 58.5/Algodón 41.5","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.3,"pesoGm2":260},{"id":"amsterdam","nombre":"AMSTERDAM","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":5.5,"pesoGm2":118},{"id":"argenta","nombre":"ARGENTA","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":1.85,"pesoGm2":330},{"id":"argos-metropoli-mas-ancho","nombre":"ARGOS (Metropoli más ancho)","composicion":"Poliéster Multifilamento","anchoTotal":1.85,"anchoUtil":1.8,"rendimiento":2.35,"pesoGm2":230},{"id":"banis","nombre":"BANIS","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":6.4,"pesoGm2":102},{"id":"barcelona","nombre":"BARCELONA","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.4,"pesoGm2":250},{"id":"barcelona-290","nombre":"BARCELONA 290","composicion":"Poliéster 100%","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":2.2,"pesoGm2":290},{"id":"barcelona-500","nombre":"BARCELONA 500","composicion":"Poliéster 100%","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":1.3,"pesoGm2":500},{"id":"bently-metropolitan-sin-cardar","nombre":"BENTLY (Metropolitan sin cardar)","composicion":"Poliéster 100%","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.18,"pesoGm2":250,"nota":"Rendimiento manuscrito: 2.2 (2.18)"},{"id":"beta","nombre":"BETA","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.85,"pesoGm2":126},{"id":"body-pique","nombre":"BODY PIQUÉ","composicion":"Poliéster/Algodón","anchoTotal":0.9,"anchoUtil":0.9,"rendimiento":2.3,"pesoGm2":241},{"id":"body-pique-250-abierto","nombre":"BODY PIQUÉ 250 ABIERTO","composicion":"Poliéster/Algodón","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.17,"pesoGm2":252,"nota":"Rendimiento manuscrito: 2.2 (2.17)"},{"id":"bombay","nombre":"BOMBAY","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":7.2,"pesoGm2":90},{"id":"bosnia","nombre":"BOSNIA","composicion":"Poliéster Multifilamento","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":2.86,"pesoGm2":225,"nota":"Rendimiento manuscrito: 2.9 (2.86)"},{"id":"boston","nombre":"BOSTON","composicion":"Poliéster 100%","anchoTotal":1.5,"anchoUtil":1.5,"rendimiento":4.4,"pesoGm2":150},{"id":"calado-koreano","nombre":"CALADO KOREANO","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":7.6,"pesoGm2":86},{"id":"calidus","nombre":"CALIDUS","composicion":"Poliéster/Algodón","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.2,"pesoGm2":275},{"id":"calidus-jaspe","nombre":"CALIDUS JASPE","composicion":"Poliéster/Algodón","anchoTotal":1.7,"anchoUtil":1.65,"rendimiento":2.1,"pesoGm2":275},{"id":"cardigan-filamento","nombre":"CARDIGAN FILAMENTO","composicion":"Poliéster 100%","anchoTotal":0.45,"anchoUtil":0.45,"rendimiento":6.9,"pesoGm2":160},{"id":"cardigan-acrilico","nombre":"CARDIGÁN ACRILICO","composicion":"Acrílico/Elastano","anchoTotal":0.48,"anchoUtil":0.48,"rendimiento":2.2,"pesoGm2":482},{"id":"cardigan-calidus","nombre":"CARDIGÁN CALIDUS","composicion":"Poliéster/Algodón/Elastano","anchoTotal":0.53,"anchoUtil":0.53,"rendimiento":2.8,"pesoGm2":335},{"id":"cardigan-calidus-abierto","nombre":"CARDIGÁN CALIDUS ABIERTO","composicion":"Poliéster/Algodón/Elastano","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":1.7,"pesoGm2":335},{"id":"cardigan-chifon","nombre":"CARDIGÁN CHIFÓN","composicion":"Poliéster/Algodón","anchoTotal":0.52,"anchoUtil":0.52,"rendimiento":4.7,"pesoGm2":205},{"id":"cardigan-interlock","nombre":"CARDIGÁN INTERLOCK","composicion":"Poliéster 100%","anchoTotal":0.55,"anchoUtil":0.55,"rendimiento":3.6,"pesoGm2":250},{"id":"cardigan-multi","nombre":"CARDIGÁN MULTI","composicion":"Poliéster 100%","anchoTotal":0.9,"anchoUtil":0.9,"rendimiento":3.0,"pesoGm2":180},{"id":"cardigan-mundialista-abierto","nombre":"CARDIGÁN MUNDIALISTA (Abierto)","composicion":"Poliéster/Elastano","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":1.6,"pesoGm2":360},{"id":"centenario","nombre":"CENTENARIO","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.35,"pesoGm2":260},{"id":"century","nombre":"CENTURY","composicion":"Poliéster 100%","anchoTotal":1.9,"anchoUtil":1.85,"rendimiento":2.7,"pesoGm2":196},{"id":"chifon-140","nombre":"CHIFÓN 140","composicion":"Poliéster/Algodón","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":4.3,"pesoGm2":140},{"id":"chifon-140-tub","nombre":"CHIFÓN 140 TUB","composicion":"Poliéster/Algodón","anchoTotal":0.8,"anchoUtil":0.8,"rendimiento":4.4,"pesoGm2":140},{"id":"chifon-180","nombre":"CHIFÓN 180","composicion":"Algodón 100%","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":3.6,"pesoGm2":180},{"id":"chifon-200","nombre":"CHIFÓN 200","composicion":"Algodón 100%","anchoTotal":1.8,"anchoUtil":1.77,"rendimiento":2.7,"pesoGm2":200},{"id":"chifon-catar","nombre":"CHIFÓN CATAR","composicion":"Poliéster/Algodón","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":3.6,"pesoGm2":180},{"id":"chifon-copo","nombre":"CHIFÓN COPO","composicion":"Poliéster/Algodón","anchoTotal":0.8,"anchoUtil":0.8,"rendimiento":4.4,"pesoGm2":142},{"id":"chifon-estrella","nombre":"CHIFÓN ESTRELLA","composicion":"Poliéster/Algodón","anchoTotal":0.9,"anchoUtil":0.9,"rendimiento":3.0,"pesoGm2":185},{"id":"chifon-forro","nombre":"CHIFÓN FORRO","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":6.2,"pesoGm2":93},{"id":"chifon-lycra","nombre":"CHIFÓN LYCRA","composicion":"Poliéster/Algodón/Elastano","anchoTotal":1.64,"anchoUtil":1.6,"rendimiento":2.6,"pesoGm2":234},{"id":"conty","nombre":"CONTY","composicion":"Poliéster 100%","anchoTotal":1.75,"anchoUtil":1.7,"rendimiento":1.7,"pesoGm2":340},{"id":"corino","nombre":"CORINO","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":5.6,"pesoGm2":110},{"id":"cristobal-colon","nombre":"CRISTOBAL COLÓN","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.1,"pesoGm2":150},{"id":"cruz-azul","nombre":"CRUZ AZUL","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"culter","nombre":"CULTER","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.9,"pesoGm2":125},{"id":"dakota","nombre":"DAKOTA","composicion":"Poliéster 100%","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":3.6,"pesoGm2":150},{"id":"danell","nombre":"DANELL","composicion":"Poliéster 100%","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":3.4,"pesoGm2":190},{"id":"danell-sin-cardar","nombre":"DANELL SIN CARDAR","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":3.0,"pesoGm2":190},{"id":"delta","nombre":"DELTA","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":3.2,"pesoGm2":178},{"id":"deportiva-jaquard","nombre":"DEPORTIVA JAQUARD","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"dubay","nombre":"DUBAY","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"dubay-city","nombre":"DUBAY CITY","composicion":"Poliéster/Microfibra","anchoTotal":1.53,"anchoUtil":1.53,"rendimiento":4.9,"pesoGm2":125},{"id":"dubay-grabado-d1-d2-d3","nombre":"DUBAY GRABADO (D1, D2, D3...)","composicion":"Poliéster Multifilamento","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":4.7,"pesoGm2":140},{"id":"felpa-jaspe","nombre":"FELPA JASPE","composicion":"Poliéster 58/Algodón 42","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.3,"pesoGm2":260},{"id":"felpa-mayar","nombre":"FELPA MAYAR","composicion":"Poliéster 84.7/Algodón 15.3","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.0,"pesoGm2":300},{"id":"fibra-corta-leon-lavada","nombre":"FIBRA CORTA LEÓN (Lavada)","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.6,"pesoGm2":222},{"id":"fibra-corta-moroleon-tenida","nombre":"FIBRA CORTA MOROLEÓN (Teñida)","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.6,"pesoGm2":170},{"id":"fibra-corta-pesada","nombre":"FIBRA CORTA PESADA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.8,"pesoGm2":300},{"id":"finlandia","nombre":"FINLANDIA","composicion":"Poliéster/Algodón","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.0,"pesoGm2":338},{"id":"fleece","nombre":"FLEECE","composicion":"Poliéster/Algodón","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":1.8,"pesoGm2":305,"nota":"Peso registrado como 338 o 305 — verificar"},{"id":"flipol","nombre":"FLIPOL","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.0,"pesoGm2":305},{"id":"fomer","nombre":"FOMER","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"fomer-city","nombre":"FOMER CITY","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":5.0,"pesoGm2":122},{"id":"gales","nombre":"GALES","composicion":"Poliéster/Microfibra","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.1,"pesoGm2":150},{"id":"holanda","nombre":"HOLANDA","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":4.0,"pesoGm2":143},{"id":"hercules","nombre":"HÉRCULES","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.4,"pesoGm2":180},{"id":"intergal","nombre":"INTERGAL","composicion":"Poliéster 57.5/Algodón 42.5","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.45,"pesoGm2":250},{"id":"interlock","nombre":"INTERLOCK","composicion":"Poliéster/Algodón","anchoTotal":1.0,"anchoUtil":1.0,"rendimiento":2.3,"pesoGm2":215},{"id":"interlock-mayar","nombre":"INTERLOCK MAYAR","composicion":"Poliéster/Algodón","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.2,"pesoGm2":252},{"id":"interlock-premier","nombre":"INTERLOCK PREMIER","composicion":"Poliéster/Algodón","anchoTotal":0.9,"anchoUtil":0.9,"rendimiento":2.2,"pesoGm2":250},{"id":"jaquard-bilingue","nombre":"JAQUARD BILINGUE","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.16,"pesoGm2":150},{"id":"jaquard-jag-3","nombre":"JAQUARD JAG 3","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.4,"pesoGm2":139},{"id":"jaquard-motolinia","nombre":"JAQUARD MOTOLINIA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.4,"pesoGm2":139},{"id":"jersey","nombre":"JERSEY","composicion":"Poliéster 100%","anchoTotal":1.6,"anchoUtil":1.6,"rendimiento":5.7,"pesoGm2":110},{"id":"krisa","nombre":"KRISA","composicion":"Algodón/Elastano","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":3.1,"pesoGm2":184},{"id":"lisboa","nombre":"LISBOA","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"luctan","nombre":"LUCTAN","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.7,"pesoGm2":130},{"id":"majestic","nombre":"MAJESTIC","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.45,"pesoGm2":250},{"id":"malla-sport","nombre":"MALLA SPORT","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":7.9,"pesoGm2":83},{"id":"marval","nombre":"MARVAL","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"mayki-morelia","nombre":"MAYKI MORELIA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.0,"pesoGm2":150},{"id":"mayki-nitro","nombre":"MAYKI NITRO","composicion":"Poliéster Multifilamento","anchoTotal":1.58,"anchoUtil":1.55,"rendimiento":4.2,"pesoGm2":150},{"id":"mayki-plus","nombre":"MAYKI PLUS","composicion":"Poliéster Multifilamento","anchoTotal":1.58,"anchoUtil":1.55,"rendimiento":4.2,"pesoGm2":150},{"id":"mayki-plus-city","nombre":"MAYKI PLUS CITY","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"mayki-supra","nombre":"MAYKI SUPRA","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.2,"pesoGm2":135},{"id":"mayki-ultra","nombre":"MAYKI ULTRA","composicion":"Poliéster Multifilamento","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.6,"pesoGm2":230},{"id":"metropoli","nombre":"METROPOLI","composicion":"Poliéster Multifilamento","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.1,"pesoGm2":285},{"id":"metropolitan","nombre":"METROPOLITAN","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.9,"pesoGm2":125},{"id":"micro-holanda","nombre":"MICRO HOLANDA","composicion":"Poliéster/Algodón","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.0,"pesoGm2":300},{"id":"millagui","nombre":"MILLAGUI","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":5.7,"pesoGm2":114},{"id":"millenium","nombre":"MILLENIUM","composicion":"Nylon 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":8.8,"pesoGm2":70},{"id":"mitex","nombre":"MITEX","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":5.9,"pesoGm2":110},{"id":"montecarlo","nombre":"MONTECARLO","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":2.9,"pesoGm2":200},{"id":"morata","nombre":"MORATA","composicion":"Poliéster Microfibra 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":4.35,"pesoGm2":150,"nota":"Peso circulado con lápiz — verificar 150 vs 200"},{"id":"mundialista","nombre":"MUNDIALISTA","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.3,"pesoGm2":260},{"id":"munich-bosnia-termofijado","nombre":"MUNICH (Bosnia Termofijado)","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.4,"pesoGm2":250},{"id":"nebraska","nombre":"NEBRASKA","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.3,"pesoGm2":260},{"id":"nirvana","nombre":"NIRVANA","composicion":"Poliéster 100%","anchoTotal":1.93,"anchoUtil":1.9,"rendimiento":3.2,"pesoGm2":160},{"id":"nueva-holanda","nombre":"NUEVA HOLANDA","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":4.1,"pesoGm2":140},{"id":"nueva-holanda-leon","nombre":"NUEVA HOLANDA LEÓN","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":5.0,"pesoGm2":130},{"id":"nueva-holanda-moroleon","nombre":"NUEVA HOLANDA MOROLEÓN","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":4.1,"pesoGm2":140},{"id":"napoles","nombre":"NÁPOLES","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":2.45,"pesoGm2":255},{"id":"okla","nombre":"OKLA","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":5.6,"pesoGm2":110},{"id":"olimpus","nombre":"OLIMPUS","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"olimpus-city","nombre":"OLIMPUS CITY","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.5,"pesoGm2":135},{"id":"omega","nombre":"OMEGA","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.9,"pesoGm2":126},{"id":"optimus","nombre":"OPTIMUS","composicion":"Poliéster/Microfibra","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.4,"pesoGm2":180},{"id":"otoman","nombre":"OTOMAN","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":2.4,"pesoGm2":240},{"id":"phantom-metropoli-sin-cardar","nombre":"PHANTOM (Metropoli sin Cardar)","composicion":"Poliéster Multifilamento","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.5,"pesoGm2":220},{"id":"pique-1-fontura","nombre":"PIQUE 1 FONTURA","composicion":"Poliéster/Algodón","anchoTotal":0.95,"anchoUtil":0.95,"rendimiento":2.3,"pesoGm2":230},{"id":"pique-2-fonturas","nombre":"PIQUE 2 FONTURAS","composicion":"Poliéster/Algodón","anchoTotal":1.0,"anchoUtil":1.0,"rendimiento":1.7,"pesoGm2":295},{"id":"piqueline","nombre":"PIQUELINE","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.7,"pesoGm2":227},{"id":"pique-24-ligero","nombre":"PIQUÉ 24 LIGERO","composicion":"Poliéster/Algodón","anchoTotal":1.84,"anchoUtil":1.8,"rendimiento":2.6,"pesoGm2":210},{"id":"pique-ariat","nombre":"PIQUÉ ARIAT","composicion":"Poliéster/Algodón","anchoTotal":1.66,"anchoUtil":1.63,"rendimiento":3.4,"pesoGm2":175},{"id":"pique-atlante","nombre":"PIQUÉ ATLANTE","composicion":"Poliéster Multifilamento","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.8,"pesoGm2":160},{"id":"pique-atlante-ultra","nombre":"PIQUÉ ATLANTE ULTRA","composicion":"Poliéster Multifilamento","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":3.6,"pesoGm2":160},{"id":"pique-boss","nombre":"PIQUÉ BOSS","composicion":"Poliéster/Algodón","anchoTotal":1.0,"anchoUtil":1.0,"rendimiento":2.0,"pesoGm2":250},{"id":"pique-capri","nombre":"PIQUÉ CAPRI","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.1,"pesoGm2":200},{"id":"pique-delicias","nombre":"PIQUÉ DELICIAS","composicion":"Poliéster/Algodón","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.45,"pesoGm2":250},{"id":"pique-florencia","nombre":"PIQUÉ FLORENCIA","composicion":"Poliéster 100%","anchoTotal":1.65,"anchoUtil":1.6,"rendimiento":3.8,"pesoGm2":160},{"id":"pique-magnum","nombre":"PIQUÉ MAGNUM","composicion":"Poliéster Multifilamento","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.5,"pesoGm2":220},{"id":"pique-marsella","nombre":"PIQUÉ MARSELLA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.4,"pesoGm2":180},{"id":"pique-noruega","nombre":"PIQUÉ NORUEGA","composicion":"Poliéster/Algodón","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.7,"pesoGm2":200},{"id":"pique-olmo","nombre":"PIQUÉ OLMO","composicion":"Poliéster/Algodón","anchoTotal":1.08,"anchoUtil":1.05,"rendimiento":2.2,"pesoGm2":216},{"id":"pique-romano","nombre":"PIQUÉ ROMANO","composicion":"Poliéster Multifilamento","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":3.0,"pesoGm2":220},{"id":"polar-fleece","nombre":"POLAR FLEECE","composicion":"Poliéster 100%","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":2.2,"pesoGm2":290},{"id":"poliflex","nombre":"POLIFLEX","composicion":"Poliéster 85/Elastano 15","anchoTotal":1.5,"anchoUtil":1.5,"rendimiento":3.8,"pesoGm2":175},{"id":"polifoam","nombre":"POLIFOAM","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.3,"pesoGm2":184},{"id":"polo","nombre":"POLO","composicion":"Poliéster/Algodón","anchoTotal":1.0,"anchoUtil":1.0,"rendimiento":1.6,"pesoGm2":310},{"id":"polo-gutierrez","nombre":"POLO GUTIÉRREZ","composicion":"Poliéster/Algodón","anchoTotal":1.84,"anchoUtil":1.8,"rendimiento":2.2,"pesoGm2":250},{"id":"polycolor","nombre":"POLYCOLOR","composicion":"Poliéster/Elastano","anchoTotal":1.6,"anchoUtil":1.56,"rendimiento":2.6,"pesoGm2":240},{"id":"rib-acrilon","nombre":"RIB ACRILÓN","composicion":"Poliéster/Algodón/Elastano","anchoTotal":0.6,"anchoUtil":0.6,"rendimiento":2.0,"pesoGm2":415},{"id":"rib-argenta-metropoli","nombre":"RIB ARGENTA/METROPOLI","composicion":"Poliéster/Elastano","anchoTotal":0.6,"anchoUtil":0.6,"rendimiento":2.8,"pesoGm2":300},{"id":"rib-felpa-jaspe","nombre":"RIB FELPA JASPE","composicion":"Poliéster/Algodón/Elastano","anchoTotal":0.6,"anchoUtil":0.6,"rendimiento":2.0,"pesoGm2":415},{"id":"rib-flipol","nombre":"RIB FLIPOL","composicion":"Poliéster/Elastano","anchoTotal":0.6,"anchoUtil":0.6,"rendimiento":2.2,"pesoGm2":380},{"id":"rib-millenium","nombre":"RIB MILLENIUM","composicion":"Poliéster/Algodón/Elastano","anchoTotal":0.6,"anchoUtil":0.6,"rendimiento":2.0,"pesoGm2":415},{"id":"rizo-cardado","nombre":"RIZO CARDADO","composicion":"Poliéster 100%","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":5.0,"pesoGm2":130},{"id":"selecta","nombre":"SELECTA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.1,"pesoGm2":150},{"id":"shifon-maquila","nombre":"SHIFON (MAQUILA)","composicion":"Algodón 100%","anchoTotal":2.03,"anchoUtil":2.0,"rendimiento":3.0,"pesoGm2":165},{"id":"sigma","nombre":"SIGMA","composicion":"Poliéster Multifilamento","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":5.5,"pesoGm2":118},{"id":"sontex","nombre":"SONTEX","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":5.7,"pesoGm2":115},{"id":"sontex-bicomponente","nombre":"SONTEX BICOMPONENTE","composicion":"Poliéster 100%","anchoTotal":1.53,"anchoUtil":1.5,"rendimiento":4.9,"pesoGm2":133},{"id":"supreme","nombre":"SUPREME","composicion":"Poliéster/Elastano","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":2.1,"pesoGm2":290},{"id":"tela-de-punto","nombre":"TELA DE PUNTO","composicion":"Acrílico 100%","anchoTotal":1.0,"anchoUtil":1.0,"rendimiento":1.5,"pesoGm2":330},{"id":"terry-monarca","nombre":"TERRY MONARCA","composicion":"Poliéster/Algodón","anchoTotal":1.85,"anchoUtil":1.8,"rendimiento":2.8,"pesoGm2":195},{"id":"toallita","nombre":"TOALLITA","composicion":"Poliéster/Algodón","anchoTotal":1.55,"anchoUtil":1.5,"rendimiento":3.5,"pesoGm2":185},{"id":"toledo","nombre":"TOLEDO","composicion":"Acrílico 100%","anchoTotal":0.8,"anchoUtil":0.8,"rendimiento":1.8,"pesoGm2":347},{"id":"troya","nombre":"TROYA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":14.3,"pesoGm2":140,"nota":"Rendimiento 14.3 M/KG — muy alto, verificar (posible que sea tela ultra ligera o error)"},{"id":"tuber","nombre":"TUBER","composicion":"Poliéster 100%","anchoTotal":0.25,"anchoUtil":0.25,"rendimiento":4.4,"pesoGm2":347,"nota":"Ancho 0.25 — tubular estrecho, no procesable en RAMA sin abrir"},{"id":"unifer","nombre":"UNIFER","composicion":"Poliéster 40/Algodón 60","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":2.6,"pesoGm2":210},{"id":"unitec","nombre":"UNITEC","composicion":"Poliéster/Elastano","anchoTotal":1.6,"anchoUtil":1.6,"rendimiento":3.8,"pesoGm2":165},{"id":"universo","nombre":"UNIVERSO","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":4.7,"pesoGm2":130},{"id":"universo-r","nombre":"UNIVERSO R","composicion":"Poliéster 100%","anchoTotal":1.73,"anchoUtil":1.7,"rendimiento":4.4,"pesoGm2":131},{"id":"universo-t","nombre":"UNIVERSO T","composicion":"Poliéster 100%","anchoTotal":1.67,"anchoUtil":1.64,"rendimiento":4.5,"pesoGm2":133},{"id":"utopia","nombre":"UTOPÍA","composicion":"Poliéster 100%","anchoTotal":1.63,"anchoUtil":1.6,"rendimiento":3.4,"pesoGm2":179},{"id":"vallarta","nombre":"VALLARTA","composicion":"Poliéster/Elastano","anchoTotal":1.83,"anchoUtil":1.8,"rendimiento":3.1,"pesoGm2":176},{"id":"wafle","nombre":"WAFLE","composicion":"Poliéster/Algodón","anchoTotal":0.9,"anchoUtil":0.9,"rendimiento":2.4,"pesoGm2":235},{"id":"wafle-abierto","nombre":"WAFLE ABIERTO","composicion":"Poliéster/Algodón","anchoTotal":1.84,"anchoUtil":1.8,"rendimiento":2.3,"pesoGm2":235}];
+
+// —— Utils compat RAMA ——
+function _catCompatRama(anchoUtil) {
+  const cfg = state.cfgRama || RAMA_DEFAULTS;
+  const a = Number(anchoUtil);
+  if (!Number.isFinite(a) || a <= 0) return 'sin_dato';
+  if (a < cfg.anchoMin) return 'bajo_minimo';
+  if (a <= cfg.anchoMaxOperativo) return 'compatible';
+  if (a <= cfg.anchoMaxTeorico) return 'zona_teorica';
+  return 'sobre_maximo';
+}
+
+function _catCompatBadge(k) {
+  switch (k) {
+    case 'compatible':   return '<span class="chip" style="background:rgba(16,185,129,0.15);border:1px solid #10b981;color:#10b981">🟢 Compatible</span>';
+    case 'bajo_minimo':  return '<span class="chip" style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444">🔴 Bajo mín.</span>';
+    case 'zona_teorica': return '<span class="chip" style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#f59e0b">🟡 Zona teórica</span>';
+    case 'sobre_maximo': return '<span class="chip" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#94a3b8">⚪ Sobre máx</span>';
+    default:             return '<span class="chip chip-neutral">—</span>';
+  }
+}
+
+// —— Sembrar catálogo si está vacío ——
+function _catSeedIfEmpty() {
+  if (!Array.isArray(state.telas)) state.telas = [];
+  if (state.telas.length > 0) return false;
+  const now = new Date().toISOString();
+  const seeded = TELAS_SEED_2026_05_25.map(t => ({
+    id: t.id,
+    nombre: t.nombre,
+    composicion: t.composicion || '—',
+    anchoTotal: t.anchoTotal ?? null,
+    anchoUtil:  t.anchoUtil  ?? null,
+    rendimiento: t.rendimiento ?? null,
+    pesoGm2: t.pesoGm2 ?? null,
+    malla: null,
+    columnasCm: null,
+    estabilidad: null,
+    compatibilidadRama: _catCompatRama(t.anchoUtil ?? t.anchoTotal),
+    actualizadoEn: '2026-05-25',
+    actualizadoPor: 'Rogelio',
+    seedVersion: '2026-05-25',
+    createdAt: now
+  }));
+  state.telas = seeded;
+  try { localStorage.setItem(LS_KEYS.telas, JSON.stringify(seeded)); } catch(e){}
+  // Enviar a cloud sólo si hay token (silencioso)
+  if (typeof TG_AUTH_TOKEN !== 'undefined' && TG_AUTH_TOKEN) {
+    seeded.forEach(rec => { try { saveToCloud('telas', rec); } catch(e){} });
+  }
+  return true;
+}
+
+// —— Filtrado + sort ——
+function _catApplyFilter(rows) {
+  const f = state.telasFilter || {};
+  const q = (f.q || '').trim().toLowerCase();
+  let out = rows.slice();
+  if (q) {
+    out = out.filter(r =>
+      (r.nombre||'').toLowerCase().includes(q) ||
+      (r.composicion||'').toLowerCase().includes(q)
+    );
+  }
+  if (f.compat)     out = out.filter(r => r.compatibilidadRama === f.compat);
+  if (f.composicion) out = out.filter(r => (r.composicion||'') === f.composicion);
+  const sb = f.sortBy || 'nombre';
+  const dir = (f.sortDir === 'desc') ? -1 : 1;
+  out.sort((a,b) => {
+    let va = a[sb], vb = b[sb];
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+    return String(va).localeCompare(String(vb), 'es', {sensitivity:'base'}) * dir;
+  });
+  return out;
+}
+
+// —— Render principal ——
+function renderCatalogoTelas() {
+  const panel = document.getElementById('tab-catalogo');
+  if (!panel) return;
+  _catSeedIfEmpty();
+  const rows = Array.isArray(state.telas) ? state.telas : [];
+
+  // Panel de límites
+  const cfg = state.cfgRama || RAMA_DEFAULTS;
+  const limitsEl = document.getElementById('cat_ramaLimits');
+  if (limitsEl) {
+    limitsEl.innerHTML =
+      `Mín. <b>${(cfg.anchoMin).toFixed(2)} m</b> · ` +
+      `Máx. operativo <b>${(cfg.anchoMaxOperativo).toFixed(2)} m</b> · ` +
+      `Máx. teórico <b>${(cfg.anchoMaxTeorico).toFixed(2)} m</b>`;
+  }
+  const notasEl = document.getElementById('cat_ramaNotas');
+  if (notasEl) notasEl.textContent = cfg.notas || '';
+
+  // Contadores por compat (sobre TODO el universo, no sobre filtro)
+  const counts = { compatible:0, bajo_minimo:0, zona_teorica:0, sobre_maximo:0 };
+  rows.forEach(r => { if (counts[r.compatibilidadRama] != null) counts[r.compatibilidadRama]++; });
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt('cat_countCompat', counts.compatible);
+  setTxt('cat_countMin',    counts.bajo_minimo);
+  setTxt('cat_countTeo',    counts.zona_teorica);
+  setTxt('cat_countMax',    counts.sobre_maximo);
+
+  // Versión info
+  const vInfo = document.getElementById('cat_versionInfo');
+  if (vInfo) vInfo.textContent = `${rows.length} telas · v. 2026-05-25 (Rogelio)`;
+
+  // Composición dropdown (poblar único)
+  const compSel = document.getElementById('cat_filterComp');
+  if (compSel && compSel.options.length <= 1) {
+    const seen = new Set();
+    rows.forEach(r => { if (r.composicion) seen.add(r.composicion); });
+    Array.from(seen).sort((a,b)=>a.localeCompare(b,'es')).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      compSel.appendChild(opt);
+    });
+    // restaurar selección
+    if (state.telasFilter && state.telasFilter.composicion) compSel.value = state.telasFilter.composicion;
+  }
+
+  // Filtrar + ordenar
+  const filtered = _catApplyFilter(rows);
+
+  // Contador visible
+  setTxt('cat_counter', `${filtered.length} de ${rows.length} telas`);
+
+  // Sort arrows en headers
+  const f = state.telasFilter || {};
+  document.querySelectorAll('#tab-catalogo th[data-cat-sort]').forEach(th => {
+    const key = th.getAttribute('data-cat-sort');
+    const arrow = th.querySelector('.cat-sort-arrow');
+    if (!arrow) return;
+    if (key === f.sortBy) arrow.textContent = (f.sortDir === 'desc') ? ' ▼' : ' ▲';
+    else arrow.textContent = '';
+  });
+
+  // Render body
+  const tbody = document.getElementById('cat_tbody');
+  const empty = document.getElementById('cat_empty');
+  if (!tbody) return;
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    if (empty) {
+      empty.classList.remove('hidden');
+      const msg = document.getElementById('cat_emptyMsg');
+      const hint = document.getElementById('cat_emptyHint');
+      if (rows.length === 0) {
+        if (msg) msg.textContent = 'Catálogo vacío';
+        if (hint) hint.textContent = 'Cargando semilla... recarga la página si no aparece.';
+      } else {
+        if (msg) msg.textContent = 'Sin coincidencias';
+        if (hint) hint.textContent = 'Ajusta la búsqueda o los filtros.';
+      }
+    }
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  const fmt = (v, dec) => (v == null || !Number.isFinite(Number(v))) ? '—' : Number(v).toFixed(dec);
+  const fmtInt = v => (v == null || !Number.isFinite(Number(v))) ? '—' : Math.round(Number(v));
+  const missing = t => {
+    const bits = [];
+    if (t.malla == null)      bits.push('M');
+    if (t.columnasCm == null) bits.push('C');
+    if (t.estabilidad == null) bits.push('E');
+    if (bits.length === 3) return '<span class="text-slate-500 text-[11px]">— pendiente —</span>';
+    if (bits.length === 0) return '<span class="text-emerald-400 text-[11px]">✓ completo</span>';
+    return `<span class="text-amber-400 text-[11px]" title="Falta: ${bits.join(', ')}">${3-bits.length}/3</span>`;
+  };
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  tbody.innerHTML = filtered.map(t => `
+    <tr class="hover:bg-ink-800/60 cursor-pointer transition-colors" data-cat-row="${esc(t.id)}">
+      <td class="px-3 py-2 font-semibold text-white whitespace-nowrap">${esc(t.nombre)}</td>
+      <td class="px-3 py-2 text-slate-300 text-[12px]">${esc(t.composicion)}</td>
+      <td class="px-3 py-2 text-right text-slate-200 tabular-nums">${fmt(t.anchoUtil,2)} <span class="text-slate-500 text-[10px]">m</span></td>
+      <td class="px-3 py-2 text-right text-slate-200 tabular-nums">${fmt(t.rendimiento,2)}</td>
+      <td class="px-3 py-2 text-right text-slate-200 tabular-nums">${fmtInt(t.pesoGm2)}</td>
+      <td class="px-3 py-2 text-center">${_catCompatBadge(t.compatibilidadRama)}</td>
+      <td class="px-3 py-2 text-center">${missing(t)}</td>
+    </tr>
+  `).join('');
+}
+
+// —— Modal de detalle ——
+function _catShowDetail(id) {
+  const t = (state.telas || []).find(r => r.id === id);
+  const modal = document.getElementById('catDetailModal');
+  const body  = document.getElementById('catDetailBody');
+  if (!modal || !body) return;
+  if (!t) { body.textContent = 'Tela no encontrada.'; modal.classList.remove('hidden'); return; }
+  const cfg = state.cfgRama || RAMA_DEFAULTS;
+  const fmt = (v, dec) => (v == null || !Number.isFinite(Number(v))) ? '—' : Number(v).toFixed(dec);
+  const fmtInt = v => (v == null || !Number.isFinite(Number(v))) ? '—' : Math.round(Number(v));
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const anchoBadge = _catCompatBadge(t.compatibilidadRama);
+  let compatMsg = '';
+  const au = Number(t.anchoUtil);
+  if (Number.isFinite(au)) {
+    if (t.compatibilidadRama === 'bajo_minimo')
+      compatMsg = `⚠️ Ancho útil ${au.toFixed(2)} m es <b>menor</b> que el mínimo de la RAMA (${cfg.anchoMin.toFixed(2)} m). No procesable en Bruckner sin adaptación.`;
+    else if (t.compatibilidadRama === 'zona_teorica')
+      compatMsg = `🟡 Está en <b>zona teórica</b> (${cfg.anchoMaxOperativo.toFixed(2)}–${cfg.anchoMaxTeorico.toFixed(2)} m). Físicamente cabe, pero fuera del rango operativo. Autorización del jefe requerida.`;
+    else if (t.compatibilidadRama === 'sobre_maximo')
+      compatMsg = `⚠️ Ancho útil ${au.toFixed(2)} m <b>supera</b> el máximo teórico de la RAMA (${cfg.anchoMaxTeorico.toFixed(2)} m).`;
+    else if (t.compatibilidadRama === 'compatible')
+      compatMsg = `✅ Ancho útil dentro del rango operativo TGM (${cfg.anchoMin.toFixed(2)}–${cfg.anchoMaxOperativo.toFixed(2)} m).`;
+  }
+
+  body.innerHTML = `
+    <div class="mb-4">
+      <div class="text-xs text-slate-500 uppercase tracking-wider">Tela</div>
+      <h3 class="text-2xl font-black text-white leading-tight">${esc(t.nombre)}</h3>
+      <p class="text-slate-400 text-sm">${esc(t.composicion)}</p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+      <div class="p-2 rounded bg-ink-800/60 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Ancho total</div>
+        <div class="text-lg font-bold text-white tabular-nums">${fmt(t.anchoTotal,2)} <span class="text-xs text-slate-500">m</span></div>
+      </div>
+      <div class="p-2 rounded bg-ink-800/60 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Ancho útil</div>
+        <div class="text-lg font-bold text-white tabular-nums">${fmt(t.anchoUtil,2)} <span class="text-xs text-slate-500">m</span></div>
+      </div>
+      <div class="p-2 rounded bg-ink-800/60 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Rendimiento</div>
+        <div class="text-lg font-bold text-white tabular-nums">${fmt(t.rendimiento,2)} <span class="text-xs text-slate-500">M/KG</span></div>
+      </div>
+      <div class="p-2 rounded bg-ink-800/60 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Peso</div>
+        <div class="text-lg font-bold text-white tabular-nums">${fmtInt(t.pesoGm2)} <span class="text-xs text-slate-500">G/M²</span></div>
+      </div>
+    </div>
+
+    <div class="p-3 rounded border mb-4" style="background:rgba(56,189,248,0.06); border-color:rgba(56,189,248,0.25)">
+      <div class="flex items-center gap-2 mb-1"><span class="text-xs font-black text-sky-accent uppercase tracking-wider">Compatibilidad RAMA Bruckner</span>${anchoBadge}</div>
+      <div class="text-[12.5px] text-slate-200 leading-relaxed">${compatMsg}</div>
+      <div class="text-[11px] text-slate-500 italic mt-1">Rango TGM: ${cfg.anchoMin.toFixed(2)}–${cfg.anchoMaxOperativo.toFixed(2)} m operativo · hasta ${cfg.anchoMaxTeorico.toFixed(2)} m teórico.</div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2 mb-3">
+      <div class="p-2 rounded bg-ink-900/70 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Malla</div>
+        <div class="text-sm font-semibold ${t.malla==null?'text-slate-500 italic':'text-white'}">${t.malla==null?'pendiente':esc(t.malla)}</div>
+      </div>
+      <div class="p-2 rounded bg-ink-900/70 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Columnas / cm</div>
+        <div class="text-sm font-semibold ${t.columnasCm==null?'text-slate-500 italic':'text-white'}">${t.columnasCm==null?'pendiente':esc(t.columnasCm)}</div>
+      </div>
+      <div class="p-2 rounded bg-ink-900/70 border border-ink-700">
+        <div class="text-[10px] uppercase text-slate-500">Estabilidad</div>
+        <div class="text-sm font-semibold ${t.estabilidad==null?'text-slate-500 italic':'text-white'}">${t.estabilidad==null?'pendiente':esc(t.estabilidad)}</div>
+      </div>
+    </div>
+
+    <div class="text-[11px] text-slate-500 flex justify-between border-t border-ink-800 pt-2">
+      <span>Actualizado: ${esc(t.actualizadoEn||'—')} · ${esc(t.actualizadoPor||'—')}</span>
+      <span>ID: <code class="text-slate-400">${esc(t.id)}</code></span>
+    </div>
+  `;
+  modal.classList.remove('hidden');
+}
+
+function _catHideDetail() {
+  const modal = document.getElementById('catDetailModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+// —— CSV export ——
+function _catExportCSV() {
+  const rows = Array.isArray(state.telas) ? state.telas : [];
+  if (rows.length === 0) return;
+  const headers = ['nombre','composicion','anchoTotal','anchoUtil','rendimiento','pesoGm2','compatibilidadRama','malla','columnasCm','estabilidad','actualizadoEn'];
+  const esc = v => {
+    if (v == null) return '';
+    const s = String(v);
+    if (/[",\n;]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  };
+  const lines = [headers.join(',')];
+  rows.forEach(r => lines.push(headers.map(h => esc(r[h])).join(',')));
+  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `catalogo_telas_TGM_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+
+// —— Eventos (bind una sola vez) ——
+let _catEventsBound = false;
+function _catBindEventsOnce() {
+  if (_catEventsBound) return;
+  _catEventsBound = true;
+
+  // Search
+  const search = document.getElementById('cat_search');
+  const clearBtn = document.getElementById('cat_clearSearch');
+  if (search) {
+    search.addEventListener('input', () => {
+      state.telasFilter = state.telasFilter || {};
+      state.telasFilter.q = search.value;
+      if (clearBtn) clearBtn.classList.toggle('hidden', !search.value);
+      renderCatalogoTelas();
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (search) search.value = '';
+      state.telasFilter = state.telasFilter || {};
+      state.telasFilter.q = '';
+      clearBtn.classList.add('hidden');
+      renderCatalogoTelas();
+    });
+  }
+
+  // Filtros
+  const filtCompat = document.getElementById('cat_filterCompat');
+  if (filtCompat) filtCompat.addEventListener('change', () => {
+    state.telasFilter = state.telasFilter || {};
+    state.telasFilter.compat = filtCompat.value;
+    renderCatalogoTelas();
+  });
+  const filtComp = document.getElementById('cat_filterComp');
+  if (filtComp) filtComp.addEventListener('change', () => {
+    state.telasFilter = state.telasFilter || {};
+    state.telasFilter.composicion = filtComp.value;
+    renderCatalogoTelas();
+  });
+  const reset = document.getElementById('cat_resetFilters');
+  if (reset) reset.addEventListener('click', () => {
+    state.telasFilter = { q:'', compat:'', composicion:'', sortBy:'nombre', sortDir:'asc' };
+    if (search) search.value = '';
+    if (clearBtn) clearBtn.classList.add('hidden');
+    if (filtCompat) filtCompat.value = '';
+    if (filtComp) filtComp.value = '';
+    renderCatalogoTelas();
+  });
+
+  // Sort headers
+  document.querySelectorAll('#tab-catalogo th[data-cat-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-cat-sort');
+      state.telasFilter = state.telasFilter || {};
+      if (state.telasFilter.sortBy === key) {
+        state.telasFilter.sortDir = (state.telasFilter.sortDir === 'asc') ? 'desc' : 'asc';
+      } else {
+        state.telasFilter.sortBy = key;
+        state.telasFilter.sortDir = 'asc';
+      }
+      renderCatalogoTelas();
+    });
+  });
+
+  // Row click → modal
+  const tbody = document.getElementById('cat_tbody');
+  if (tbody) {
+    tbody.addEventListener('click', (e) => {
+      const row = e.target.closest('tr[data-cat-row]');
+      if (!row) return;
+      _catShowDetail(row.getAttribute('data-cat-row'));
+    });
+  }
+
+  // Modal close
+  const closeBtn = document.getElementById('catDetailClose');
+  if (closeBtn) closeBtn.addEventListener('click', _catHideDetail);
+  const modal = document.getElementById('catDetailModal');
+  if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) _catHideDetail(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) _catHideDetail();
+  });
+
+  // CSV export
+  const exp = document.getElementById('cat_exportCsv');
+  if (exp) exp.addEventListener('click', _catExportCSV);
 }
 
 init();
