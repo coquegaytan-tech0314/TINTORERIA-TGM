@@ -2271,6 +2271,21 @@
           </div>
         </div>
         <div class="md:col-span-2">
+          <label class="lbl">Motivo del pase <span class="text-slate-500 text-[10px] normal-case">(por defecto: Nuevo)</span></label>
+          <div id="brMotivoPaseChips" class="flex flex-wrap gap-2 mt-1">
+            <button type="button" class="chip br-motpase-btn active" data-mp="nuevo"
+                    style="background:#10b98122;color:#10b981;border:1px solid #10b98155">✓ Nuevo</button>
+            <button type="button" class="chip br-motpase-btn" data-mp="mod_ancho"
+                    style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55">― Mod. ancho</button>
+            <button type="button" class="chip br-motpase-btn" data-mp="reproceso_calidad"
+                    style="background:#ef444422;color:#ef4444;border:1px solid #ef444455">― Reproc. calidad</button>
+            <button type="button" class="chip br-motpase-btn" data-mp="reproceso_otro"
+                    style="background:#a855f722;color:#a855f7;border:1px solid #a855f755">― Reproc. otro</button>
+          </div>
+          <input type="hidden" id="br_motivoPase" value="nuevo" />
+          <div class="text-[10px] text-slate-500 mt-1">Los re-pases <b>no cuentan</b> en Terminado. Solo un flag; no cambia el Proceso.</div>
+        </div>
+        <div class="md:col-span-2">
           <label class="lbl">Notas</label>
           <textarea id="br_notas" rows="2" class="field" placeholder="Observaciones..."></textarea>
         </div>
@@ -8175,6 +8190,7 @@ function bindBrucknerForm() {
       vel:      parseFloat($('#br_vel').value) || 0,
       temp:     parseFloat($('#br_temp').value) || 0,
       proceso:  $('#br_proceso').value,
+      motivoPase: ($('#br_motivoPase') ? $('#br_motivoPase').value : 'nuevo') || 'nuevo',
       notas:    $('#br_notas').value.trim(),
       // Costos por kg (MXN). Total/kg = suma de los 4. Total lote = total/kg * kilos.
       costoFormula: cFor,
@@ -8198,6 +8214,11 @@ function bindBrucknerForm() {
 function clearBrForm() {
   ['#br_operador','#br_lote','#br_tela','#br_color','#br_kilos','#br_rend','#br_metros','#br_vel','#br_temp','#br_notas','#br_costoFormula','#br_costoColor','#br_costoQuim']
     .forEach(s => { const el = $(s); if (el) el.value = ''; });
+  // Motivo del pase vuelve a 'nuevo'
+  const mpH = $('#br_motivoPase'); if (mpH) mpH.value = 'nuevo';
+  $$('#brMotivoPaseChips .br-motpase-btn').forEach(x => x.classList.remove('active'));
+  const mpDefault = document.querySelector('#brMotivoPaseChips .br-motpase-btn[data-mp="nuevo"]');
+  if (mpDefault) mpDefault.classList.add('active');
   // Apresto vuelve a su default ($0.80/kg — ácido cítrico)
   const apr = $('#br_costoApresto'); if (apr) apr.value = '0.80';
   // Resetear el display de costo total
@@ -8256,6 +8277,14 @@ function bindBrAutoCalc() {
       b.classList.remove('chip-info');
       b.classList.add('chip-ok','active');
       $('#br_proceso').value = b.dataset.p;
+    });
+  });
+  // Motivo del pase chip handlers (Nuevo / Mod. ancho / Reproc. calidad / Reproc. otro)
+  $$('#brMotivoPaseChips .br-motpase-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#brMotivoPaseChips .br-motpase-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const hid = $('#br_motivoPase'); if (hid) hid.value = b.dataset.mp;
     });
   });
 }
@@ -9656,21 +9685,71 @@ function _resumenFmt(n) {
   return Number(n).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
-/** Calcula los kilos por proceso desde state.bruck para una fecha dada */
+/* ================================================================
+ * REPROCESOS · Motivos del pase por la RAMA
+ * ----------------------------------------------------------------
+ * motivoPase describe POR QUÉ un lote pasó por la RAMA. No cambia
+ * el proceso (Suavizado/Termofijado/Empacado); es un flag adicional.
+ *
+ *   - 'nuevo'                → producción nueva (default, cuenta en Terminado)
+ *   - 'mod_ancho'            → pase para corregir ancho (NO cuenta en Terminado)
+ *   - 'reproceso_calidad'    → re-pase por defecto de calidad (NO cuenta)
+ *   - 'reproceso_otro'       → otro tipo de re-pase (NO cuenta)
+ *   - 'reproceso_desconocido'→ auto-flagged 2ª+ Empacado, pendiente de clasificar por Roger
+ *
+ * Si motivoPase está vacío o no existe → se trata como 'nuevo' (retro-compat total).
+ * ================================================================ */
+const MOTIVO_PASE = {
+  nuevo:                { label:'Nuevo',              color:'#10b981', esReproceso:false },
+  mod_ancho:            { label:'Mod. ancho',         color:'#f59e0b', esReproceso:true  },
+  reproceso_calidad:    { label:'Reproc. calidad',    color:'#ef4444', esReproceso:true  },
+  reproceso_otro:       { label:'Reproc. otro',       color:'#a855f7', esReproceso:true  },
+  reproceso_desconocido:{ label:'Reproc. (pendiente)',color:'#94a3b8', esReproceso:true  }
+};
+function _esReprocesoRec(r) {
+  const m = (r && r.motivoPase) ? r.motivoPase : 'nuevo';
+  return !!(MOTIVO_PASE[m] && MOTIVO_PASE[m].esReproceso);
+}
+
+/** Calcula los kilos por proceso desde state.bruck para una fecha dada.
+ *  Devuelve tanto totales BRUTOS (incluyen re-pases) como NETOS (los excluyen),
+ *  además de un desglose de kilos reprocesados por motivo. */
 function _resumenComputeBruck(fecha) {
   const rows = (state.bruck||[]).filter(r => r.fecha === fecha && (r.rama||'Bruckner') === 'Bruckner');
-  const totals = { suavizado: 0, termofijado: 0, empacado: 0, otros: 0, total: 0 };
+  const totals = {
+    // Bruto (incluye reprocesos) — retro-compat: campos existentes se mantienen como BRUTO
+    suavizado: 0, termofijado: 0, empacado: 0, otros: 0, total: 0,
+    // Neto (excluye reprocesos) — nuevo
+    empacadoNeto: 0, otrosNeto: 0, suavizadoNeto: 0, termofijadoNeto: 0, totalNeto: 0,
+    // Kilos por motivo de reproceso
+    reprocKg: 0,
+    reprocPorMotivo: { mod_ancho:0, reproceso_calidad:0, reproceso_otro:0, reproceso_desconocido:0 },
+    // Lote-count por motivo (útil para KPIs)
+    reprocCount: 0,
+    // Nº de registros originales (útil para debug)
+    nRows: rows.length
+  };
   rows.forEach(r => {
     const kg = (r.kilos||0);
+    const esRep = _esReprocesoRec(r);
     totals.total += kg;
+    if (!esRep) totals.totalNeto += kg;
+    else {
+      totals.reprocKg += kg;
+      totals.reprocCount++;
+      const m = r.motivoPase || 'reproceso_desconocido';
+      if (totals.reprocPorMotivo[m] != null) totals.reprocPorMotivo[m] += kg;
+      else totals.reprocPorMotivo.reproceso_otro += kg;
+    }
     const lc = (r.proceso||'').toString().toLowerCase();
     if (lc.includes('suav') && lc.includes('termo')) {
       totals.suavizado   += kg / 2;
       totals.termofijado += kg / 2;
-    } else if (lc.includes('suav'))  totals.suavizado   += kg;
-    else if (lc.includes('termo')) totals.termofijado += kg;
-    else if (lc.includes('empac')) totals.empacado    += kg;
-    else totals.otros += kg;
+      if (!esRep) { totals.suavizadoNeto += kg/2; totals.termofijadoNeto += kg/2; }
+    } else if (lc.includes('suav'))  { totals.suavizado += kg;   if (!esRep) totals.suavizadoNeto += kg; }
+    else if (lc.includes('termo'))   { totals.termofijado += kg; if (!esRep) totals.termofijadoNeto += kg; }
+    else if (lc.includes('empac'))   { totals.empacado += kg;    if (!esRep) totals.empacadoNeto += kg; }
+    else                              { totals.otros += kg;       if (!esRep) totals.otrosNeto += kg; }
   });
   return totals;
 }
@@ -9689,19 +9768,25 @@ function _resumenComputeComp(fecha) {
 /** Construye el texto exacto del mensaje al jefe */
 function _resumenBuildMessage(fecha, br, comp) {
   const titulo = _resumenFechaTitulo(fecha);
-  const total  = (br.total||0) + (comp||0);
+  // Terminado del día usa NETO (sin re-pases) para empatar con el reporte final.
+  const ramaNeto = (br.totalNeto||0);
+  const total    = ramaNeto + (comp||0);
   // Solo incluir líneas con valor; el formato original a veces omite procesos sin actividad.
   const lines = [];
   lines.push(titulo);
   lines.push('PRODUCCION DE TERMINADO');
   lines.push(`TOTAL = ${_resumenFmt(total)}`);
-  lines.push(`RAMA = ${_resumenFmt(br.total)}`);
+  lines.push(`RAMA = ${_resumenFmt(ramaNeto)}`);
   lines.push(`COMP. = ${_resumenFmt(comp)}`);
   lines.push('');
-  if (br.suavizado > 0)   lines.push(`SUAVIZADO = ${_resumenFmt(br.suavizado)}`);
-  if (br.termofijado > 0) lines.push(`TERMOFIJADO = ${_resumenFmt(br.termofijado)}`);
-  if (br.empacado > 0)    lines.push(`EMPACADO = ${_resumenFmt(br.empacado)}`);
-  if (br.otros > 0)       lines.push(`OTROS = ${_resumenFmt(br.otros)}`);
+  if (br.suavizadoNeto > 0)   lines.push(`SUAVIZADO = ${_resumenFmt(br.suavizadoNeto)}`);
+  if (br.termofijadoNeto > 0) lines.push(`TERMOFIJADO = ${_resumenFmt(br.termofijadoNeto)}`);
+  if (br.empacadoNeto > 0)    lines.push(`EMPACADO = ${_resumenFmt(br.empacadoNeto)}`);
+  if (br.otrosNeto > 0)       lines.push(`OTROS = ${_resumenFmt(br.otrosNeto)}`);
+  if (br.reprocKg > 0) {
+    lines.push('');
+    lines.push(`(Reprocesos descontados = ${_resumenFmt(br.reprocKg)})`);
+  }
   return lines.join('\n');
 }
 
@@ -9712,16 +9797,18 @@ function renderResumenTerminado() {
   const fecha = fechaInput.value || todayISO();
   const br = _resumenComputeBruck(fecha);
   const comp = _resumenComputeComp(fecha);
-  const total = br.total + comp;
 
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setEl('res_total',       _resumenFmt(total));
-  setEl('res_rama',        _resumenFmt(br.total));
+  // Usar NETO en las tarjetas visibles (sin re-pases) para consistencia con el mensaje al jefe.
+  const ramaNeto = br.totalNeto || 0;
+  const totalNeto = ramaNeto + comp;
+  setEl('res_total',       _resumenFmt(totalNeto));
+  setEl('res_rama',        _resumenFmt(ramaNeto));
   setEl('res_comp',        _resumenFmt(comp));
-  setEl('res_suavizado',   _resumenFmt(br.suavizado));
-  setEl('res_termofijado', _resumenFmt(br.termofijado));
-  setEl('res_empacado',    _resumenFmt(br.empacado));
-  setEl('res_otros',       _resumenFmt(br.otros));
+  setEl('res_suavizado',   _resumenFmt(br.suavizadoNeto));
+  setEl('res_termofijado', _resumenFmt(br.termofijadoNeto));
+  setEl('res_empacado',    _resumenFmt(br.empacadoNeto));
+  setEl('res_otros',       _resumenFmt(br.otrosNeto));
 
   const preEl = document.getElementById('resumen_preview');
   if (preEl) preEl.textContent = _resumenBuildMessage(fecha, br, comp);
@@ -9969,8 +10056,13 @@ async function renderReporteSemanal() {
   const pronos = await _rsLoadPronosticos(dates);
 
   // Acumuladores semanales (Terminado se desglosa por proceso, más insights)
-  let wkProno = 0, wkTerm = 0, wkSuavTermo = 0, wkTotal = 0, wkTMmin = 0, wkParos = 0;
+  // Convención: los KPIs visibles usan NETO (sin re-pases) por defecto,
+  // salvo `wkTermBruto` que se muestra como referencia y comparación.
+  let wkProno = 0, wkTerm = 0, wkTermBruto = 0, wkReproc = 0;
+  let wkSuavTermo = 0, wkTotal = 0, wkTMmin = 0, wkParos = 0;
   let wkSuav = 0, wkTermo = 0, wkEmpac = 0;
+  // Kilos reprocesados por motivo (semana)
+  const wkReprocMot = { mod_ancho:0, reproceso_calidad:0, reproceso_otro:0, reproceso_desconocido:0 };
   let wkLotes = 0; // # de fichas Bruckner de la semana
   let diasOk = 0, diasBad = 0, diasConDato = 0;
   let bestDay = { fecha:null, kg:-1, efi:0 };
@@ -10009,6 +10101,33 @@ async function renderReporteSemanal() {
     if (!lotesWeek.has(lote)) lotesWeek.set(lote, []);
     lotesWeek.get(lote).push(r);
   });
+
+  // ----------------------------------------------------------------------
+  // AUTO-FLAG de reprocesos:
+  //   Cuando un mismo lote tiene 2+ registros de Empacado (o "otros") en la
+  //   misma semana y ninguno tiene motivoPase asignado, dejamos el 1º como
+  //   'nuevo' y marcamos los siguientes como 'reproceso_desconocido' para que
+  //   Roger los reclasifique. Este flag se persiste al primer render.
+  // ----------------------------------------------------------------------
+  let _autoFlaggedCount = 0;
+  lotesWeek.forEach((rows) => {
+    // Ordenar por fecha + id para determinismo
+    const empacRows = rows
+      .filter(r => { const k = _procKind(r.proceso); return k === 'empac'; })
+      .filter(r => !r.motivoPase || r.motivoPase === '')
+      .sort((a,b) => (a.fecha||'').localeCompare(b.fecha||'') || (a.id||'').localeCompare(b.id||''));
+    if (empacRows.length >= 2) {
+      for (let i = 1; i < empacRows.length; i++) {
+        empacRows[i].motivoPase = 'reproceso_desconocido';
+        _autoFlaggedCount++;
+      }
+    }
+  });
+  if (_autoFlaggedCount > 0) {
+    try { save(LS_KEYS.bruck, state.bruck); } catch(e) {}
+    // No hacemos push a cloud aquí — Roger los revisará en el panel y al reclasificar cada uno se sincroniza.
+    console.info(`[reconciliación] auto-flag: ${_autoFlaggedCount} registros marcados como 'reproceso_desconocido' (2º+ Empacado del mismo lote esta semana).`);
+  }
   const qaProcessOK = []; // doble pasada normal
   const qaEmpacDup = [];  // Empacado duplicado (error)
   const qaInterDup = [];  // Etapa intermedia duplicada (error)
@@ -10038,7 +10157,12 @@ async function renderReporteSemanal() {
     // Suavizado (felpa) y Termofijado (lycra) son etapas intermedias: el mismo lote pasa
     // por la RAMA dos veces y termina en Empacado. Si contáramos las 3 etapas, el lote
     // se contaría dos veces. (Confirmado por el manager: 22-28/Jun real ≈ 59,720 kg.)
-    const term = (br.empacado||0) + (br.otros||0);
+    //
+    // NUEVO 2026-07-05: Terminado NETO descuenta re-pases por mod. ancho / calidad / otro
+    // para que empate con el reporte final de Roger. El bruto se muestra aparte.
+    const termBruto = (br.empacado||0) + (br.otros||0);
+    const term      = (br.empacadoNeto||0) + (br.otrosNeto||0);
+    const reprocKg  = br.reprocKg || 0;
     const suavTermo = (br.suavizado||0) + (br.termofijado||0);
     const total = term + comp;
     const tmMin = _rsTMmin(fecha);
@@ -10051,10 +10175,14 @@ async function renderReporteSemanal() {
 
     wkProno += prono;
     wkTerm  += term;
+    wkTermBruto += termBruto;
+    wkReproc += reprocKg;
+    Object.keys(wkReprocMot).forEach(k => { wkReprocMot[k] += (br.reprocPorMotivo[k]||0); });
     wkSuavTermo += suavTermo;
-    wkSuav  += (br.suavizado||0);
-    wkTermo += (br.termofijado||0);
-    wkEmpac += (br.empacado||0);
+    // Breakdown por proceso usa NETO (excluye re-pases) para que sume al Terminado visible
+    wkSuav  += (br.suavizadoNeto||0);
+    wkTermo += (br.termofijadoNeto||0);
+    wkEmpac += (br.empacadoNeto||0);
     wkTotal += total;
     wkTMmin += tmMin;
     wkParos += paros;
@@ -10143,6 +10271,63 @@ async function renderReporteSemanal() {
   setF('rs_kpi_tm',    (wkTMmin/60).toFixed(1)+' h');
   setF('rs_kpi_tm_sub', `${wkParos} paro${wkParos===1?'':'s'} en la semana`);
 
+  // NUEVO: Reprocesos row — aparece bajo el KPI Terminado si hay re-pases.
+  //   Muestra: Bruto (con re-pases), Reprocesos totales, y breakdown por motivo.
+  //   Inyectado vía DOM para no tocar la estructura del HTML existente.
+  (function _rsRenderReprocRow(){
+    const kpiCard = document.getElementById('rs_kpi_term');
+    if (!kpiCard) return;
+    const container = kpiCard.closest('.p-4.rounded-lg') || kpiCard.parentElement;
+    if (!container) return;
+    let row = document.getElementById('rs_reprocRow');
+    if (!row) {
+      row = document.createElement('div');
+      row.id = 'rs_reprocRow';
+      row.className = 'mt-3 pt-3 border-t border-slate-800 text-[11px]';
+      container.appendChild(row);
+    }
+    if (wkReproc <= 0) {
+      // Estado ideal: sin reprocesos detectados. Mensaje mudo confirmatorio.
+      row.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">Reprocesos</span>
+          <span class="text-emer-accent font-bold">0 kg</span>
+        </div>
+        <div class="text-[10px] text-slate-600 mt-0.5">Ningún re-pase detectado esta semana</div>`;
+      return;
+    }
+    const pctRep = wkTermBruto > 0 ? Math.round(wkReproc / wkTermBruto * 100) : 0;
+    const pendientes = wkReprocMot.reproceso_desconocido || 0;
+    const modA = wkReprocMot.mod_ancho || 0;
+    const calidad = wkReprocMot.reproceso_calidad || 0;
+    const otro = wkReprocMot.reproceso_otro || 0;
+    const chip = (color, label, kg) => kg > 0
+      ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style="background:${color}22; color:${color}; border:1px solid ${color}55"><span>${label}</span><span class="font-bold">${fmtKg(kg)}</span></span>`
+      : '';
+    row.innerHTML = `
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Reprocesos (descontados)</span>
+        <span class="text-amber-accent font-bold">${fmtKg(wkReproc)} kg <span class="text-slate-500 font-normal">(${pctRep}% del bruto)</span></span>
+      </div>
+      <div class="flex flex-wrap gap-1 mb-2">
+        ${chip('#f59e0b','Mod. ancho', modA)}
+        ${chip('#ef4444','Calidad', calidad)}
+        ${chip('#a855f7','Otro', otro)}
+        ${chip('#94a3b8','Pendientes', pendientes)}
+      </div>
+      <div class="flex items-center justify-between text-[10px] text-slate-500">
+        <span>Bruto (con re-pases):</span>
+        <span class="font-mono text-slate-400">${fmtKg(wkTermBruto)} kg</span>
+      </div>
+      ${pendientes > 0 ? `<div class="mt-2 pt-2 border-t border-slate-800 text-[10px]" style="color:#fbbf24">
+        ⚠️ ${fmtKg(pendientes)} kg pendientes de clasificar. Abre <b>Detalle QA</b> abajo para asignar motivo.</div>` : ''}
+    `;
+  })();
+
+  // Guardar los valores del reproc para el mensaje del jefe / CSV
+  //   (se usan más abajo cuando existe el objeto de contexto)
+  const _reprocCtx = { wkTermBruto, wkReproc, wkReprocMot };
+
   // Desglose del Terminado semana por proceso (Suavizado / Termofijado / Empacado)
   const _pctTerm = (v) => wkTerm > 0 ? Math.round((v / wkTerm) * 100) : 0;
   const setBD = (id, kg) => {
@@ -10220,7 +10405,11 @@ async function renderReporteSemanal() {
       return d.toISOString().slice(0,10);
     })();
     const prevDates = _rsWeekDates(prevMonday);
-    const prevTerm = prevDates.reduce((a, f) => a + (_resumenComputeBruck(f).total || 0), 0);
+    // Usamos NETO (empacadoNeto + otrosNeto) para consistencia con el KPI actual
+    const prevTerm = prevDates.reduce((a, f) => {
+      const p = _resumenComputeBruck(f);
+      return a + ((p.empacadoNeto||0) + (p.otrosNeto||0));
+    }, 0);
     const elDelta = document.getElementById('rs_kpi_term_delta');
     if (elDelta) {
       if (prevTerm > 0) {
@@ -10321,7 +10510,13 @@ function _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup }) {
     if (lc.includes('empac')) return '<span style="color:#38bdf8">Empacado</span>';
     return `<span class="text-slate-400">${proceso || 'Otros'}</span>`;
   };
-  const _rowLine = (r) => `
+  const _rowLine = (r) => {
+    const motivo = r.motivoPase || 'nuevo';
+    const mp = MOTIVO_PASE[motivo] || MOTIVO_PASE.nuevo;
+    const optHtml = Object.entries(MOTIVO_PASE).map(([k, v]) =>
+      `<option value="${k}" ${k===motivo?'selected':''}>${v.label}${v.esReproceso?' ✕':' ✓'}</option>`
+    ).join('');
+    return `
     <div class="flex flex-wrap items-center gap-2 text-[11px] py-1.5 px-2 rounded" style="background:#0a0f1a; border:1px solid #1e293b">
       <span class="text-slate-500 font-mono">${r.fecha}</span>
       <span class="text-slate-400">·</span>
@@ -10330,13 +10525,18 @@ function _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup }) {
       <span>${_kindLabel(r.proceso)}</span>
       <span class="text-slate-400">·</span>
       <span class="text-sky-accent font-bold">${fmtKg(r.kilos||0)} kg</span>
-      <span class="text-slate-500 truncate max-w-[180px]" title="${(r.tela||'')+' '+(r.color||'')}">${[r.tela, r.color].filter(Boolean).join(' · ')}</span>
+      <span class="text-slate-500 truncate max-w-[140px]" title="${(r.tela||'')+' '+(r.color||'')}">${[r.tela, r.color].filter(Boolean).join(' · ')}</span>
+      <span class="inline-flex items-center gap-1">
+        <span class="text-[9px] text-slate-500 uppercase tracking-wider">Motivo:</span>
+        <select data-rs-motivo="${r.id}" class="text-[10px] rounded px-1 py-0.5" style="background:${mp.color}22;color:${mp.color};border:1px solid ${mp.color}55">${optHtml}</select>
+      </span>
       <span class="ml-auto flex gap-1">
         <button class="btn btn-secondary !py-1 !px-2 text-[10px]" onclick="editBruck('${r.id}')" title="Editar este registro (cambiar proceso, kg, etc.)">✎ Editar</button>
         <button class="btn btn-secondary !py-1 !px-2 text-[10px]" data-rs-reclass="${r.id}" title="Reclasificar proceso rápidamente">🔄 Reclasificar</button>
         <button class="btn btn-secondary !py-1 !px-2 text-[10px]" style="color:#ef4444" onclick="deleteBruck('${r.id}')" title="Borrar este registro">✕</button>
       </span>
     </div>`;
+  };
 
   const _groupBlock = (titleHTML, descHTML, items, color) => {
     if (!items.length) return '';
@@ -10360,8 +10560,8 @@ function _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup }) {
 
   body.innerHTML = [
     _groupBlock(
-      `⚠️ Empacado duplicado (${qaEmpacDup.length}) · ERROR PROBABLE`,
-      `El mismo lote aparece registrado 2+ veces como Empacado. Probablemente es captura repetida. Revisa y borra o reclasifica uno.`,
+      `⚠️ Empacado duplicado (${qaEmpacDup.length}) · CLASIFICAR MOTIVO`,
+      `El mismo lote aparece 2+ veces como Empacado. El primero cuenta como Nuevo; los siguientes se marcaron automáticamente como <b>Reproc. (pendiente)</b> y NO cuentan en Terminado. Asigna el motivo real (Mod. ancho / Calidad / Otro) desde el selector. Si es captura repetida, bórralo.`,
       qaEmpacDup, '#ef4444'
     ),
     _groupBlock(
@@ -10395,6 +10595,36 @@ function _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup }) {
       const id = btn.getAttribute('data-rs-reclass');
       _rsReclassifyProceso(id);
     });
+  });
+  // Wire selector de motivoPase → actualiza el registro + cloud + re-render
+  body.querySelectorAll('select[data-rs-motivo]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const id = sel.getAttribute('data-rs-motivo');
+      const nuevo = sel.value;
+      _rsSetMotivoPase(id, nuevo);
+    });
+  });
+}
+
+/* Cambia el motivoPase de un registro Bruckner. Requiere auth (usa requireUserThen). */
+function _rsSetMotivoPase(id, nuevoMotivo) {
+  const rec = (state.bruck||[]).find(r => r.id === id);
+  if (!rec) return toast('Registro no encontrado', true);
+  if (!MOTIVO_PASE[nuevoMotivo]) return toast('Motivo inválido', true);
+  const anterior = rec.motivoPase || 'nuevo';
+  if (anterior === nuevoMotivo) return;
+  requireUserThen(() => {
+    rec.motivoPase = nuevoMotivo;
+    save(LS_KEYS.bruck, state.bruck);
+    try { saveToCloud('bruck', rec); } catch {}
+    logChange({
+      module:'Bruckner',
+      action:'Motivo del pase actualizado',
+      lote: rec.lote,
+      detail:`${MOTIVO_PASE[anterior].label} → ${MOTIVO_PASE[nuevoMotivo].label}`
+    });
+    toast(`Motivo: ${MOTIVO_PASE[nuevoMotivo].label}`);
+    renderAll();
   });
 }
 
