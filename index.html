@@ -10211,7 +10211,9 @@ async function renderReporteSemanal() {
     chartLabels.push(_rsFechaShort(fecha));
     chartProno.push(prono);
     chartTerm.push(term);
-    chartEfi.push(prono > 0 ? Math.round(efi*10)/10 : null);
+    // Cap chart efficiency at 200% — valores >200% son casi siempre error de captura
+    // del pronóstico y arruinan la escala del gráfico. Se marca como null si es obviamente erróneo (>500%).
+    chartEfi.push(prono > 0 ? (efi > 500 ? null : Math.min(200, Math.round(efi*10)/10)) : null);
 
     const efiColor = efi >= 100 ? '#10b981' : (efi >= 85 ? '#f59e0b' : '#ef4444');
     const difColor = dif <= 0 ? '#10b981' : '#ef4444';
@@ -10228,7 +10230,7 @@ async function renderReporteSemanal() {
       <td class="p-2 text-right text-white font-bold">${fmtKg(total)}</td>
       <td class="p-2 text-right text-slate-300">${(tmMin/60).toFixed(1)} h</td>
       <td class="p-2 text-right font-bold" style="color:${difColor}">${prono>0 ? (dif>=0?'+':'') + fmtKg(dif) : '—'}</td>
-      <td class="p-2 text-right font-black" style="color:${efiColor}">${prono>0 ? efi.toFixed(1)+'%' : '—'}</td>
+      <td class="p-2 text-right font-black" style="color:${efiColor}">${prono>0 ? (efi>999.9 ? '⚠️ '+Math.round(efi)+'%' : efi.toFixed(1)+'%') : '—'}</td>
       <td class="p-2 text-slate-300 text-[11px]">${causa || '<span class="text-slate-600">—</span>'}</td>
     </tr>`;
   });
@@ -10256,20 +10258,54 @@ async function renderReporteSemanal() {
   const wkEfi = wkProno > 0 ? (wkTerm / wkProno * 100) : 0;
   const wkDif = wkProno - wkTerm;
   const setF = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  // Formateador defensivo de eficiencia: capa 999.9% y avisa cuando se sale de rango.
+  //   Si wkProno es < 500 kg para una semana con producción real, casi seguro es un
+  //   error de captura del pronóstico (ej: un día con 30 en vez de 30000).
+  const fmtEfi = () => {
+    if (wkProno <= 0)   return '—';
+    if (wkProno < 500 && wkTerm > 5000) {
+      // Pronóstico sospechosamente pequeño vs terminado real → muestra warning
+      return `⚠️ revisar pron.`;
+    }
+    if (wkEfi > 999.9) return `⚠️ ${Math.round(wkEfi)}%`;
+    return wkEfi.toFixed(1) + '%';
+  };
+
   setF('rs_foot_prono',     fmtKg(wkProno));
   setF('rs_foot_term',      fmtKg(wkTerm));
   setF('rs_foot_suavTermo', fmtKg(wkSuavTermo));
   setF('rs_foot_total',     fmtKg(wkTotal));
   setF('rs_foot_tm',        (wkTMmin/60).toFixed(1)+' h');
   setF('rs_foot_dif',       wkProno>0 ? (wkDif>=0?'+':'') + fmtKg(wkDif) : '—');
-  setF('rs_foot_efi',       wkProno>0 ? wkEfi.toFixed(1)+'%' : '—');
+  setF('rs_foot_efi',       fmtEfi());
 
   // KPIs
   setF('rs_kpi_prono', fmtKg(wkProno));
   setF('rs_kpi_term',  fmtKg(wkTerm));
-  setF('rs_kpi_efi',   wkProno>0 ? wkEfi.toFixed(1)+'%' : '—');
+  setF('rs_kpi_efi',   fmtEfi());
   setF('rs_kpi_tm',    (wkTMmin/60).toFixed(1)+' h');
   setF('rs_kpi_tm_sub', `${wkParos} paro${wkParos===1?'':'s'} en la semana`);
+
+  // Diagnostic line under efficiency KPI (transparency: shows raw numerator/denominator).
+  //   Inyectado vía DOM para no tocar el HTML existente.
+  (function _rsRenderEfiDiag(){
+    const kpi = document.getElementById('rs_kpi_efi');
+    if (!kpi) return;
+    const card = kpi.closest('.p-4.rounded-lg') || kpi.parentElement;
+    if (!card) return;
+    let diag = document.getElementById('rs_kpi_efi_diag');
+    if (!diag) {
+      diag = document.createElement('div');
+      diag.id = 'rs_kpi_efi_diag';
+      diag.className = 'text-[10px] text-slate-500 mt-1 pt-1 border-t border-slate-800 flex justify-between';
+      card.appendChild(diag);
+    }
+    const warn = (wkProno > 0 && wkProno < 500 && wkTerm > 5000);
+    diag.innerHTML = warn
+      ? `<span style="color:#fbbf24">⚠️ Pronóstico de la semana muy bajo (${fmtKg(wkProno)} kg). Revisa la captura del pronóstico diario.</span>`
+      : `<span>Terminado: <b class="text-slate-300">${fmtKg(wkTerm)}</b></span><span>Pronóstico: <b class="text-slate-300">${fmtKg(wkProno)}</b></span>`;
+  })();
 
   // NUEVO: Reprocesos row — aparece bajo el KPI Terminado si hay re-pases.
   //   Muestra: Bruto (con re-pases), Reprocesos totales, y breakdown por motivo.
