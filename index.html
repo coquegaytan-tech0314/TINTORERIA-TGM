@@ -2707,8 +2707,8 @@
           <div id="rs_kpi_efi" class="text-4xl font-black text-emer-accent mt-1 leading-none">0%</div>
           <div class="text-xs text-slate-500 mt-1">Terminado / Pronóstico</div>
           <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
-            <div class="flex justify-between"><span>✅ Días ≥ 100%</span><span id="rs_kpi_diasOk" class="font-bold text-emer-accent">0/7</span></div>
-            <div class="flex justify-between mt-0.5"><span>⚠️ Días &lt; 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/7</span></div>
+            <div class="flex justify-between"><span>✅ Días ≥ 100%</span><span id="rs_kpi_diasOk" class="font-bold text-emer-accent">0/6</span></div>
+            <div class="flex justify-between mt-0.5"><span>⚠️ Días &lt; 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/6</span></div>
           </div>
         </div>
 
@@ -10012,11 +10012,13 @@ function _rsMondayOf(iso) {
   return `${y}-${m}-${dd}`;
 }
 
-/** Devuelve array de 7 fechas ISO (lunes→domingo) a partir del lunes dado */
+/** Devuelve array de 6 fechas ISO (lunes→sábado) a partir del lunes dado.
+ *  Convención de la fábrica (Roger, PRODUCCION-DIARIO.xlsx): la semana operativa es LUN–SÁB.
+ *  Domingo NO se contabiliza en la semana; si existieran lotes en domingo, verse en la pestaña Diario. */
 function _rsWeekDates(mondayIso) {
   const out = [];
   const base = new Date(mondayIso + 'T12:00:00');
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 6; i++) {
     const d = new Date(base);
     d.setDate(d.getDate() + i);
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
@@ -10032,17 +10034,17 @@ function _rsFechaShort(iso) {
   return `${dias[d.getDay()]} ${d.getDate()}`;
 }
 
-/** Para subtítulo: "Semana del lunes 4 al domingo 10 de mayo 2026" */
+/** Para subtítulo: "Semana del 6 al 11 de julio 2026" (LUN–SÁB, formato Excel de Roger) */
 function _rsSubtitulo(mondayIso) {
   const dates = _rsWeekDates(mondayIso);
   const mon = new Date(dates[0] + 'T12:00:00');
-  const sun = new Date(dates[6] + 'T12:00:00');
+  const sat = new Date(dates[dates.length - 1] + 'T12:00:00');
   const mesM = MESES_ES[mon.getMonth()].toLowerCase();
-  const mesS = MESES_ES[sun.getMonth()].toLowerCase();
-  if (mon.getMonth() === sun.getMonth()) {
-    return `Semana del lunes ${mon.getDate()} al domingo ${sun.getDate()} de ${mesM} ${mon.getFullYear()}`;
+  const mesS = MESES_ES[sat.getMonth()].toLowerCase();
+  if (mon.getMonth() === sat.getMonth()) {
+    return `Semana del ${mon.getDate()} al ${sat.getDate()} de ${mesM} ${mon.getFullYear()}`;
   }
-  return `Semana del lunes ${mon.getDate()} de ${mesM} al domingo ${sun.getDate()} de ${mesS} ${sun.getFullYear()}`;
+  return `Semana del ${mon.getDate()} de ${mesM} al ${sat.getDate()} de ${mesS} ${sat.getFullYear()}`;
 }
 
 /** Causa automática: lista de motivos únicos de paros Bruckner en esa fecha + causaExtra */
@@ -10414,13 +10416,13 @@ async function renderReporteSemanal() {
   setBar('rs_bar_termo', wkTermo);
   setBar('rs_bar_empac', wkEmpac);
 
-  // Promedio diario del pronóstico (sobre 7 días)
+  // Promedio diario del pronóstico (sobre 6 días hábiles LUN–SÁB)
   const elPronoAvg = document.getElementById('rs_kpi_prono_avg');
-  if (elPronoAvg) elPronoAvg.textContent = `${fmtKg(Math.round(wkProno/7))} kg/día promedio`;
+  if (elPronoAvg) elPronoAvg.textContent = `${fmtKg(Math.round(wkProno/6))} kg/día promedio`;
 
   // Días ≥ 100% / < 85%
-  setF('rs_kpi_diasOk',  `${diasOk}/7`);
-  setF('rs_kpi_diasBad', `${diasBad}/7`);
+  setF('rs_kpi_diasOk',  `${diasOk}/6`);
+  setF('rs_kpi_diasBad', `${diasBad}/6`);
 
   // Top motivo de paros de la semana
   const elTopMot = document.getElementById('rs_kpi_topMotivo');
@@ -10889,7 +10891,7 @@ function bindReporteSemanal() {
     lines.push(`T. Muerto: ${(c.wkTMmin/60).toFixed(1)} h en ${c.wkParos} paros`);
     if (c.topMotivo) lines.push(`  Top motivo: ${c.topMotivo.motivo} (${c.topMotivo.horas.toFixed(1)} h)`);
     lines.push('');
-    lines.push(`Días ≥ 100%: ${c.diasOk}/7   Días < 85%: ${c.diasBad}/7`);
+    lines.push(`Días ≥ 100%: ${c.diasOk}/6   Días < 85%: ${c.diasBad}/6`);
     lines.push(`Lotes capturados: ${c.wkLotes}`);
     if (c.bestDay && c.bestDay.fecha)  lines.push(`🏆 Mejor día:  ${c.bestDay.fecha}  ·  ${fmtKg(c.bestDay.kg)} kg`);
     if (c.worstDay && c.worstDay.fecha && c.worstDay.kg !== Infinity)
