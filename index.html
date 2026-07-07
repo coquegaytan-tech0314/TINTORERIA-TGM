@@ -10012,13 +10012,14 @@ function _rsMondayOf(iso) {
   return `${y}-${m}-${dd}`;
 }
 
-/** Devuelve array de 6 fechas ISO (lunes→sábado) a partir del lunes dado.
- *  Convención de la fábrica (Roger, PRODUCCION-DIARIO.xlsx): la semana operativa es LUN–SÁB.
- *  Domingo NO se contabiliza en la semana; si existieran lotes en domingo, verse en la pestaña Diario. */
+/** Devuelve array de 7 fechas ISO (lunes→domingo) a partir del lunes dado.
+ *  Convención Roger (PRODUCCION-DIARIO.xlsx): la etiqueta dice "LUN–SÁB" pero el TOTAL
+ *  incluye domingo cuando hay producción (a veces se trabaja domingo por demanda).
+ *  Por eso pasamos 7 fechas pero el subtítulo muestra hasta el sábado (dates[5]). */
 function _rsWeekDates(mondayIso) {
   const out = [];
   const base = new Date(mondayIso + 'T12:00:00');
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     const d = new Date(base);
     d.setDate(d.getDate() + i);
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
@@ -10034,11 +10035,12 @@ function _rsFechaShort(iso) {
   return `${dias[d.getDay()]} ${d.getDate()}`;
 }
 
-/** Para subtítulo: "Semana del 6 al 11 de julio 2026" (LUN–SÁB, formato Excel de Roger) */
+/** Para subtítulo: "Semana del 6 al 11 de julio 2026" (LUN–SÁB, formato Excel de Roger).
+ *  Nota: el TOTAL/KPIs internamente sí suman domingo cuando hay lotes (Roger también). */
 function _rsSubtitulo(mondayIso) {
   const dates = _rsWeekDates(mondayIso);
   const mon = new Date(dates[0] + 'T12:00:00');
-  const sat = new Date(dates[dates.length - 1] + 'T12:00:00');
+  const sat = new Date(dates[5] + 'T12:00:00'); // sábado = 6º día (índice 5)
   const mesM = MESES_ES[mon.getMonth()].toLowerCase();
   const mesS = MESES_ES[sat.getMonth()].toLowerCase();
   if (mon.getMonth() === sat.getMonth()) {
@@ -10416,7 +10418,9 @@ async function renderReporteSemanal() {
   setBar('rs_bar_termo', wkTermo);
   setBar('rs_bar_empac', wkEmpac);
 
-  // Promedio diario del pronóstico (sobre 6 días hábiles LUN–SÁB)
+  // Promedio diario del pronóstico (sobre 6 días hábiles LUN–SÁB; domingo no cuenta como
+  // día de plan por default — aunque a veces se trabaja — así que el promedio operativo
+  // sigue siendo /6 para no diluir la meta diaria)
   const elPronoAvg = document.getElementById('rs_kpi_prono_avg');
   if (elPronoAvg) elPronoAvg.textContent = `${fmtKg(Math.round(wkProno/6))} kg/día promedio`;
 
