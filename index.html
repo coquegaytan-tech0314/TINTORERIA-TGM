@@ -2801,6 +2801,41 @@
         </div>
       </div>
 
+      <!-- Reconciliación vs Reporte Final (Excel Roger) — nuevo 07/Jul/2026 -->
+      <div id="rs_reconPanel" class="mb-4">
+        <div class="p-4 rounded-lg" style="background:#0c1320; border:1px solid rgba(56,189,248,0.40)">
+          <div class="flex items-center justify-between mb-2 gap-3 flex-wrap">
+            <div>
+              <div class="text-sm font-black uppercase tracking-wider" style="color:#38bdf8">📊 Reconciliación vs Reporte Final</div>
+              <div id="rs_reconSubtitle" class="text-[11px] text-slate-400 mt-0.5">Compara el kg terminado del dashboard contra el Excel de Roger día por día.</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="rs_reconImportBtn" class="btn btn-secondary !py-1 !px-3 text-xs" title="Importar reporte final desde Excel/JSON">⬆️ Importar</button>
+              <button id="rs_reconToggle" class="btn btn-secondary !py-1 !px-3 text-xs">Mostrar detalle ▼</button>
+            </div>
+          </div>
+          <div id="rs_reconSummary" class="text-[11px] text-slate-300 mt-2"></div>
+          <div id="rs_reconBody" class="hidden mt-3"></div>
+        </div>
+      </div>
+      <!-- Modal de importación del reporte final -->
+      <div id="reconImportModal" class="fixed inset-0 z-[999] hidden items-center justify-center" style="background:rgba(0,0,0,0.75); backdrop-filter:blur(4px)">
+        <div class="bg-ink-900 border border-ink-700 rounded-lg shadow-2xl p-5 max-w-2xl w-[92%] max-h-[85vh] overflow-auto">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-lg font-black text-white">Importar reporte final · Excel de Roger</div>
+            <button id="reconImportClose" class="btn btn-secondary !py-1 !px-2 text-sm">✕</button>
+          </div>
+          <div class="text-[12px] text-slate-400 mb-3">Pega el JSON generado (array de <code>{fecha, acabado_kg, programado_kg}</code>) o sube el Excel <b>PRODUCCION-DIARIO.xlsx</b> tal cual. El sistema lo interpreta y compara contra el dashboard.</div>
+          <textarea id="reconImportJson" rows="10" class="field text-[11px] font-mono" placeholder='[{"fecha":"2026-07-02","acabado_kg":13635.75,"programado_kg":3674.47}, ...]'></textarea>
+          <div class="flex items-center gap-2 mt-3">
+            <input type="file" id="reconImportFile" accept=".xlsx,.csv,.json" class="text-[11px] text-slate-400" />
+            <button id="reconImportSave" class="btn btn-primary !py-2 !px-4 text-sm">Guardar reporte real</button>
+            <button id="reconImportClear" class="btn btn-secondary !py-2 !px-4 text-sm">Limpiar reporte guardado</button>
+          </div>
+          <div id="reconImportStatus" class="text-[11px] mt-2"></div>
+        </div>
+      </div>
+
       <!-- Gráficas: Pronóstico vs Terminado + Eficiencia -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
         <div class="p-3 rounded-lg" style="background:#0c1320; border:1px solid rgba(148,163,184,0.15)">
@@ -10497,6 +10532,7 @@ async function renderReporteSemanal() {
 
   // Charts
   _rsRenderCharts(chartLabels, chartProno, chartTerm, chartEfi);
+  try { _reconRender(dates); _reconBindEventsOnce(); } catch(e) { console.warn('reconRender:', e); }
 
   // Panel de calidad: lotes duplicados
   _rsRenderQaPanel({ qaProcessOK, qaEmpacDup, qaInterDup });
@@ -11396,6 +11432,247 @@ function _catBindEventsOnce() {
   const exp = document.getElementById('cat_exportCsv');
   if (exp) exp.addEventListener('click', _catExportCSV);
 }
+
+
+/* ==================================================================
+   Reconciliación vs Reporte Final (Excel de Roger)
+   Añadido 07/Jul/2026 — resuelve el bug: 'diferencias entre plataforma
+   y reportes finales'. Muestra dashboard-kg vs excel-kg día por día.
+   ================================================================== */
+
+// Seed embebido: 162 días de 2026 desde PRODUCCION-DIARIO.xlsx (07/Jul/2026)
+const ROGER_GROUND_TRUTH_SEED = [{"f":"2026-01-12","t":8564.17,"a":11670.06,"p":0},{"f":"2026-01-13","t":9242.35,"a":10157.09,"p":0},{"f":"2026-01-14","t":9154.65,"a":7789.52,"p":0},{"f":"2026-01-15","t":9651.6,"a":5573.91,"p":0},{"f":"2026-01-16","t":8990.41,"a":10069.02,"p":0},{"f":"2026-01-17","t":4614.4,"a":9556.73,"p":0},{"f":"2026-01-18","t":50217.58,"a":54816.33,"p":0},{"f":"2026-01-19","t":7333.25,"a":8989.93,"p":0},{"f":"2026-01-20","t":8547.35,"a":10850.96,"p":0},{"f":"2026-01-21","t":8676.6,"a":6474.54,"p":0},{"f":"2026-01-22","t":8569.25,"a":11529.06,"p":0},{"f":"2026-01-23","t":9038.3,"a":8255.13,"p":0},{"f":"2026-01-24","t":4343.25,"a":6061,"p":0},{"f":"2026-01-25","t":2178.3,"a":0,"p":0},{"f":"2026-01-26","t":8901.9,"a":7400.09,"p":0},{"f":"2026-01-27","t":8728.05,"a":9028,"p":0},{"f":"2026-01-28","t":8692.6,"a":9091.2,"p":0},{"f":"2026-01-29","t":8712.5,"a":7351.23,"p":0},{"f":"2026-01-30","t":8826.4,"a":9373.35,"p":0},{"f":"2026-01-31","t":4833.35,"a":10040.23,"p":0},{"f":"2026-02-01","t":2616.75,"a":0,"p":0},{"f":"2026-02-03","t":8976.55,"a":8182.78,"p":0},{"f":"2026-02-04","t":9579.4,"a":10324.5,"p":0},{"f":"2026-02-05","t":9715.65,"a":9361.87,"p":0},{"f":"2026-02-06","t":9548.95,"a":8692.49,"p":0},{"f":"2026-02-07","t":4755.6,"a":9836.74,"p":0},{"f":"2026-02-08","t":5680.6,"a":2720.36,"p":0},{"f":"2026-02-09","t":9461,"a":6177.2,"p":0},{"f":"2026-02-10","t":10219.1,"a":9170.71,"p":0},{"f":"2026-02-11","t":9800.05,"a":9444.93,"p":0},{"f":"2026-02-12","t":9625.75,"a":9783.02,"p":0},{"f":"2026-02-13","t":9674.7,"a":8848.52,"p":0},{"f":"2026-02-14","t":4555.65,"a":10236.96,"p":0},{"f":"2026-02-15","t":5622.45,"a":0,"p":0},{"f":"2026-02-16","t":9593.5,"a":9529.28,"p":0},{"f":"2026-02-17","t":9626.8,"a":8737.66,"p":0},{"f":"2026-02-18","t":9990.4,"a":8396.53,"p":0},{"f":"2026-02-19","t":10275.15,"a":8206.63,"p":0},{"f":"2026-02-20","t":10008.95,"a":8467.9,"p":0},{"f":"2026-02-21","t":5191.6,"a":10606.52,"p":0},{"f":"2026-02-22","t":1716.85,"a":3674.08,"p":0},{"f":"2026-02-23","t":9078.15,"a":8809.4,"p":0},{"f":"2026-02-24","t":10419.75,"a":8161.85,"p":0},{"f":"2026-02-25","t":10419.75,"a":10277.37,"p":0},{"f":"2026-02-26","t":10033.7,"a":7598.84,"p":0},{"f":"2026-02-27","t":10124.45,"a":8653.94,"p":0},{"f":"2026-02-28","t":5175.6,"a":9121.18,"p":0},{"f":"2026-03-01","t":5527.6,"a":10180.11,"p":0},{"f":"2026-03-02","t":9459.15,"a":8490.47,"p":0},{"f":"2026-03-03","t":9522.7,"a":7202.13,"p":0},{"f":"2026-03-04","t":9435.68,"a":9978.35,"p":0},{"f":"2026-03-05","t":9583.65,"a":7734.22,"p":0},{"f":"2026-03-06","t":9350.15,"a":7734.22,"p":0},{"f":"2026-03-07","t":4838.78,"a":6503,"p":0},{"f":"2026-03-09","t":10118.95,"a":7415.59,"p":0},{"f":"2026-03-10","t":10688.3,"a":11797.34,"p":0},{"f":"2026-03-11","t":10256.85,"a":9592.99,"p":0},{"f":"2026-03-12","t":10344.45,"a":8459.28,"p":0},{"f":"2026-03-13","t":11696.75,"a":4786.38,"p":0},{"f":"2026-03-14","t":6540.7,"a":7103.06,"p":0},{"f":"2026-03-15","t":0,"a":8034.1,"p":0},{"f":"2026-03-17","t":8962.8,"a":6336.58,"p":0},{"f":"2026-03-18","t":9202.8,"a":9850.92,"p":0},{"f":"2026-03-19","t":9144.5,"a":11602.2,"p":0},{"f":"2026-03-20","t":9136.3,"a":10423.03,"p":0},{"f":"2026-03-21","t":4743.25,"a":10547.95,"p":0},{"f":"2026-03-23","t":9503.25,"a":8314.01,"p":0},{"f":"2026-03-24","t":9727.95,"a":11656.78,"p":0},{"f":"2026-03-25","t":10009.5,"a":9223.75,"p":0},{"f":"2026-03-26","t":9899.5,"a":8285.99,"p":0},{"f":"2026-03-27","t":10225.2,"a":10495.89,"p":0},{"f":"2026-03-28","t":4891.35,"a":7892.33,"p":0},{"f":"2026-03-30","t":7961.55,"a":10207.43,"p":0},{"f":"2026-03-31","t":8499.9,"a":6064.2,"p":0},{"f":"2026-04-01","t":8190.89,"a":8618.25,"p":0},{"f":"2026-04-06","t":9340.05,"a":5961.67,"p":0},{"f":"2026-04-07","t":10356.1,"a":7663.97,"p":0},{"f":"2026-04-08","t":9846.2,"a":10342.88,"p":0},{"f":"2026-04-09","t":10093.1,"a":8271.46,"p":0},{"f":"2026-04-10","t":10286.55,"a":7429.19,"p":0},{"f":"2026-04-11","t":5316.7,"a":9394.23,"p":0},{"f":"2026-04-12","t":2922.55,"a":3314.06,"p":0},{"f":"2026-04-13","t":11050.2,"a":7422.45,"p":0},{"f":"2026-04-14","t":11102.86,"a":6381.91,"p":0},{"f":"2026-04-15","t":11240.9,"a":8797.77,"p":0},{"f":"2026-04-16","t":10982.33,"a":10026.67,"p":0},{"f":"2026-04-17","t":11486.34,"a":10412.03,"p":0},{"f":"2026-04-18","t":5852.44,"a":4000.2,"p":0},{"f":"2026-04-19","t":3185.6,"a":0,"p":0},{"f":"2026-04-20","t":10734.73,"a":11696.59,"p":0},{"f":"2026-04-21","t":10579.51,"a":10107.06,"p":0},{"f":"2026-04-22","t":10649.09,"a":10371.36,"p":0},{"f":"2026-04-23","t":9915.78,"a":10145.04,"p":0},{"f":"2026-04-24","t":11123.08,"a":7489.79,"p":0},{"f":"2026-04-25","t":5928.05,"a":9737.01,"p":0},{"f":"2026-04-26","t":7389.35,"a":6788.96,"p":0},{"f":"2026-04-27","t":10510.3,"a":10036.93,"p":0},{"f":"2026-04-28","t":10606.05,"a":12333.93,"p":0},{"f":"2026-04-29","t":11537.05,"a":11229.69,"p":0},{"f":"2026-04-30","t":11291.5,"a":7442.25,"p":0},{"f":"2026-05-01","t":6053.25,"a":9292.74,"p":0},{"f":"2026-05-02","t":7419.05,"a":3804.98,"p":0},{"f":"2026-05-04","t":11847.4,"a":13698.94,"p":0},{"f":"2026-05-05","t":11865.4,"a":11914.82,"p":0},{"f":"2026-05-06","t":11901.7,"a":6115.03,"p":0},{"f":"2026-05-07","t":11355.85,"a":8713,"p":0},{"f":"2026-05-08","t":11615.6,"a":9807.55,"p":0},{"f":"2026-05-09","t":5551.3,"a":9464.31,"p":0},{"f":"2026-05-10","t":0,"a":2127.97,"p":0},{"f":"2026-05-11","t":10929.95,"a":7862.31,"p":0},{"f":"2026-05-12","t":11003.6,"a":8465.03,"p":0},{"f":"2026-05-13","t":11972.25,"a":8490.11,"p":0},{"f":"2026-05-14","t":11745.75,"a":8952.68,"p":0},{"f":"2026-05-15","t":11376.35,"a":8823.55,"p":0},{"f":"2026-05-16","t":6723.23,"a":7647.01,"p":0},{"f":"2026-05-17","t":0,"a":8708.5,"p":0},{"f":"2026-05-18","t":10622,"a":6311.65,"p":0},{"f":"2026-05-19","t":10736.8,"a":12423.61,"p":2554.91},{"f":"2026-05-20","t":10703.1,"a":10129.86,"p":1727.19},{"f":"2026-05-21","t":11263.4,"a":11712.58,"p":0},{"f":"2026-05-22","t":10180.7,"a":7436.15,"p":0},{"f":"2026-05-23","t":5375.5,"a":14445.3,"p":0},{"f":"2026-05-24","t":0,"a":7104.53,"p":0},{"f":"2026-05-25","t":9695.73,"a":9149.33,"p":446.16},{"f":"2026-05-26","t":11055.15,"a":13590.62,"p":1972.97},{"f":"2026-05-27","t":11791.91,"a":10482.31,"p":1719.66},{"f":"2026-05-28","t":11029.25,"a":10480.87,"p":2407.73},{"f":"2026-05-29","t":10301.45,"a":11250.99,"p":3559.32},{"f":"2026-05-30","t":5387.55,"a":12181.2,"p":1707.07},{"f":"2026-06-01","t":9557.5,"a":8231.39,"p":343.92},{"f":"2026-06-02","t":11067.65,"a":15093.83,"p":1980.6},{"f":"2026-06-03","t":11238.02,"a":11864.18,"p":983.03},{"f":"2026-06-04","t":10903.15,"a":10099.21,"p":2309.17},{"f":"2026-06-05","t":11141.33,"a":11474.51,"p":3306.4},{"f":"2026-06-06","t":5415.3,"a":9066.16,"p":1420.22},{"f":"2026-06-07","t":1698.55,"a":7852.1,"p":677.96},{"f":"2026-06-08","t":10808.79,"a":10645.12,"p":1980.39},{"f":"2026-06-09","t":10690.75,"a":11332.09,"p":138.14},{"f":"2026-06-10","t":10518.81,"a":10927.76,"p":1235.02},{"f":"2026-06-11","t":9449.27,"a":8214.13,"p":983.06},{"f":"2026-06-12","t":9146.9,"a":11502.83,"p":663.67},{"f":"2026-06-13","t":4963.78,"a":10219.49,"p":1531.36},{"f":"2026-06-15","t":10250.7,"a":6248.57,"p":0},{"f":"2026-06-16","t":11045.6,"a":11515.84,"p":653.36},{"f":"2026-06-17","t":10739.05,"a":9743,"p":1744.39},{"f":"2026-06-18","t":11307.74,"a":9564.44,"p":868.11},{"f":"2026-06-19","t":11011.85,"a":6539.01,"p":872.17},{"f":"2026-06-20","t":5300.4,"a":11845.28,"p":0},{"f":"2026-06-21","t":2216.2,"a":0,"p":0},{"f":"2026-06-22","t":10566.15,"a":7441.42,"p":887.69},{"f":"2026-06-23","t":10743.66,"a":9045.57,"p":1159.24},{"f":"2026-06-24","t":10854.9,"a":8466.95,"p":576.99},{"f":"2026-06-25","t":10667.7,"a":9725.56,"p":584.56},{"f":"2026-06-26","t":10431.05,"a":11238.7,"p":2077.47},{"f":"2026-06-27","t":5100.9,"a":10182.48,"p":0},{"f":"2026-06-28","t":0,"a":8904.86,"p":0},{"f":"2026-06-29","t":10338.5,"a":9125.66,"p":1560.5},{"f":"2026-06-30","t":10998.8,"a":11747.44,"p":2065.01},{"f":"2026-07-01","t":11689.15,"a":9755.52,"p":1301.36},{"f":"2026-07-02","t":10968,"a":13635.75,"p":3674.47},{"f":"2026-07-03","t":10655.35,"a":5785.92,"p":284.22},{"f":"2026-07-04","t":0,"a":7434.02,"p":581.46}];
+
+/* Devuelve el reporte real (LS override + seed) como Map fecha→{a,p,t} */
+function _reconGetRealMap() {
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem('tg_reporte_final_v1') || 'null'); } catch(e){}
+  const source = Array.isArray(stored) && stored.length > 0 ? stored : ROGER_GROUND_TRUTH_SEED;
+  const map = new Map();
+  source.forEach(r => {
+    const f = r.f || r.fecha; if (!f) return;
+    map.set(f, {
+      a: Number(r.a ?? r.acabado_kg ?? 0) || 0,
+      p: Number(r.p ?? r.programado_kg ?? 0) || 0,
+      t: Number(r.t ?? r.tejido_kg ?? 0) || 0,
+    });
+  });
+  return map;
+}
+
+/* Renderiza el panel de reconciliación para la semana actual */
+function _reconRender(dates) {
+  const panel = document.getElementById('rs_reconPanel');
+  if (!panel) return;
+  const realMap = _reconGetRealMap();
+  const rows = dates.map(fecha => {
+    const br = _resumenComputeBruck(fecha);
+    const dashTerm = (br.empacadoNeto || 0) + (br.otrosNeto || 0);
+    const dashTermBruto = (br.empacado || 0) + (br.otros || 0);
+    const real = realMap.get(fecha);
+    return {
+      fecha,
+      dashTerm,          // NETO (sin re-pases)
+      dashTermBruto,     // Con re-pases
+      realAcabado: real ? real.a : null,
+      realProg:    real ? real.p : null,
+      realTejido:  real ? real.t : null,
+    };
+  });
+  // Delta = dashTerm - realAcabado. Positivo = dashboard SOBRE-cuenta. Negativo = SUB-cuenta.
+  const withReal = rows.filter(r => r.realAcabado !== null);
+  const sumDash = withReal.reduce((s,r) => s + r.dashTerm, 0);
+  const sumDashBruto = withReal.reduce((s,r) => s + r.dashTermBruto, 0);
+  const sumReal = withReal.reduce((s,r) => s + r.realAcabado, 0);
+  const delta = sumDash - sumReal;
+  const deltaBruto = sumDashBruto - sumReal;
+  const pctDelta = sumReal > 0 ? (delta / sumReal * 100) : 0;
+  const pctDeltaBruto = sumReal > 0 ? (deltaBruto / sumReal * 100) : 0;
+
+  // Summary line (siempre visible)
+  const summary = document.getElementById('rs_reconSummary');
+  if (summary) {
+    if (withReal.length === 0) {
+      summary.innerHTML = '<span class="text-slate-500">Sin reporte real cargado para esta semana. Usa <b>Importar</b> para cargar los datos.</span>';
+    } else {
+      const cDelta = delta >= 0 ? '#f59e0b' : '#ef4444';
+      const cBruto = deltaBruto >= 0 ? '#94a3b8' : '#ef4444';
+      const arrow = delta >= 0 ? '↑' : '↓';
+      summary.innerHTML = `
+        <div class="flex flex-wrap gap-x-4 gap-y-1 items-center">
+          <span>Dashboard NETO: <b class="text-white">${fmtKg(sumDash)} kg</b></span>
+          <span class="text-slate-500">Bruto: <span class="text-slate-400">${fmtKg(sumDashBruto)} kg</span></span>
+          <span class="text-slate-500">·</span>
+          <span>Reporte Roger: <b class="text-white">${fmtKg(sumReal)} kg</b></span>
+          <span class="text-slate-500">·</span>
+          <span style="color:${cDelta}">Δ NETO: <b>${arrow} ${fmtKg(Math.abs(delta))} kg (${Math.abs(pctDelta).toFixed(1)}%)</b></span>
+          <span style="color:${cBruto}" class="text-[10px]">(Bruto: ${deltaBruto>=0?'+':''}${fmtKg(deltaBruto)} · ${pctDeltaBruto.toFixed(1)}%)</span>
+        </div>`;
+    }
+  }
+
+  // Body (colapsable)
+  const body = document.getElementById('rs_reconBody');
+  if (!body) return;
+  const _dayEs = (iso) => {
+    try {
+      const d = new Date(iso + 'T12:00:00');
+      return d.toLocaleDateString('es-MX', {weekday:'short', day:'numeric', month:'short'});
+    } catch(e){ return iso; }
+  };
+  const rowsHtml = rows.map(r => {
+    const hasReal = r.realAcabado !== null;
+    const dNeto = hasReal ? r.dashTerm - r.realAcabado : null;
+    const dBruto = hasReal ? r.dashTermBruto - r.realAcabado : null;
+    const flag = (() => {
+      if (!hasReal) return '<span class="text-slate-600 text-[10px]">sin dato</span>';
+      const absPct = r.realAcabado > 0 ? Math.abs(dNeto / r.realAcabado * 100) : 0;
+      if (absPct < 5)  return '<span class="text-emer-accent text-[10px]">✓ OK</span>';
+      if (absPct < 15) return '<span class="text-amber-accent text-[10px]">⚠ leve</span>';
+      return '<span class="text-danger text-[10px]">✕ ALTO</span>';
+    })();
+    const cellDelta = (d) => {
+      if (d === null) return '<td class="p-2 text-right text-slate-600">—</td>';
+      const color = Math.abs(d) < 500 ? '#94a3b8' : (d > 0 ? '#f59e0b' : '#ef4444');
+      const sign = d >= 0 ? '+' : '';
+      return `<td class="p-2 text-right font-bold" style="color:${color}">${sign}${fmtKg(d)}</td>`;
+    };
+    return `<tr class="hover:bg-ink-800/40">
+      <td class="p-2 text-slate-300 text-[11px]">${_dayEs(r.fecha)}</td>
+      <td class="p-2 text-right text-slate-200">${fmtKg(r.dashTerm)}</td>
+      <td class="p-2 text-right text-slate-400 text-[11px]">${fmtKg(r.dashTermBruto)}</td>
+      <td class="p-2 text-right text-slate-200">${hasReal ? fmtKg(r.realAcabado) : '—'}</td>
+      ${cellDelta(dNeto)}
+      ${cellDelta(dBruto)}
+      <td class="p-2 text-center">${flag}</td>
+    </tr>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="overflow-x-auto">
+      <table class="w-full text-[12px]">
+        <thead>
+          <tr class="text-[10px] uppercase text-slate-500 border-b border-slate-800">
+            <th class="p-2 text-left">Día</th>
+            <th class="p-2 text-right">Dashboard NETO</th>
+            <th class="p-2 text-right">Bruto</th>
+            <th class="p-2 text-right">Reporte Roger</th>
+            <th class="p-2 text-right">Δ NETO</th>
+            <th class="p-2 text-right">Δ Bruto</th>
+            <th class="p-2 text-center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="text-[10px] text-slate-500 mt-2">
+      <b>Cómo leer:</b> Δ es <i>dashboard menos reporte real</i>. Positivo = el dashboard cuenta de más (probable duplicado / re-pase sin marcar). Negativo = el dashboard cuenta de menos (falta capturar un lote). Umbrales: &lt;5% ✓ OK · &lt;15% ⚠ leve · ≥15% ✕ revisar.
+    </div>`;
+}
+
+/* Wire de eventos: toggle, importar, guardar, limpiar */
+let _reconEventsBound = false;
+function _reconBindEventsOnce() {
+  if (_reconEventsBound) return;
+  _reconEventsBound = true;
+  const tog = document.getElementById('rs_reconToggle');
+  const body = document.getElementById('rs_reconBody');
+  if (tog && body) {
+    tog.addEventListener('click', () => {
+      body.classList.toggle('hidden');
+      tog.textContent = body.classList.contains('hidden') ? 'Mostrar detalle ▼' : 'Ocultar detalle ▲';
+    });
+  }
+  const modal = document.getElementById('reconImportModal');
+  const openBtn = document.getElementById('rs_reconImportBtn');
+  const closeBtn = document.getElementById('reconImportClose');
+  const saveBtn  = document.getElementById('reconImportSave');
+  const clearBtn = document.getElementById('reconImportClear');
+  const fileInp  = document.getElementById('reconImportFile');
+  const jsonTA   = document.getElementById('reconImportJson');
+  const statusEl = document.getElementById('reconImportStatus');
+  const showModal = (v) => {
+    if (!modal) return;
+    if (v) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    else   { modal.classList.add('hidden');    modal.classList.remove('flex'); }
+  };
+  if (openBtn) openBtn.addEventListener('click', () => showModal(true));
+  if (closeBtn) closeBtn.addEventListener('click', () => showModal(false));
+  if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) showModal(false); });
+
+  const setStatus = (msg, ok) => {
+    if (!statusEl) return;
+    statusEl.style.color = ok ? '#10b981' : '#ef4444';
+    statusEl.textContent = msg;
+  };
+
+  if (fileInp) fileInp.addEventListener('change', async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) return;
+    try {
+      if (f.name.toLowerCase().endsWith('.json')) {
+        const txt = await f.text();
+        if (jsonTA) jsonTA.value = txt;
+        setStatus(`Cargado ${f.name}. Revisa y guarda.`, true);
+      } else if (f.name.toLowerCase().endsWith('.csv')) {
+        // CSV con encabezados fecha,acabado_kg,programado_kg,tejido_kg
+        const txt = await f.text();
+        const lines = txt.split(/\r?\n/).filter(l => l.trim());
+        const hdr = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const idxF = hdr.indexOf('fecha');
+        const idxA = hdr.findIndex(h => h.startsWith('acab'));
+        const idxP = hdr.findIndex(h => h.startsWith('prog'));
+        const idxT = hdr.findIndex(h => h.startsWith('tej'));
+        const out = [];
+        for (let i=1; i<lines.length; i++) {
+          const cols = lines[i].split(',');
+          if (!cols[idxF]) continue;
+          out.push({
+            f: cols[idxF].trim(),
+            a: Number(cols[idxA] || 0) || 0,
+            p: idxP>=0 ? (Number(cols[idxP] || 0) || 0) : 0,
+            t: idxT>=0 ? (Number(cols[idxT] || 0) || 0) : 0,
+          });
+        }
+        if (jsonTA) jsonTA.value = JSON.stringify(out, null, 2);
+        setStatus(`CSV interpretado: ${out.length} filas.`, true);
+      } else if (f.name.toLowerCase().endsWith('.xlsx')) {
+        setStatus('El navegador no puede leer .xlsx directamente. Guarda el archivo como .csv o pega el JSON ya convertido.', false);
+      } else {
+        setStatus('Formato no soportado. Usa .json o .csv.', false);
+      }
+    } catch(e) {
+      setStatus('Error leyendo archivo: '+e.message, false);
+    }
+  });
+
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    try {
+      const parsed = JSON.parse((jsonTA && jsonTA.value) || '[]');
+      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Array vacío o inválido');
+      // Normalizar a {f, a, p, t}
+      const norm = parsed.map(r => ({
+        f: r.f || r.fecha,
+        a: Number(r.a ?? r.acabado_kg ?? 0) || 0,
+        p: Number(r.p ?? r.programado_kg ?? 0) || 0,
+        t: Number(r.t ?? r.tejido_kg ?? 0) || 0,
+      })).filter(r => r.f);
+      localStorage.setItem('tg_reporte_final_v1', JSON.stringify(norm));
+      setStatus(`✓ Guardado: ${norm.length} días. Re-render en curso...`, true);
+      setTimeout(() => { showModal(false); renderAll(); }, 700);
+    } catch(e) {
+      setStatus('JSON inválido: '+e.message, false);
+    }
+  });
+
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    if (!confirm('¿Borrar el reporte real guardado y volver al seed embebido?')) return;
+    localStorage.removeItem('tg_reporte_final_v1');
+    if (jsonTA) jsonTA.value = '';
+    setStatus('Reporte guardado eliminado. Se usará el seed embebido.', true);
+    setTimeout(() => { showModal(false); renderAll(); }, 700);
+  });
+}
+
 
 init();
 </script>
