@@ -3318,9 +3318,9 @@
         <select id="buscar_etapa" class="px-2 py-1.5 rounded bg-ink-800 border border-ink-700 text-white">
           <option value="">Etapa: todas</option>
           <option value="tejido">Tejido</option>
+          <option value="tenido">Teñido</option>
           <option value="rama">RAMA</option>
-          <option value="suavizado">Suavizado</option>
-          <option value="termofijado">Termofijado</option>
+          <option value="acabado">Acabado (Suav/Termo)</option>
           <option value="empacado">Empacado (terminado)</option>
         </select>
         <select id="buscar_dias" class="px-2 py-1.5 rounded bg-ink-800 border border-ink-700 text-white">
@@ -3351,8 +3351,9 @@
     </div>
 
     <!-- Nota inferior -->
-    <div class="mt-4 text-[11px] text-slate-500">
-      <p><b>ETA</b> se calcula del promedio histórico de kg/hora por proceso y tipo de tela. La luz 🟢/🟡/🔴 indica solo estado operativo (verde=empacado, amarillo=en proceso reciente, rojo=sin movimiento reciente). No se maneja fecha prometida por ahora.</p>
+    <div class="mt-4 text-[11px] text-slate-500 space-y-1">
+      <p><b>Flujo de producción:</b> Tejido → Teñido (tinas) → RAMA → Acabado (Suavizado para felpa / Termofijado para lycra) → Empacado.</p>
+      <p><b>ETA</b> se calcula del promedio histórico de kg/hora por proceso y tipo de tela (con recorte 5-95 percentil para evitar outliers). La luz 🟢/🟡/🔴 indica estado operativo (verde=empacado, amarillo=en proceso reciente, rojo=sin movimiento &gt;7 días). Sin fecha prometida por ahora.</p>
     </div>
 
   </section>
@@ -11148,13 +11149,18 @@ function bindPlanDia() {
      grupos por (lote + tela + color) y calcula timeline + ETA.
 ================================================================= */
 
-// Etapas del flujo productivo, en orden
+// Etapas del flujo productivo, en ORDEN CORRECTO:
+//   1. Tejido (no capturado aún en el sistema, placeholder implicito)
+//   2. Teñido: tinas THIES/THEN/OVERFLOW/GASTON → state.prod
+//   3. RAMA:   primer paso por Bruckner → state.bruck (sin proceso o generico)
+//   4. Acabado: Suavizado (felpa) O Termofijado (lycra) → state.bruck proc=suav|termo
+//   5. Empacado: rolls listos para venta → state.bruck proc=empac
 const BUSCAR_ETAPAS = [
-  { key: 'tejido',      label: 'Tejido',      icon: '🧵', color: '#94a3b8' },
-  { key: 'rama',        label: 'RAMA',        icon: '🔥', color: '#38bdf8' },
-  { key: 'suavizado',   label: 'Suavizado',   icon: '💧', color: '#22d3ee' },
-  { key: 'termofijado', label: 'Termofijado', icon: '♾️',  color: '#a78bfa' },
-  { key: 'empacado',    label: 'Empacado',    icon: '✅', color: '#10b981' }
+  { key: 'tejido',   label: 'Tejido',   icon: '🧵', color: '#94a3b8' },
+  { key: 'tenido',   label: 'Teñido',   icon: '🎨', color: '#f472b6' },
+  { key: 'rama',     label: 'RAMA',     icon: '🔥', color: '#38bdf8' },
+  { key: 'acabado',  label: 'Acabado',  icon: '✨', color: '#a78bfa' },
+  { key: 'empacado', label: 'Empacado', icon: '✅', color: '#10b981' }
 ];
 
 // Clasifica un registro (ficha o bruck) en su etapa correspondiente
@@ -11163,12 +11169,26 @@ function _buscarEtapaOf(rec) {
   if (rec._src === 'bruck') {
     const p = String(rec.proceso || '').toLowerCase();
     if (p.includes('empac')) return 'empacado';
-    if (p.includes('termo')) return 'termofijado';
-    if (p.includes('suav'))  return 'suavizado';
-    return 'rama'; // default para bruck sin proceso claro (paso de tela por RAMA)
+    // Termofijado (lycra) y Suavizado (felpa) son ramas paralelas del mismo
+    // paso "Acabado" — los unificamos para el timeline.
+    if (p.includes('termo')) return 'acabado';
+    if (p.includes('suav'))  return 'acabado';
+    return 'rama'; // default para bruck sin proceso claro (primer paso por RAMA)
   }
-  // Ficha: es teñido/lavado en tinas → Tejido bucket (previo a RAMA)
-  return 'tejido';
+  // state.prod = tinas de teñido (THIES/THEN/OVERFLOW/GASTON)
+  return 'tenido';
+}
+
+// Sub-tipo de acabado para mostrar en la ficha (Suav / Termo / mixto)
+function _buscarSubtipoAcabado(g) {
+  const subs = new Set();
+  (g.stagesRec.acabado || []).forEach(r => {
+    const p = String(r.proceso || '').toLowerCase();
+    if (p.includes('termo')) subs.add('Termofijado');
+    else if (p.includes('suav')) subs.add('Suavizado');
+  });
+  if (subs.size === 0) return '';
+  return Array.from(subs).join(' + ');
 }
 
 // Normaliza texto: minúsculas, sin acentos, sin espacios extras
@@ -11253,8 +11273,8 @@ function _buscarAgruparGrupos(records) {
         cliente: rec.cliente || rec.pedido || '',
         diseno: rec.diseno || '',
         records: [],
-        stagesKg: { tejido:0, rama:0, suavizado:0, termofijado:0, empacado:0 },
-        stagesRec: { tejido:[], rama:[], suavizado:[], termofijado:[], empacado:[] },
+        stagesKg: { tejido:0, tenido:0, rama:0, acabado:0, empacado:0 },
+        stagesRec: { tejido:[], tenido:[], rama:[], acabado:[], empacado:[] },
         motivos: new Set(),
         firstTs: Infinity,
         lastTs: 0
@@ -11290,8 +11310,8 @@ function _buscarEstadoGrupo(g) {
   const totalMovido = Object.values(g.stagesKg).reduce((s,v) => s+v, 0);
   // Aproximación de "kg del lote": el máximo entre etapas (el mismo lote pasa por varias)
   const kgPorEtapa = [
-    g.stagesKg.tejido, g.stagesKg.rama, g.stagesKg.suavizado,
-    g.stagesKg.termofijado, g.stagesKg.empacado
+    g.stagesKg.tejido, g.stagesKg.tenido, g.stagesKg.rama,
+    g.stagesKg.acabado, g.stagesKg.empacado
   ];
   const kgLoteEstimado = Math.max(...kgPorEtapa);
   const kgRestante = Math.max(0, kgLoteEstimado - empacadoKg);
@@ -11315,10 +11335,19 @@ function _buscarEstadoGrupo(g) {
     const pendientes = BUSCAR_ETAPAS.slice(startIdx + 1);
     let horasTot = 0;
     let usadas = 0;
+    // Preferimos suav si la tela es felpa; termo si es lycra (heurístico ligero)
+    const telaLC = String(g.tela||'').toLowerCase();
+    const acabadoHint = telaLC.includes('lycra') || telaLC.includes('spandex') || telaLC.includes('elast')
+      ? 'termo'
+      : (telaLC.includes('felpa') ? 'suav' : '');
     pendientes.forEach(et => {
-      // Solo bruck stages tienen kg/h medible aquí
-      if (et.key === 'tejido') return;
-      const kgh = _buscarPromedioKgH(et.key === 'rama' ? '' : et.key, g.tela);
+      if (et.key === 'tejido') return; // sin datos históricos capturados
+      let procHint = '';
+      if (et.key === 'tenido')   procHint = '';        // teñido: usar fichas de tinas (state.prod)
+      else if (et.key === 'rama')    procHint = '';    // RAMA sin proceso específico
+      else if (et.key === 'acabado') procHint = acabadoHint; // suav o termo según tela
+      else if (et.key === 'empacado')procHint = 'empac';
+      const kgh = _buscarPromedioKgH(procHint, g.tela);
       if (kgh && kgh > 0) {
         horasTot += kgRestante / kgh;
         usadas++;
@@ -11338,6 +11367,7 @@ function _buscarEstadoGrupo(g) {
 
 // Renderiza el timeline visual de un grupo
 function _buscarRenderTimeline(g, estado) {
+  const subAcabado = _buscarSubtipoAcabado(g); // 'Suavizado' | 'Termofijado' | 'Suavizado + Termofijado' | ''
   return BUSCAR_ETAPAS.map((et, i) => {
     const kg = g.stagesKg[et.key] || 0;
     const activo = i <= estado.etapaIdx;
@@ -11345,12 +11375,19 @@ function _buscarRenderTimeline(g, estado) {
     const bg = activo ? et.color : '#334155';
     const opacity = activo ? '1' : '0.35';
     const ring = actual ? 'box-shadow: 0 0 0 3px rgba(56,189,248,0.35); transform: scale(1.08);' : '';
+    // Sub-label si es Acabado: muestra Suav/Termo
+    let subLabel = '';
+    if (et.key === 'acabado' && subAcabado) {
+      const short = subAcabado.replace('Suavizado','Suav').replace('Termofijado','Termo');
+      subLabel = `<div class="text-[9px] text-slate-400 italic">${short}</div>`;
+    }
     return `
       <div class="flex flex-col items-center flex-1 min-w-[60px]" style="opacity:${opacity}">
         <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:${bg};${ring} transition:all .2s">
           ${et.icon}
         </div>
         <div class="text-[10px] font-bold text-slate-300 mt-1 text-center">${et.label}</div>
+        ${subLabel}
         <div class="text-[10px] text-slate-500">${kg > 0 ? fmtKg(Math.round(kg))+' kg' : '—'}</div>
       </div>
       ${i < BUSCAR_ETAPAS.length - 1 ? `<div class="flex-shrink-0 self-center h-0.5 w-4 md:w-6" style="background:${activo ? et.color : '#334155'}; opacity:${activo ? 0.6 : 0.3}"></div>` : ''}
@@ -11363,7 +11400,12 @@ function _buscarRenderFicha(g) {
   const estado = _buscarEstadoGrupo(g);
   const luzColor = { green:'#10b981', yellow:'#f59e0b', red:'#ef4444' }[estado.luz];
   const luzTexto = { green:'🟢 Terminado', yellow:'🟡 En proceso', red:'🔴 Sin movimiento reciente' }[estado.luz];
-  const etapaLabel = (BUSCAR_ETAPAS.find(x => x.key === estado.etapaActual) || {}).label || '—';
+  let etapaLabel = (BUSCAR_ETAPAS.find(x => x.key === estado.etapaActual) || {}).label || '—';
+  // Si la etapa actual es 'acabado', añadimos el subtipo (Suav/Termo)
+  if (estado.etapaActual === 'acabado') {
+    const sub = _buscarSubtipoAcabado(g);
+    if (sub) etapaLabel = `${etapaLabel} (${sub})`;
+  }
 
   // Incidentes: registros con motivoPase de reproceso + paros del lote
   const incidentes = [];
