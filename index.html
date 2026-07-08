@@ -3285,6 +3285,104 @@
     </div>
   </div>
 
+  <!-- ============================================================= -->
+  <!-- TAB: BUSCAR — Estado de producción de un lote/producto        -->
+  <!-- Pensada para juntas de ventas: qué lote va dónde, cuánto le   -->
+  <!-- falta, cuándo entrega estimada.                              -->
+  <!-- ============================================================= -->
+  <section id="tab-buscar" class="tab-panel hidden">
+
+    <!-- Encabezado -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">🔍 Buscar Estado de Producción</h2>
+        <p class="text-slate-400 text-sm">Consulta el estado, timeline y ETA de un lote · tip: <kbd class="px-1.5 py-0.5 bg-ink-800 border border-ink-700 rounded text-xs text-slate-300">Ctrl</kbd> + <kbd class="px-1.5 py-0.5 bg-ink-800 border border-ink-700 rounded text-xs text-slate-300">K</kbd> abre el buscador desde cualquier pestaña</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="buscar_counter" class="chip chip-info">0 resultados</span>
+      </div>
+    </div>
+
+    <!-- Barra de búsqueda + filtros -->
+    <div class="card mb-4 p-4">
+      <div class="flex gap-2 flex-wrap items-center mb-3">
+        <div class="flex-1 min-w-[240px] relative">
+          <input id="buscar_q" type="text"
+                 placeholder="🔍 Buscar por lote, folio, tela, color, cliente, pedido, notas…"
+                 class="w-full px-4 py-3 pr-9 rounded-lg bg-ink-800 border-2 border-ink-700 text-white text-base placeholder:text-slate-500 focus:border-sky-accent focus:outline-none"
+                 autocomplete="off">
+          <button id="buscar_clear" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-sm hidden">✕</button>
+        </div>
+      </div>
+      <div class="flex gap-2 flex-wrap items-center text-xs">
+        <select id="buscar_etapa" class="px-2 py-1.5 rounded bg-ink-800 border border-ink-700 text-white">
+          <option value="">Etapa: todas</option>
+          <option value="tejido">Tejido</option>
+          <option value="rama">RAMA</option>
+          <option value="suavizado">Suavizado</option>
+          <option value="termofijado">Termofijado</option>
+          <option value="empacado">Empacado (terminado)</option>
+        </select>
+        <select id="buscar_dias" class="px-2 py-1.5 rounded bg-ink-800 border border-ink-700 text-white">
+          <option value="30">Últimos 30 días</option>
+          <option value="60">Últimos 60 días</option>
+          <option value="90" selected>Últimos 90 días</option>
+          <option value="180">Últimos 180 días</option>
+          <option value="0">Todos</option>
+        </select>
+        <label class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+          <input id="buscar_soloAbiertos" type="checkbox" class="accent-sky-accent">
+          <span>Solo lotes sin empacar (en proceso)</span>
+        </label>
+        <button id="buscar_reset" class="ml-auto btn btn-secondary !py-1.5 !px-3 text-xs">↺ Reset</button>
+      </div>
+      <div class="mt-2 text-[11px] text-slate-500 italic">
+        Buscador global · une fichas de teñido + RAMA Bruckner en una sola vista. Escribe cualquier fragmento y se hace match parcial en todos los campos.
+      </div>
+    </div>
+
+    <!-- Contenedor de resultados -->
+    <div id="buscar_results" class="space-y-3">
+      <div class="card p-12 text-center">
+        <div class="text-5xl mb-2 opacity-30">🔍</div>
+        <p class="text-slate-400 font-semibold">Escribe algo para empezar</p>
+        <p class="text-slate-500 text-sm mt-1">Ej: "jersey rojo", "lote 4823", "cliente Pérez", "algodón negro"…</p>
+      </div>
+    </div>
+
+    <!-- Nota inferior -->
+    <div class="mt-4 text-[11px] text-slate-500">
+      <p><b>ETA</b> se calcula del promedio histórico de kg/hora por proceso y tipo de tela. La luz 🟢/🟡/🔴 indica solo estado operativo (verde=empacado, amarillo=en proceso reciente, rojo=sin movimiento reciente). No se maneja fecha prometida por ahora.</p>
+    </div>
+
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- MODAL: Buscador global (Ctrl+K)                              -->
+  <!-- ============================================================= -->
+  <div id="buscarModal" class="hidden fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm p-4" style="padding-top:6vh">
+    <div class="card max-w-3xl mx-auto w-full p-4 relative" style="max-height:88vh; overflow-y:auto">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="flex-1 relative">
+          <input id="buscarModal_q" type="text"
+                 placeholder="🔍 Buscar por lote, tela, color, cliente…"
+                 class="w-full px-4 py-3 pr-9 rounded-lg bg-ink-800 border-2 border-sky-accent text-white text-base placeholder:text-slate-500 focus:outline-none"
+                 autocomplete="off">
+          <button id="buscarModal_clear" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-sm hidden">✕</button>
+        </div>
+        <button id="buscarModal_close" class="btn btn-secondary !py-2 !px-3 text-sm" title="Cerrar (Esc)">✕</button>
+      </div>
+      <div class="text-[11px] text-slate-500 mb-3 flex items-center gap-3 flex-wrap">
+        <span><kbd class="px-1 py-0.5 bg-ink-800 border border-ink-700 rounded">Esc</kbd> cerrar</span>
+        <span><kbd class="px-1 py-0.5 bg-ink-800 border border-ink-700 rounded">Enter</kbd> abrir primer resultado</span>
+        <button id="buscarModal_openTab" class="ml-auto text-sky-accent hover:underline">Abrir en pestaña Buscar →</button>
+      </div>
+      <div id="buscarModal_results" class="space-y-2">
+        <div class="text-center py-8 text-slate-500 text-sm">Escribe para buscar…</div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ============================================================= -->
@@ -3331,6 +3429,10 @@
     <button class="tab-btn" data-tab="tab-catalogo" title="Catálogo de telas: composición, ancho, rendimiento, peso">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
       <span>Catálogo</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-buscar" title="Buscar estado de producción de un lote/producto (Ctrl+K)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Buscar</span>
     </button>
   </div>
 </nav>
@@ -4850,6 +4952,8 @@ function init() {
   bindEditFichaModal();
   bindMetasModal();
   bindBulkFechaModal();
+  // Buscador global de estado de producción (tab Buscar + atajo Ctrl+K)
+  try { _buscarBindEventsOnce(); } catch(e) { console.warn('buscar init:', e); }
   updateUserPill();
   startAutosave();
   // Filtros y sugerencias en Tiempos Muertos
@@ -5031,6 +5135,9 @@ function bindTabs() {
     }
     if (tab === 'tab-catalogo') {
       requestAnimationFrame(() => { try { _catBindEventsOnce(); renderCatalogoTelas(); } catch(e){} });
+    }
+    if (tab === 'tab-buscar') {
+      requestAnimationFrame(() => { try { _buscarBindEventsOnce(); renderBuscar(); const bq = document.getElementById('buscar_q'); if (bq) bq.focus(); } catch(e){} });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -11032,6 +11139,544 @@ function bindPlanDia() {
       savePlanDia();
       renderPlanAvance();
     });
+  });
+}
+
+/* =================================================================
+   BUSCADOR DE ESTADO DE PRODUCCIÓN (tab "Buscar" + modal Ctrl+K)
+   — Unifica state.prod (fichas teñido) + state.bruck (RAMA) en
+     grupos por (lote + tela + color) y calcula timeline + ETA.
+================================================================= */
+
+// Etapas del flujo productivo, en orden
+const BUSCAR_ETAPAS = [
+  { key: 'tejido',      label: 'Tejido',      icon: '🧵', color: '#94a3b8' },
+  { key: 'rama',        label: 'RAMA',        icon: '🔥', color: '#38bdf8' },
+  { key: 'suavizado',   label: 'Suavizado',   icon: '💧', color: '#22d3ee' },
+  { key: 'termofijado', label: 'Termofijado', icon: '♾️',  color: '#a78bfa' },
+  { key: 'empacado',    label: 'Empacado',    icon: '✅', color: '#10b981' }
+];
+
+// Clasifica un registro (ficha o bruck) en su etapa correspondiente
+function _buscarEtapaOf(rec) {
+  // Bruck: usa el campo proceso
+  if (rec._src === 'bruck') {
+    const p = String(rec.proceso || '').toLowerCase();
+    if (p.includes('empac')) return 'empacado';
+    if (p.includes('termo')) return 'termofijado';
+    if (p.includes('suav'))  return 'suavizado';
+    return 'rama'; // default para bruck sin proceso claro (paso de tela por RAMA)
+  }
+  // Ficha: es teñido/lavado en tinas → Tejido bucket (previo a RAMA)
+  return 'tejido';
+}
+
+// Normaliza texto: minúsculas, sin acentos, sin espacios extras
+function _buscarNorm(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Construye "cadena de búsqueda" de un registro (todos los campos relevantes concatenados)
+function _buscarHaystack(rec) {
+  const parts = [
+    rec.lote, rec.tela, rec.color, rec.diseno, rec.pedido, rec.cliente,
+    rec.notas, rec.operador, rec.machine, rec.rama, rec.proceso, rec.turno
+  ];
+  return _buscarNorm(parts.filter(Boolean).join(' '));
+}
+
+// Signature para agrupar: lote + tela + color normalizados
+function _buscarSig(rec) {
+  const l = _buscarNorm(rec.lote);
+  const t = _buscarNorm(rec.tela);
+  const c = _buscarNorm(rec.color);
+  if (!l && !t && !c) return null;
+  return `${l}|${t}|${c}`;
+}
+
+// Compara un texto normalizado con el query (soporta múltiples términos AND)
+function _buscarMatch(hay, q) {
+  if (!q) return true;
+  const terms = _buscarNorm(q).split(/\s+/).filter(Boolean);
+  return terms.every(t => hay.includes(t));
+}
+
+// Calcula promedio histórico kg/hora por (proceso, tela) para ETA
+function _buscarPromedioKgH(proceso, tela) {
+  const pKind = _buscarNorm(proceso);
+  const tKind = _buscarNorm(tela);
+  const candidatos = [];
+  // Recorre bruckner y fichas buscando registros con duración medible y kg
+  (state.bruck || []).forEach(r => {
+    if (!r.kilos) return;
+    if (pKind && !_buscarNorm(r.proceso).includes(pKind)) return;
+    if (tKind && !_buscarNorm(r.tela).includes(tKind)) return;
+    // Estimación aproximada de duración del pase por velocidad+metros si existen
+    if (r.vel && r.metros) {
+      const minutos = r.metros / r.vel; // metros / (m/min)
+      if (minutos > 5 && minutos < 24*60) {
+        candidatos.push(r.kilos / (minutos / 60));
+      }
+    }
+  });
+  (state.prod || []).forEach(r => {
+    if (!r.kilos || !r.duracionMin || r.duracionMin < 10) return;
+    if (tKind && !_buscarNorm(r.tela).includes(tKind)) return;
+    candidatos.push(r.kilos / (r.duracionMin / 60));
+  });
+  if (!candidatos.length) return null;
+  // Media recortada (5-95 percentil para quitar outliers)
+  candidatos.sort((a,b) => a - b);
+  const lo = Math.floor(candidatos.length * 0.05);
+  const hi = Math.ceil(candidatos.length * 0.95);
+  const clean = candidatos.slice(lo, hi);
+  const arr = clean.length ? clean : candidatos;
+  return arr.reduce((s,v) => s+v, 0) / arr.length;
+}
+
+// Agrupa registros por signature (lote+tela+color) y calcula estado agregado
+function _buscarAgruparGrupos(records) {
+  const groups = new Map();
+  records.forEach(rec => {
+    const sig = _buscarSig(rec);
+    if (!sig) return;
+    if (!groups.has(sig)) {
+      groups.set(sig, {
+        sig,
+        lote:  rec.lote  || '',
+        tela:  rec.tela  || '',
+        color: rec.color || '',
+        cliente: rec.cliente || rec.pedido || '',
+        diseno: rec.diseno || '',
+        records: [],
+        stagesKg: { tejido:0, rama:0, suavizado:0, termofijado:0, empacado:0 },
+        stagesRec: { tejido:[], rama:[], suavizado:[], termofijado:[], empacado:[] },
+        motivos: new Set(),
+        firstTs: Infinity,
+        lastTs: 0
+      });
+    }
+    const g = groups.get(sig);
+    g.records.push(rec);
+    const et = _buscarEtapaOf(rec);
+    g.stagesKg[et] = (g.stagesKg[et] || 0) + (parseFloat(rec.kilos) || 0);
+    g.stagesRec[et].push(rec);
+    if (rec.motivoPase && rec.motivoPase !== 'nuevo') g.motivos.add(rec.motivoPase);
+    if (!g.cliente && (rec.cliente || rec.pedido)) g.cliente = rec.cliente || rec.pedido;
+    if (!g.diseno && rec.diseno) g.diseno = rec.diseno;
+    const ts = rec.ts || Date.parse(rec.fecha + 'T12:00:00') || 0;
+    if (ts && ts < g.firstTs) g.firstTs = ts;
+    if (ts && ts > g.lastTs)  g.lastTs = ts;
+  });
+  return Array.from(groups.values());
+}
+
+// Calcula el estado agregado de un grupo: etapa actual, kg total, kg restante, ETA
+function _buscarEstadoGrupo(g) {
+  // Etapa actual = la más avanzada con registros
+  let etapaActual = 'tejido';
+  let etapaIdx = -1;
+  BUSCAR_ETAPAS.forEach((et, i) => {
+    if (g.stagesRec[et.key] && g.stagesRec[et.key].length > 0) {
+      etapaActual = et.key;
+      etapaIdx = i;
+    }
+  });
+  const empacadoKg  = g.stagesKg.empacado || 0;
+  const totalMovido = Object.values(g.stagesKg).reduce((s,v) => s+v, 0);
+  // Aproximación de "kg del lote": el máximo entre etapas (el mismo lote pasa por varias)
+  const kgPorEtapa = [
+    g.stagesKg.tejido, g.stagesKg.rama, g.stagesKg.suavizado,
+    g.stagesKg.termofijado, g.stagesKg.empacado
+  ];
+  const kgLoteEstimado = Math.max(...kgPorEtapa);
+  const kgRestante = Math.max(0, kgLoteEstimado - empacadoKg);
+
+  // Semáforo operativo:
+  //   🟢 verde  = empacado (terminado)
+  //   🟡 amarillo = en proceso con movimiento en los últimos 7 días
+  //   🔴 rojo   = sin movimiento >7 días y sin empacar (posible atasco)
+  const ahora = Date.now();
+  const diasSinMov = g.lastTs ? (ahora - g.lastTs) / (1000*60*60*24) : Infinity;
+  let luz = 'yellow';
+  if (etapaActual === 'empacado' && empacadoKg > 0) luz = 'green';
+  else if (diasSinMov > 7) luz = 'red';
+  else luz = 'yellow';
+
+  // ETA: solo si NO está empacado y hay kg restante
+  let etaTexto = null;
+  if (etapaActual !== 'empacado' && kgRestante > 0.1) {
+    // Etapas pendientes por recorrer (de la actual hacia empacado)
+    const startIdx = Math.max(0, etapaIdx);
+    const pendientes = BUSCAR_ETAPAS.slice(startIdx + 1);
+    let horasTot = 0;
+    let usadas = 0;
+    pendientes.forEach(et => {
+      // Solo bruck stages tienen kg/h medible aquí
+      if (et.key === 'tejido') return;
+      const kgh = _buscarPromedioKgH(et.key === 'rama' ? '' : et.key, g.tela);
+      if (kgh && kgh > 0) {
+        horasTot += kgRestante / kgh;
+        usadas++;
+      }
+    });
+    if (usadas > 0) {
+      const dias = horasTot / 8; // asumiendo turno operativo ~8h
+      if (dias < 1)      etaTexto = `~${Math.round(horasTot)}h de proceso`;
+      else if (dias < 2) etaTexto = `~1 día`;
+      else               etaTexto = `~${Math.round(dias)} días`;
+    }
+  }
+
+  return { etapaActual, etapaIdx, kgLoteEstimado, kgRestante, empacadoKg,
+           luz, diasSinMov, etaTexto, totalMovido };
+}
+
+// Renderiza el timeline visual de un grupo
+function _buscarRenderTimeline(g, estado) {
+  return BUSCAR_ETAPAS.map((et, i) => {
+    const kg = g.stagesKg[et.key] || 0;
+    const activo = i <= estado.etapaIdx;
+    const actual = i === estado.etapaIdx;
+    const bg = activo ? et.color : '#334155';
+    const opacity = activo ? '1' : '0.35';
+    const ring = actual ? 'box-shadow: 0 0 0 3px rgba(56,189,248,0.35); transform: scale(1.08);' : '';
+    return `
+      <div class="flex flex-col items-center flex-1 min-w-[60px]" style="opacity:${opacity}">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background:${bg};${ring} transition:all .2s">
+          ${et.icon}
+        </div>
+        <div class="text-[10px] font-bold text-slate-300 mt-1 text-center">${et.label}</div>
+        <div class="text-[10px] text-slate-500">${kg > 0 ? fmtKg(Math.round(kg))+' kg' : '—'}</div>
+      </div>
+      ${i < BUSCAR_ETAPAS.length - 1 ? `<div class="flex-shrink-0 self-center h-0.5 w-4 md:w-6" style="background:${activo ? et.color : '#334155'}; opacity:${activo ? 0.6 : 0.3}"></div>` : ''}
+    `;
+  }).join('');
+}
+
+// Renderiza la ficha completa de un grupo (para tab Buscar)
+function _buscarRenderFicha(g) {
+  const estado = _buscarEstadoGrupo(g);
+  const luzColor = { green:'#10b981', yellow:'#f59e0b', red:'#ef4444' }[estado.luz];
+  const luzTexto = { green:'🟢 Terminado', yellow:'🟡 En proceso', red:'🔴 Sin movimiento reciente' }[estado.luz];
+  const etapaLabel = (BUSCAR_ETAPAS.find(x => x.key === estado.etapaActual) || {}).label || '—';
+
+  // Incidentes: registros con motivoPase de reproceso + paros del lote
+  const incidentes = [];
+  g.records.forEach(r => {
+    if (r.motivoPase && r.motivoPase !== 'nuevo') {
+      const mp = (typeof MOTIVO_PASE !== 'undefined' && MOTIVO_PASE[r.motivoPase]) || null;
+      incidentes.push({
+        fecha: r.fecha, tipo: mp ? mp.label : r.motivoPase,
+        color: mp ? mp.color : '#94a3b8', kg: r.kilos || 0
+      });
+    }
+  });
+  // Paros del lote
+  const lotN = _buscarNorm(g.lote);
+  (state.down || []).forEach(d => {
+    if (lotN && _buscarNorm(d.lote || '') === lotN) {
+      incidentes.push({
+        fecha: d.fecha, tipo: `Paro: ${d.categoria || 'sin cat.'}`,
+        color: '#ef4444', kg: 0, min: d.duracionMin
+      });
+    }
+  });
+
+  // Cliente / marcas especiales
+  const marcas = [];
+  if (g.cliente) marcas.push(`<span class="chip chip-info">👥 ${g.cliente}</span>`);
+  if (g.diseno)  marcas.push(`<span class="chip" style="background:rgba(167,139,250,0.15); border:1px solid #a78bfa; color:#a78bfa">🎨 ${g.diseno}</span>`);
+  g.motivos.forEach(m => {
+    const mp = (typeof MOTIVO_PASE !== 'undefined' && MOTIVO_PASE[m]) || null;
+    if (mp) marcas.push(`<span class="chip" style="background:${mp.color}22; border:1px solid ${mp.color}; color:${mp.color}">⚠️ ${mp.label}</span>`);
+  });
+
+  const incidentesHtml = incidentes.length ?
+    `<div class="mt-3 pt-3 border-t border-ink-700">
+      <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Incidentes / Paros (${incidentes.length})</div>
+      <div class="space-y-1">
+        ${incidentes.slice(0, 5).map(inc => `
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:${inc.color}"></span>
+            <span class="text-slate-400">${inc.fecha || '—'}</span>
+            <span class="text-slate-200">${inc.tipo}</span>
+            ${inc.kg ? `<span class="text-slate-500">· ${fmtKg(Math.round(inc.kg))} kg</span>` : ''}
+            ${inc.min ? `<span class="text-slate-500">· ${inc.min} min</span>` : ''}
+          </div>
+        `).join('')}
+        ${incidentes.length > 5 ? `<div class="text-[11px] text-slate-500 italic">+${incidentes.length - 5} más…</div>` : ''}
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="card p-4">
+      <!-- Header: lote / tela / color / luz -->
+      <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <div class="flex-1 min-w-[200px]">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-lg font-black text-white">${g.lote || '(sin lote)'}</span>
+            <span class="text-slate-400">·</span>
+            <span class="text-slate-200">${g.tela || '(sin tela)'}</span>
+            ${g.color ? `<span class="chip chip-info">${g.color}</span>` : ''}
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-1.5">
+            ${marcas.join(' ')}
+          </div>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="chip text-xs font-bold" style="background:${luzColor}22; border:1px solid ${luzColor}; color:${luzColor}">${luzTexto}</div>
+          <div class="text-[11px] text-slate-500 mt-1">Etapa actual: <b class="text-slate-300">${etapaLabel}</b></div>
+        </div>
+      </div>
+
+      <!-- Timeline visual -->
+      <div class="flex items-start justify-between gap-1 py-3 px-2 bg-ink-900/50 rounded-lg">
+        ${_buscarRenderTimeline(g, estado)}
+      </div>
+
+      <!-- KPIs: kg producidos / restantes / ETA -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-center">
+        <div class="bg-ink-800/60 rounded-lg p-2">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Empacado</div>
+          <div class="text-lg font-black text-emer-accent">${fmtKg(Math.round(estado.empacadoKg))} kg</div>
+        </div>
+        <div class="bg-ink-800/60 rounded-lg p-2">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Lote estim.</div>
+          <div class="text-lg font-black text-white">${fmtKg(Math.round(estado.kgLoteEstimado))} kg</div>
+        </div>
+        <div class="bg-ink-800/60 rounded-lg p-2">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Restante</div>
+          <div class="text-lg font-black ${estado.kgRestante > 0 ? 'text-warn' : 'text-slate-500'}">${fmtKg(Math.round(estado.kgRestante))} kg</div>
+        </div>
+        <div class="bg-ink-800/60 rounded-lg p-2">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">ETA</div>
+          <div class="text-lg font-black text-sky-accent">${estado.etaTexto || (estado.etapaActual === 'empacado' ? 'Listo' : '—')}</div>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="mt-3 flex items-center gap-3 flex-wrap text-[11px] text-slate-500">
+        <span>Primer registro: <b>${g.firstTs ? new Date(g.firstTs).toISOString().slice(0,10) : '—'}</b></span>
+        <span>Último movimiento: <b>${g.lastTs ? new Date(g.lastTs).toISOString().slice(0,10) : '—'}</b> (hace ${estado.diasSinMov === Infinity ? '—' : Math.round(estado.diasSinMov)+' días'})</span>
+        <span>${g.records.length} registro${g.records.length===1?'':'s'} total</span>
+      </div>
+
+      ${incidentesHtml}
+    </div>
+  `;
+}
+
+// Filtra + ordena + renderiza en el destino dado
+function _buscarEjecutar(q, opciones, destinoId, mostrarVacio) {
+  const dest = document.getElementById(destinoId);
+  if (!dest) return { total: 0 };
+  const dias  = opciones.dias || 0;
+  const etapa = opciones.etapa || '';
+  const soloAbiertos = !!opciones.soloAbiertos;
+
+  // Corpus: prod + bruck etiquetados
+  const corpus = [];
+  (state.prod  || []).forEach(r => corpus.push(Object.assign({}, r, { _src: 'prod' })));
+  (state.bruck || []).forEach(r => corpus.push(Object.assign({}, r, { _src: 'bruck' })));
+
+  // Filtro por días
+  let filtered = corpus;
+  if (dias > 0) {
+    const corte = Date.now() - dias * 24 * 3600 * 1000;
+    filtered = filtered.filter(r => {
+      const ts = r.ts || Date.parse((r.fecha||'') + 'T12:00:00') || 0;
+      return ts >= corte;
+    });
+  }
+
+  // Filtro por texto
+  const qn = _buscarNorm(q);
+  if (qn) {
+    filtered = filtered.filter(r => _buscarMatch(_buscarHaystack(r), qn));
+  }
+
+  // Agrupa por signature
+  let grupos = _buscarAgruparGrupos(filtered);
+
+  // Filtro por etapa (basado en etapa actual del grupo)
+  if (etapa) {
+    grupos = grupos.filter(g => {
+      const est = _buscarEstadoGrupo(g);
+      return est.etapaActual === etapa;
+    });
+  }
+  // Filtro solo abiertos
+  if (soloAbiertos) {
+    grupos = grupos.filter(g => {
+      const est = _buscarEstadoGrupo(g);
+      return est.etapaActual !== 'empacado';
+    });
+  }
+
+  // Orden: más reciente movimiento primero
+  grupos.sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0));
+
+  if (grupos.length === 0) {
+    if (mostrarVacio) {
+      dest.innerHTML = `
+        <div class="card p-10 text-center">
+          <div class="text-4xl mb-2 opacity-30">🔍</div>
+          <p class="text-slate-400 font-semibold">${qn ? 'Sin resultados para "'+q+'"' : 'Escribe algo para empezar'}</p>
+          <p class="text-slate-500 text-sm mt-1">${qn ? 'Intenta con menos términos o quita los filtros.' : ''}</p>
+        </div>`;
+    } else {
+      dest.innerHTML = '<div class="text-center py-6 text-slate-500 text-sm">Sin resultados</div>';
+    }
+    return { total: 0 };
+  }
+
+  // Limita a 30 grupos para performance en juntas
+  const limited = grupos.slice(0, 30);
+  const totalTexto = grupos.length > 30 ? `Mostrando primeros 30 de ${grupos.length}` : '';
+
+  dest.innerHTML =
+    (totalTexto ? `<div class="text-[11px] text-slate-500 italic mb-2">${totalTexto}</div>` : '') +
+    limited.map(g => _buscarRenderFicha(g)).join('');
+
+  return { total: grupos.length };
+}
+
+// Handler principal del tab Buscar
+function renderBuscar() {
+  const qEl   = document.getElementById('buscar_q');
+  const etEl  = document.getElementById('buscar_etapa');
+  const diEl  = document.getElementById('buscar_dias');
+  const abEl  = document.getElementById('buscar_soloAbiertos');
+  const cntEl = document.getElementById('buscar_counter');
+  if (!qEl) return;
+  const q = qEl.value.trim();
+  const opts = {
+    etapa: etEl ? etEl.value : '',
+    dias:  diEl ? parseInt(diEl.value, 10) : 90,
+    soloAbiertos: abEl ? abEl.checked : false
+  };
+  const { total } = _buscarEjecutar(q, opts, 'buscar_results', true);
+  if (cntEl) cntEl.textContent = `${total} resultado${total===1?'':'s'}`;
+  // Toggle clear button
+  const clearBtn = document.getElementById('buscar_clear');
+  if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+}
+
+// Handler del modal Ctrl+K
+function renderBuscarModal() {
+  const qEl = document.getElementById('buscarModal_q');
+  if (!qEl) return;
+  const q = qEl.value.trim();
+  const opts = { etapa: '', dias: 180, soloAbiertos: false };
+  if (!q) {
+    document.getElementById('buscarModal_results').innerHTML =
+      '<div class="text-center py-8 text-slate-500 text-sm">Escribe para buscar…</div>';
+    return;
+  }
+  _buscarEjecutar(q, opts, 'buscarModal_results', true);
+  const clearBtn = document.getElementById('buscarModal_clear');
+  if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+}
+
+// Abre/cierra el modal Ctrl+K
+function openBuscarModal() {
+  const m = document.getElementById('buscarModal');
+  if (!m) return;
+  m.classList.remove('hidden');
+  const inp = document.getElementById('buscarModal_q');
+  if (inp) { setTimeout(() => { inp.focus(); inp.select(); }, 30); }
+}
+function closeBuscarModal() {
+  const m = document.getElementById('buscarModal');
+  if (m) m.classList.add('hidden');
+}
+
+// Bind events — solo una vez
+let _buscarBinded = false;
+function _buscarBindEventsOnce() {
+  if (_buscarBinded) return;
+  _buscarBinded = true;
+
+  // Tab Buscar
+  const qEl = document.getElementById('buscar_q');
+  if (qEl) qEl.addEventListener('input', renderBuscar);
+  ['buscar_etapa','buscar_dias','buscar_soloAbiertos'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', renderBuscar);
+  });
+  const clearBtn = document.getElementById('buscar_clear');
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    if (qEl) qEl.value = '';
+    renderBuscar();
+    if (qEl) qEl.focus();
+  });
+  const resetBtn = document.getElementById('buscar_reset');
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    if (qEl) qEl.value = '';
+    const et = document.getElementById('buscar_etapa'); if (et) et.value = '';
+    const di = document.getElementById('buscar_dias'); if (di) di.value = '90';
+    const ab = document.getElementById('buscar_soloAbiertos'); if (ab) ab.checked = false;
+    renderBuscar();
+  });
+
+  // Modal Ctrl+K
+  const mQ = document.getElementById('buscarModal_q');
+  if (mQ) mQ.addEventListener('input', renderBuscarModal);
+  const mClear = document.getElementById('buscarModal_clear');
+  if (mClear) mClear.addEventListener('click', () => {
+    if (mQ) mQ.value = '';
+    renderBuscarModal();
+    if (mQ) mQ.focus();
+  });
+  const mClose = document.getElementById('buscarModal_close');
+  if (mClose) mClose.addEventListener('click', closeBuscarModal);
+  const mOpenTab = document.getElementById('buscarModal_openTab');
+  if (mOpenTab) mOpenTab.addEventListener('click', () => {
+    const q = mQ ? mQ.value : '';
+    closeBuscarModal();
+    // Cambiar a tab Buscar
+    const btn = document.querySelector('.tab-btn[data-tab="tab-buscar"]');
+    if (btn) btn.click();
+    setTimeout(() => {
+      const bq = document.getElementById('buscar_q');
+      if (bq) { bq.value = q; renderBuscar(); bq.focus(); }
+    }, 100);
+  });
+  // Cerrar modal clickeando el backdrop
+  const modal = document.getElementById('buscarModal');
+  if (modal) modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeBuscarModal();
+  });
+
+  // Atajo global Ctrl+K / Cmd+K + Esc
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+K o Cmd+K abren modal
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      openBuscarModal();
+      return;
+    }
+    // Esc cierra modal si está abierto
+    if (e.key === 'Escape') {
+      const m = document.getElementById('buscarModal');
+      if (m && !m.classList.contains('hidden')) {
+        closeBuscarModal();
+      }
+    }
+    // Enter dentro del modal abre el primer resultado en tab Buscar
+    if (e.key === 'Enter') {
+      const m = document.getElementById('buscarModal');
+      if (m && !m.classList.contains('hidden') && document.activeElement === mQ) {
+        e.preventDefault();
+        const openBtn = document.getElementById('buscarModal_openTab');
+        if (openBtn) openBtn.click();
+      }
+    }
   });
 }
 
