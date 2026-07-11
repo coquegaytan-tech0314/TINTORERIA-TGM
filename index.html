@@ -11538,11 +11538,33 @@ const BUSCAR_ETAPAS = BUSCAR_ETAPAS_RAMA;
 
 // Lista de telas TUBULARES (no pasan por RAMA — usan Compactadora)
 // Patterns case-insensitive, accent-insensitive. Se aplican como "contiene".
+// Familias de telas TUBULARES. Se aplican como "contiene" en el nombre normalizado
+// (minúsculas, sin acentos). Cualquier variante que INCLUYA una de estas subcadenas
+// se clasifica como Tubular → Compactadora.
+//
+// Cubre variantes reales del taller:
+//   PIQUE 1F / 2F / ATLANTE / SPORT / STRETCH / lo que sea (todo pique es tubular)
+//   INTERLOCK PREMIER, INTERLOK, INTELOCK, INTELOC (typos comúnes)
+//   CHIFON ESTRELLA, CHIFFON, etc.
+//   CARDIGAN MULTIFILAMENTO, CARIGAN (sin D), KARDIGAN
+//   RIB 1x1, RIB 2x2, RIB 30/1, etc. (como palabra completa)
 const TUBULAR_TELAS_PATTERNS = [
-  'pique 2f', 'pique 1f', 'pique2f', 'pique1f',
-  'interlock',
-  'chifon', 'chiffon',
-  'cardigan',           // cualquier variante de cardigan
+  // PIQUE (cualquier variante — ATLANTE, SPORT, STRETCH, 1F, 2F, etc.)
+  'pique',
+  'piqué',       // con acento (aunque _buscarNorm normalmente quita acentos)
+  'piquer',      // typo (con R al final antes del nombre)
+  'piqur',       // typo (falta la E)
+  // INTERLOCK y variantes con typo
+  'interlock', 'interlok', 'interloc',
+  'intelock',  'inteloc',    // sin la primera R ("INTELOCK PREMIER")
+  'inter lock',              // con espacio
+  // CHIFON / CHIFFON y variantes
+  'chifon', 'chiffon', 'chifn',
+  // CARDIGAN y variantes de typo
+  'cardigan', 'cardiga', 'cardign',
+  'carigan',                 // sin D ("CARIGAN MULTIFILAMENTO")
+  'kardigan',                // spelling alterno con K
+  // RIB — como palabra completa (chequeo especial en isTubularTela para evitar falsos positivos como "brib", "tribal")
   'rib',
 ];
 
