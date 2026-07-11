@@ -11542,18 +11542,23 @@ const BUSCAR_ETAPAS = BUSCAR_ETAPAS_RAMA;
 // (minúsculas, sin acentos). Cualquier variante que INCLUYA una de estas subcadenas
 // se clasifica como Tubular → Compactadora.
 //
-// Cubre variantes reales del taller:
-//   PIQUE 1F / 2F / ATLANTE / SPORT / STRETCH / lo que sea (todo pique es tubular)
+// IMPORTANTE — PIQUE tiene AMBAS rutas según el tipo:
+//   TUBULAR (Compactadora):  PIQUE 1F, PIQUE 2F, PIQUE1F, PIQUE2F
+//   RAMA (abierta):          PIQUE ATLANTE, PIQUE MARSELLA, PIQUE POLO,
+//                            PIQUE SPORT, PIQUE STRETCH, cualquier variante de nombre
+//   → Por eso NO usamos un pattern genérico 'pique'. Solo los subtipos 1F/2F.
+//
+// Otras variantes reales del taller:
 //   INTERLOCK PREMIER, INTERLOK, INTELOCK, INTELOC (typos comúnes)
 //   CHIFON ESTRELLA, CHIFFON, etc.
 //   CARDIGAN MULTIFILAMENTO, CARIGAN (sin D), KARDIGAN
 //   RIB 1x1, RIB 2x2, RIB 30/1, etc. (como palabra completa)
 const TUBULAR_TELAS_PATTERNS = [
-  // PIQUE (cualquier variante — ATLANTE, SPORT, STRETCH, 1F, 2F, etc.)
-  'pique',
-  'piqué',       // con acento (aunque _buscarNorm normalmente quita acentos)
-  'piquer',      // typo (con R al final antes del nombre)
-  'piqur',       // typo (falta la E)
+  // PIQUE 1F / 2F — SOLO estos subtipos son tubular
+  // (PIQUE ATLANTE, MARSELLA, POLO, SPORT, STRETCH son RAMA — nunca los captures)
+  'pique 1f', 'pique 2f', 'pique1f', 'pique2f',
+  'piquer 1f', 'piquer 2f',   // typo (con R extra)
+  'piqur 1f',  'piqur 2f',    // typo (falta la E)
   // INTERLOCK y variantes con typo
   'interlock', 'interlok', 'interloc',
   'intelock',  'inteloc',    // sin la primera R ("INTELOCK PREMIER")
