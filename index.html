@@ -2879,6 +2879,52 @@
         <p class="text-[11px] text-slate-500 italic">Nota: esta acción copia el registro a Compactadora y lo elimina de Bruckner. Es reversible manualmente pero requiere volver a capturar. Recomendado revisar la lista antes de aplicar.</p>
       </div>
     </div>
+
+    <!-- ==================================================== -->
+    <!--  REVERSE · Regresar mal clasificadas a Bruckner       -->
+    <!--  Escanea state.compact y regresa lo que NO es tubular -->
+    <!-- ==================================================== -->
+    <div class="card p-5 mb-4" style="border-left:4px solid #ef4444;">
+      <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <div class="text-sm font-bold" style="color:#ef4444">↩️ Regresar mal clasificadas a Bruckner</div>
+          <p class="text-xs text-slate-400 mt-1">Escanea las fichas de <b>Compactadora</b> y detecta las que <b>NO</b> son tubular según las reglas actuales (ej: PIQUE ATLANTE, PIQUE MARSELLA, FELPA, JERSEY, etc.). Las regresa a Bruckner conservando todos los datos originales.</p>
+        </div>
+        <button id="cmpReverseScan" class="btn btn-secondary !py-2 !px-3 text-xs">Escanear</button>
+      </div>
+      <div id="cmpReverseResults" class="hidden mt-3 space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="text-sm">
+            <span class="font-bold text-white" id="cmpReverseCount">0</span>
+            <span class="text-slate-400"> fichas candidatas</span>
+            ·
+            <span class="font-bold text-emer-accent" id="cmpReverseKg">0</span>
+            <span class="text-slate-400"> kg totales</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="cmpReverseCancel" class="btn btn-secondary !py-1.5 !px-3 text-xs">Cancelar</button>
+            <button id="cmpReverseApply" class="btn btn-primary !py-1.5 !px-3 text-xs" style="background:#ef4444">Regresar a Bruckner</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-80 border border-slate-800 rounded">
+          <table class="tbl text-xs">
+            <thead class="sticky top-0 bg-ink-800">
+              <tr>
+                <th class="w-8"><input type="checkbox" id="cmpReverseAll" checked /></th>
+                <th>Fecha</th>
+                <th>Lote</th>
+                <th>Tela</th>
+                <th>Color</th>
+                <th class="text-right">Kilos</th>
+                <th>Proceso</th>
+              </tr>
+            </thead>
+            <tbody id="cmpReverseBody"></tbody>
+          </table>
+        </div>
+        <p class="text-[11px] text-slate-500 italic">Nota: solo aparecen fichas cuya tela ya no coincide con los patrones tubulares actuales. Al regresar, SUAVIZANTE se convierte de vuelta a APRESTO en el costo.</p>
+      </div>
+    </div>
   </section>
 
   <!-- ========================================= -->
@@ -12461,6 +12507,23 @@ function _cmpBindEventsOnce() {
     document.querySelectorAll('.cmp-reclass-chk').forEach(c => c.checked = e.target.checked);
     _cmpReclassUpdateTotals();
   });
+
+  // === Reverse (Compactadora → Bruckner) ===
+  const revScanBtn = document.getElementById('cmpReverseScan');
+  if (revScanBtn) revScanBtn.addEventListener('click', cmpReverseScan);
+  const revCancelBtn = document.getElementById('cmpReverseCancel');
+  if (revCancelBtn) revCancelBtn.addEventListener('click', () => {
+    const box = document.getElementById('cmpReverseResults');
+    if (box) box.classList.add('hidden');
+    _cmpReverseCandidates = [];
+  });
+  const revApplyBtn = document.getElementById('cmpReverseApply');
+  if (revApplyBtn) revApplyBtn.addEventListener('click', cmpReverseApply);
+  const revAllBox = document.getElementById('cmpReverseAll');
+  if (revAllBox) revAllBox.addEventListener('change', (e) => {
+    document.querySelectorAll('.cmp-reverse-chk').forEach(c => c.checked = e.target.checked);
+    _cmpReverseUpdateTotals();
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -12599,6 +12662,146 @@ function cmpReclassApply() {
   renderCompact();
   try { renderBruckner(); } catch(e){}
   // Auto-refresca tabs relacionadas para que los kilos aparezcan de inmediato
+  try { if (typeof renderReporteSemanal === 'function') renderReporteSemanal(); } catch(e){}
+  try { if (typeof renderReport === 'function') renderReport(); } catch(e){}
+}
+
+/* =========================================================
+   REVERSE · Regresar mal clasificadas de Compactadora → Bruckner
+   Escanea state.compact buscando registros cuya tela YA NO
+   coincide con los patrones tubulares actuales (ej: PIQUE ATLANTE,
+   PIQUE MARSELLA que se migraron por error con el pattern viejo).
+   ========================================================= */
+let _cmpReverseCandidates = [];
+
+function cmpReverseScan() {
+  const comp = state.compact || [];
+  const isTub = typeof isTubularTela === 'function' ? isTubularTela : () => false;
+
+  // Candidatos = registros en Compactadora cuya tela NO es tubular según las reglas actuales
+  const candidates = comp.filter(r => !isTub(r.tela || ''));
+  _cmpReverseCandidates = candidates;
+
+  const box = document.getElementById('cmpReverseResults');
+  const body = document.getElementById('cmpReverseBody');
+  if (!box || !body) return;
+
+  if (candidates.length === 0) {
+    body.innerHTML = '';
+    box.classList.remove('hidden');
+    body.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-500 text-sm italic">Todas las fichas en Compactadora corresponden a telas tubulares. Nada que regresar.</td></tr>';
+    const countEl = document.getElementById('cmpReverseCount'); if (countEl) countEl.textContent = '0';
+    const kgEl = document.getElementById('cmpReverseKg'); if (kgEl) kgEl.textContent = '0';
+    const applyBtn = document.getElementById('cmpReverseApply'); if (applyBtn) applyBtn.disabled = true;
+    return;
+  }
+
+  const applyBtn = document.getElementById('cmpReverseApply');
+  if (applyBtn) applyBtn.disabled = false;
+  box.classList.remove('hidden');
+  const allChk = document.getElementById('cmpReverseAll');
+  if (allChk) allChk.checked = true;
+
+  body.innerHTML = candidates.map(r => `
+    <tr>
+      <td class="text-center"><input type="checkbox" class="cmp-reverse-chk" data-id="${r.id}" data-kg="${parseFloat(r.kilos)||0}" checked /></td>
+      <td class="text-center">${r.fecha || '—'}</td>
+      <td class="font-bold">${r.lote || ''}</td>
+      <td>${r.tela || ''}</td>
+      <td>${r.color || ''}</td>
+      <td class="text-right font-mono">${fmtKg((parseFloat(r.kilos)||0).toFixed(1))}</td>
+      <td>${r.proceso || '—'}</td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('.cmp-reverse-chk').forEach(c => {
+    c.addEventListener('change', _cmpReverseUpdateTotals);
+  });
+
+  _cmpReverseUpdateTotals();
+}
+
+function _cmpReverseUpdateTotals() {
+  const chks = Array.from(document.querySelectorAll('.cmp-reverse-chk')).filter(c => c.checked);
+  const totalKg = chks.reduce((s, c) => s + (parseFloat(c.dataset.kg) || 0), 0);
+  const countEl = document.getElementById('cmpReverseCount');
+  const kgEl    = document.getElementById('cmpReverseKg');
+  if (countEl) countEl.textContent = chks.length;
+  if (kgEl)    kgEl.textContent    = fmtKg(Math.round(totalKg));
+}
+
+function cmpReverseApply() {
+  const selectedIds = new Set(
+    Array.from(document.querySelectorAll('.cmp-reverse-chk'))
+      .filter(c => c.checked)
+      .map(c => c.dataset.id)
+  );
+  if (selectedIds.size === 0) {
+    toast('No hay fichas seleccionadas', true);
+    return;
+  }
+  const totalKg = _cmpReverseCandidates
+    .filter(r => selectedIds.has(String(r.id)))
+    .reduce((s, r) => s + (parseFloat(r.kilos) || 0), 0);
+
+  if (!confirm(`¿Regresar ${selectedIds.size} ficha(s) de Compactadora a Bruckner?\n\nTotal: ${fmtKg(Math.round(totalKg))} kg\n\nEsta acción reclasifica el histórico de vuelta a Bruckner.`)) {
+    return;
+  }
+
+  const toMove = (state.compact || []).filter(r => selectedIds.has(String(r.id)));
+  const remaining = (state.compact || []).filter(r => !selectedIds.has(String(r.id)));
+
+  // Convierte cada registro de vuelta a formato bruckner
+  const now = Date.now();
+  const converted = toMove.map((r, i) => ({
+    id: 'brk_reversed_' + now + '_' + i + '_' + String(r.id).slice(-4),
+    ts: r.ts || now,
+    fecha: r.fecha || '',
+    turno: r.turno || '',
+    operador: r.operador || '',
+    lote: r.lote || '',
+    tela: r.tela || '',
+    color: r.color || '',
+    kilos: parseFloat(r.kilos) || 0,
+    metros: parseFloat(r.metros) || null,
+    vel: parseFloat(r.vel) || null,
+    temp: parseFloat(r.temp) || null,
+    proceso: r.proceso || 'Empacado',
+    motivoPase: r.motivoPase || 'nuevo',
+    notas: (r.notas || '') + (r.notas ? ' · ' : '') + '[Regresado a Bruckner el ' + new Date().toLocaleDateString('es-MX') + ']',
+    costoFormula: parseFloat(r.costoFormula) || 0,
+    costoColor:   parseFloat(r.costoColor) || 0,
+    costoQuim:    parseFloat(r.costoQuim) || 0,
+    // SUAVIZANTE en Compactadora → APRESTO en Bruckner (chemical equivalencia)
+    costoApresto: parseFloat(r.costoSuav) || parseFloat(r.costoApresto) || 0.80,
+    machine: 'Bruckner',
+    rama: 'Bruckner',
+    _reversedFrom: 'compact',
+    _reversedFromId: r.id
+  }));
+
+  // Aplica cambios locales
+  state.bruck   = [...converted, ...(state.bruck || [])];
+  state.compact = remaining;
+  save(LS_KEYS.bruck,   state.bruck);
+  save(LS_KEYS.compact, state.compact);
+
+  // Sync a la nube (fire-and-forget)
+  converted.forEach(rec => { try { saveToCloud('bruck', rec); } catch(e){} });
+  toMove.forEach(r => { try { deleteFromCloud('compact', r.id); } catch(e){} });
+
+  logChange({
+    module: 'Compactadora',
+    action: 'Regresar a Bruckner',
+    detail: `${converted.length} fichas regresadas a Bruckner · ${Math.round(totalKg)} kg`
+  });
+
+  toast(`✓ ${converted.length} ficha(s) regresadas a Bruckner · ${fmtKg(Math.round(totalKg))} kg`);
+  const box = document.getElementById('cmpReverseResults');
+  if (box) box.classList.add('hidden');
+  _cmpReverseCandidates = [];
+  renderCompact();
+  try { renderBruckner(); } catch(e){}
   try { if (typeof renderReporteSemanal === 'function') renderReporteSemanal(); } catch(e){}
   try { if (typeof renderReport === 'function') renderReport(); } catch(e){}
 }
