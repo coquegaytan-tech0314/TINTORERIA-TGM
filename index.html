@@ -1324,8 +1324,8 @@
       </div>
     </div>
 
-    <!-- Tarjeta Rama (Bruckner + Monforts) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4" id="repRamaSection">
+    <!-- Tarjeta Rama (Bruckner + Compactadora + Monforts) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" id="repRamaSection">
       <!-- Bruckner -->
       <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
@@ -1363,6 +1363,36 @@
           <span id="rep_bruck_suav" class="chip text-xs" style="background:#064e3b;color:#6ee7b7">Suavizado: — kg</span>
         </div>
       </div>
+
+      <!-- Compactadora · Ruta Tubular -->
+      <div class="card p-5" style="border-left:3px solid #22d3ee;">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-black text-white text-base">📏 Compactadora</h3>
+          <span class="chip" style="background:rgba(34,211,238,0.15); border:1px solid #22d3ee; color:#22d3ee">Tubular</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-3">
+          <div>
+            <div class="kpi-lbl">Kilos</div>
+            <div id="rep_comp_k" class="text-xl font-black" style="color:#22d3ee">0</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Metros</div>
+            <div id="rep_comp_m" class="text-xl font-black text-emer-accent">0</div>
+          </div>
+          <div>
+            <div class="kpi-lbl">Fichas</div>
+            <div id="rep_comp_f" class="text-xl font-black text-white">0</div>
+          </div>
+        </div>
+        <!-- Desglose por proceso Compactadora -->
+        <div class="flex flex-wrap gap-1 mt-2">
+          <span id="rep_comp_emp"    class="chip text-xs" style="background:#0c4a6e;color:#7dd3fc">Empacado: — kg</span>
+          <span id="rep_comp_compct" class="chip text-xs" style="background:#164e63;color:#67e8f9">Compactado: — kg</span>
+          <span id="rep_comp_tdry"   class="chip text-xs" style="background:#422006;color:#fdba74">Tubular Dry: — kg</span>
+        </div>
+        <div class="mt-2 text-[10px] text-slate-500 italic">Ruta tubular · PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON</div>
+      </div>
+
       <!-- Monforts -->
       <div class="card p-5 opacity-50">
         <div class="flex items-center justify-between mb-3">
@@ -6038,6 +6068,33 @@ function renderReport() {
   }
   desgloseChip(bruckRows, 'rep_bruck_emp', 'rep_bruck_term', 'rep_bruck_suav');
 
+  // === Compactadora · Ruta Tubular ===
+  const compRows = (state.compact || []).filter(r => r.fecha === date);
+  const compKg = compRows.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  const compM  = compRows.reduce((a,r) => a + (parseFloat(r.metros)||0), 0);
+  setEl('rep_comp_k', fmtKg(compKg));
+  setEl('rep_comp_m', fmtKg(compM));
+  setEl('rep_comp_f', compRows.length);
+  // Desglose de Compactadora por proceso (Empacado / Compactado / Tubular Dry)
+  (function() {
+    const byP = {};
+    compRows.forEach(r => {
+      const p = String(r.proceso || 'Empacado').trim();
+      byP[p] = (byP[p] || 0) + (parseFloat(r.kilos) || 0);
+    });
+    const totKg = compKg;
+    const setChip = (id, keys, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      let kg = 0;
+      keys.forEach(k => { Object.keys(byP).forEach(p => { if (p.toLowerCase().includes(k)) kg += byP[p]; }); });
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    };
+    setChip('rep_comp_emp',    ['empac'],   'Empacado');
+    setChip('rep_comp_compct', ['compact'], 'Compactado');
+    setChip('rep_comp_tdry',   ['tubular', 'dry'], 'Tubular Dry');
+  })();
+
   const monfKg = monfRows.reduce((a,r)=>a+r.kilos,0);
   setEl('rep_monf_k',  fmtKg(monfKg));
   setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+r.metros,0)));
@@ -6188,6 +6245,31 @@ function renderReportMonth() {
   }
   desgloseChip(bruckRows, 'rep_bruck_emp', 'rep_bruck_term', 'rep_bruck_suav');
 
+  // === Compactadora · Mes ===
+  const compRowsM = (state.compact || []).filter(r => (r.fecha||'').startsWith(ym));
+  const compKgM = compRowsM.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  setEl('rep_comp_k', fmtKg(compKgM));
+  setEl('rep_comp_m', fmtKg(compRowsM.reduce((a,r) => a + (parseFloat(r.metros)||0), 0)));
+  setEl('rep_comp_f', compRowsM.length);
+  (function() {
+    const byP = {};
+    compRowsM.forEach(r => {
+      const p = String(r.proceso || 'Empacado').trim();
+      byP[p] = (byP[p] || 0) + (parseFloat(r.kilos) || 0);
+    });
+    const totKg = compKgM;
+    const setChip = (id, keys, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      let kg = 0;
+      keys.forEach(k => { Object.keys(byP).forEach(p => { if (p.toLowerCase().includes(k)) kg += byP[p]; }); });
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    };
+    setChip('rep_comp_emp',    ['empac'],   'Empacado');
+    setChip('rep_comp_compct', ['compact'], 'Compactado');
+    setChip('rep_comp_tdry',   ['tubular', 'dry'], 'Tubular Dry');
+  })();
+
   setEl('rep_monf_k', fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
   setEl('rep_monf_m', fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_monf_f', monfRows.length);
@@ -6318,6 +6400,13 @@ function renderReportRange() {
   setEl('rep_bruck_k', fmtKg(bruckRows.reduce((a,r)=>a+(r.kilos||0), 0)));
   setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_bruck_f', bruckRows.length);
+
+  // === Compactadora · Rango ===
+  const compRowsR = (state.compact || []).filter(r => (r.fecha||'') >= from && (r.fecha||'') <= to);
+  setEl('rep_comp_k', fmtKg(compRowsR.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0)));
+  setEl('rep_comp_m', fmtKg(compRowsR.reduce((a,r) => a + (parseFloat(r.metros)||0), 0)));
+  setEl('rep_comp_f', compRowsR.length);
+
   setEl('rep_monf_k',  fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
   setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_monf_f',  monfRows.length);
