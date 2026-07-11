@@ -12571,6 +12571,9 @@ function cmpReclassApply() {
   _cmpReclassCandidates = [];
   renderCompact();
   try { renderBruckner(); } catch(e){}
+  // Auto-refresca tabs relacionadas para que los kilos aparezcan de inmediato
+  try { if (typeof renderReporteSemanal === 'function') renderReporteSemanal(); } catch(e){}
+  try { if (typeof renderReport === 'function') renderReport(); } catch(e){}
 }
 
 function renderAll() {
