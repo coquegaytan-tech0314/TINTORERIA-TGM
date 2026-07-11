@@ -2620,6 +2620,191 @@
     </details>
   </section>
 
+  <!-- ========================================================= -->
+  <!-- TAB: COMPACTADORA · Ruta tubular (telas angostas)          -->
+  <!--   • Captura por operador dedicado en área de Compactadora -->
+  <!--   • Aplica a: PIQUE 2F/1F, INTERLOCK, CHIFON, CARDIGAN, RIB -->
+  <!--   • Flujo: Teñido → Tubular Dry (+ Suav) → Compactadora → Empacado -->
+  <!-- ========================================================= -->
+  <section id="tab-compact" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Compactadora <span class="text-slate-500 font-semibold text-base">· Ruta Tubular</span></h2>
+        <p class="text-slate-400 text-sm">Telas angostas (no caben en RAMA) — Tubular Dry + Suavizado → Compactadora → Empacado</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="chip" style="background:rgba(34,211,238,0.12); border:1px solid #22d3ee; color:#22d3ee">📏 Ruta Tubular</span>
+      </div>
+    </div>
+
+    <!-- KPIs rápidos -->
+    <div id="cmpKpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Hoy · kg empacados</div>
+        <div id="cmp_hoyKg" class="text-xl font-black text-emer-accent">0</div>
+      </div>
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Hoy · lotes</div>
+        <div id="cmp_hoyLotes" class="text-xl font-black text-white">0</div>
+      </div>
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Semana · kg totales</div>
+        <div id="cmp_semKg" class="text-xl font-black text-sky-accent">0</div>
+      </div>
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Costo quím. hoy</div>
+        <div id="cmp_hoyCosto" class="text-xl font-black text-amber-accent">$0</div>
+      </div>
+    </div>
+
+    <!-- Formulario de captura Compactadora -->
+    <div class="card p-5 mb-4">
+      <div class="text-sm font-bold text-white mb-3">📏 Nueva ficha · Compactadora</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="lbl">Fecha</label>
+          <input type="date" id="cmp_fecha" class="field" />
+        </div>
+        <div>
+          <label class="lbl">Turno</label>
+          <select id="cmp_turno" class="field">
+            <option value="1°">1°</option>
+            <option value="2°">2°</option>
+            <option value="3°">3°</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Operador</label>
+          <input type="text" id="cmp_operador" class="field" placeholder="Nombre o # empleado" />
+        </div>
+        <div>
+          <label class="lbl">Lote</label>
+          <input type="text" id="cmp_lote" class="field" placeholder="Ej: 2458" />
+        </div>
+        <div>
+          <label class="lbl">Tela <span class="text-slate-500 text-xs font-normal">(tubular)</span></label>
+          <input type="text" id="cmp_tela" class="field" placeholder="Ej: PIQUE 2F, INTERLOCK, RIB, CARDIGAN..." />
+        </div>
+        <div>
+          <label class="lbl">Color</label>
+          <input type="text" id="cmp_color" class="field" placeholder="Ej: Blanco, Negro..." />
+        </div>
+        <div>
+          <label class="lbl">Kilos</label>
+          <input type="number" step="0.01" min="0" id="cmp_kilos" class="field" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="lbl">Metros <span class="text-slate-500 text-xs font-normal">(opcional)</span></label>
+          <input type="number" step="0.1" min="0" id="cmp_metros" class="field" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="lbl">Velocidad (m/min)</label>
+          <input type="number" step="0.1" min="0" id="cmp_vel" class="field" inputmode="decimal" />
+        </div>
+        <div>
+          <label class="lbl">Temperatura (°C)</label>
+          <input type="number" step="1" min="0" id="cmp_temp" class="field" inputmode="numeric" />
+        </div>
+
+        <!-- Costos químicos (suavizante + fórmula) -->
+        <div class="md:col-span-2 pt-3 mt-1 border-t border-slate-800">
+          <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">💰 Costos del lote <span class="text-slate-500 font-normal normal-case">(opcional)</span></div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label class="lbl text-xs">$ Fórmula <span class="text-slate-500">/kg</span></label>
+              <input type="number" step="0.01" min="0" id="cmp_costoFormula" class="field !py-2 text-sm" inputmode="decimal" placeholder="Ej: 3.03" />
+            </div>
+            <div>
+              <label class="lbl text-xs">$ Color <span class="text-slate-500">/kg</span></label>
+              <input type="number" step="0.01" min="0" id="cmp_costoColor" class="field !py-2 text-sm" inputmode="decimal" placeholder="Ej: 0.55" />
+            </div>
+            <div>
+              <label class="lbl text-xs">$ Químicos <span class="text-slate-500">/kg</span></label>
+              <input type="number" step="0.01" min="0" id="cmp_costoQuim" class="field !py-2 text-sm" inputmode="decimal" placeholder="Ej: 1.78" />
+            </div>
+            <div>
+              <label class="lbl text-xs">$ Suavizante <span class="text-slate-500">/kg · aplicado en Tubular Dry</span></label>
+              <input type="number" step="0.01" min="0" id="cmp_costoSuav" class="field !py-2 text-sm" inputmode="decimal" value="1.00" />
+            </div>
+          </div>
+          <div class="mt-2 flex items-center gap-3 flex-wrap text-xs">
+            <span class="text-slate-500">Total $/kg:</span>
+            <span id="cmp_costoTotalKg" class="font-bold text-emer-accent">$1.00</span>
+            <span class="text-slate-600">·</span>
+            <span class="text-slate-500">Total lote:</span>
+            <span id="cmp_costoTotalLote" class="font-bold text-amber-accent">$0</span>
+          </div>
+        </div>
+
+        <!-- Proceso: tubular_dry / compactadora / empacado -->
+        <div class="md:col-span-2">
+          <label class="lbl">Proceso</label>
+          <input type="hidden" id="cmp_proceso" value="Empacado" />
+          <div id="cmpProcesoChips" class="flex flex-wrap gap-2 mt-1">
+            <button type="button" class="chip chip-ok cmp-proc-btn active" data-p="Empacado">Empacado</button>
+            <button type="button" class="chip chip-info cmp-proc-btn" data-p="Compactado">Compactado</button>
+            <button type="button" class="chip chip-info cmp-proc-btn" data-p="Tubular Dry">Tubular Dry + Suavizado</button>
+          </div>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="lbl">Motivo del pase <span class="text-slate-500 text-[10px] normal-case">(por defecto: Nuevo)</span></label>
+          <div id="cmpMotivoPaseChips" class="flex flex-wrap gap-2 mt-1">
+            <button type="button" class="chip cmp-motpase-btn active" data-mp="nuevo"
+                    style="background:#10b98122;color:#10b981;border:1px solid #10b98155">✓ Nuevo</button>
+            <button type="button" class="chip cmp-motpase-btn" data-mp="reproceso_calidad"
+                    style="background:#ef444422;color:#ef4444;border:1px solid #ef444455">― Reproc. calidad</button>
+            <button type="button" class="chip cmp-motpase-btn" data-mp="reproceso_otro"
+                    style="background:#a855f722;color:#a855f7;border:1px solid #a855f755">― Reproc. otro</button>
+          </div>
+          <input type="hidden" id="cmp_motivoPase" value="nuevo" />
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="lbl">Notas</label>
+          <textarea id="cmp_notas" rows="2" class="field" placeholder="Observaciones..."></textarea>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+        <button id="cmpSave" class="btn btn-primary touch-xl">Guardar</button>
+        <button id="cmpClear" class="btn btn-secondary touch-xl">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Tabla de registros recientes -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="text-sm font-bold text-white">📋 Registros recientes · Compactadora</div>
+        <div class="flex items-center gap-2 text-xs">
+          <input type="date" id="cmpFiltroDesde" class="field !py-1.5 !px-2 text-xs !w-auto" />
+          <span class="text-slate-500">→</span>
+          <input type="date" id="cmpFiltroHasta" class="field !py-1.5 !px-2 text-xs !w-auto" />
+          <button id="cmpFiltroClear" class="btn btn-secondary !py-1.5 !px-2 text-xs">Reset</button>
+        </div>
+      </div>
+      <div class="scroll-x rounded-lg border border-slate-800">
+        <table class="tbl text-sm">
+          <thead class="sticky top-0 bg-[#0c1320]">
+            <tr>
+              <th>Fecha</th>
+              <th>Turno</th>
+              <th>Operador</th>
+              <th>Lote</th>
+              <th>Tela</th>
+              <th>Color</th>
+              <th class="text-right">Kilos</th>
+              <th>Proceso</th>
+              <th class="text-right">$/kg</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cmpTblBody"></tbody>
+        </table>
+      </div>
+      <div id="cmpEmpty" class="text-center py-8 text-slate-500 text-sm hidden">Sin registros aún. Captura la primera ficha arriba.</div>
+    </div>
+  </section>
+
   <!-- ========================================= -->
   <!-- TAB: SEMANAL · Reporte Semanal Bruckner    -->
   <!-- ========================================= -->
@@ -3425,6 +3610,10 @@
     <button class="tab-btn" data-tab="tab-bruckner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       <span>Bruckner</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
+      <span>Compactadora</span>
     </button>
     <button class="tab-btn" data-tab="tab-weekly">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -4970,6 +5159,7 @@ function init() {
   bindBulkFechaModal();
   // Buscador global de estado de producción (tab Buscar + atajo Ctrl+K)
   try { _buscarBindEventsOnce(); } catch(e) { console.warn('buscar init:', e); }
+  try { _cmpBindEventsOnce(); } catch(e) { console.warn('cmp init:', e); }
   updateUserPill();
   startAutosave();
   // Filtros y sugerencias en Tiempos Muertos
@@ -5154,6 +5344,9 @@ function bindTabs() {
     }
     if (tab === 'tab-buscar') {
       requestAnimationFrame(() => { try { _buscarBindEventsOnce(); renderBuscar(); const bq = document.getElementById('buscar_q'); if (bq) bq.focus(); } catch(e){} });
+    }
+    if (tab === 'tab-compact') {
+      requestAnimationFrame(() => { try { _cmpBindEventsOnce(); renderCompact(); _cmpUpdateCostoUI(); } catch(e){ console.warn('cmp switch:', e); } });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -11835,12 +12028,249 @@ function _buscarBindEventsOnce() {
   });
 }
 
+/* =================================================================
+   COMPACTADORA · Ruta tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)
+   — Captura por operador dedicado (una computadora en área de compactadora)
+   — Flujo: Teñido → Tubular Dry (+ Suavizado) → Compactadora → Empacado
+================================================================= */
+
+function _cmpNowStr() {
+  const d = new Date();
+  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+}
+function _cmpWeekStart(d) {
+  const dt = new Date(d);
+  const day = dt.getDay(); // 0=domingo
+  const diff = (day === 0 ? -6 : 1 - day);
+  dt.setDate(dt.getDate() + diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+function _cmpCostoTotalKg() {
+  const f = parseFloat(document.getElementById('cmp_costoFormula')?.value) || 0;
+  const c = parseFloat(document.getElementById('cmp_costoColor')?.value)   || 0;
+  const q = parseFloat(document.getElementById('cmp_costoQuim')?.value)    || 0;
+  const s = parseFloat(document.getElementById('cmp_costoSuav')?.value)    || 0;
+  return f + c + q + s;
+}
+function _cmpUpdateCostoUI() {
+  const totalKg = _cmpCostoTotalKg();
+  const kilos = parseFloat(document.getElementById('cmp_kilos')?.value) || 0;
+  const totalLote = totalKg * kilos;
+  const elKg = document.getElementById('cmp_costoTotalKg');
+  const elL  = document.getElementById('cmp_costoTotalLote');
+  if (elKg) elKg.textContent = '$' + totalKg.toFixed(2);
+  if (elL)  elL.textContent  = '$' + totalLote.toFixed(0);
+}
+
+function saveCompact() {
+  const fecha  = document.getElementById('cmp_fecha').value || _cmpNowStr();
+  const turno  = document.getElementById('cmp_turno').value || '1°';
+  const oper   = document.getElementById('cmp_operador').value.trim();
+  const lote   = document.getElementById('cmp_lote').value.trim();
+  const tela   = document.getElementById('cmp_tela').value.trim();
+  const color  = document.getElementById('cmp_color').value.trim();
+  const kilos  = parseFloat(document.getElementById('cmp_kilos').value) || 0;
+  const metros = parseFloat(document.getElementById('cmp_metros').value) || null;
+  const vel    = parseFloat(document.getElementById('cmp_vel').value) || null;
+  const temp   = parseFloat(document.getElementById('cmp_temp').value) || null;
+  const proceso = document.getElementById('cmp_proceso').value || 'Empacado';
+  const motivoPase = document.getElementById('cmp_motivoPase').value || 'nuevo';
+  const notas  = document.getElementById('cmp_notas').value.trim();
+  const costoFormula = parseFloat(document.getElementById('cmp_costoFormula').value) || 0;
+  const costoColor   = parseFloat(document.getElementById('cmp_costoColor').value) || 0;
+  const costoQuim    = parseFloat(document.getElementById('cmp_costoQuim').value) || 0;
+  const costoSuav    = parseFloat(document.getElementById('cmp_costoSuav').value) || 0;
+
+  if (!lote || !tela || !kilos) {
+    toast('Faltan campos: lote, tela y kilos son obligatorios', true);
+    return;
+  }
+
+  const rec = {
+    id: 'cmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    ts: Date.now(),
+    fecha, turno, operador: oper, lote, tela, color, kilos,
+    metros, vel, temp, proceso, motivoPase, notas,
+    costoFormula, costoColor, costoQuim, costoSuav,
+    // Alias por consistencia con state.bruck (útil en agregaciones)
+    machine: 'Compactadora',
+    rama: 'Compactadora'
+  };
+
+  if (!Array.isArray(state.compact)) state.compact = [];
+  state.compact.unshift(rec);
+  save(LS_KEYS.compact, state.compact);
+
+  logChange({
+    module: 'Compactadora',
+    action: 'Nueva ficha',
+    detail: `${lote} · ${tela} · ${color} · ${kilos} kg · ${proceso}`
+  });
+
+  toast(`Ficha guardada · ${lote} · ${kilos} kg`);
+  clearCompactForm(true /* keepDate */);
+  renderCompact();
+}
+
+function clearCompactForm(keepDate) {
+  ['cmp_lote','cmp_tela','cmp_color','cmp_kilos','cmp_metros','cmp_vel','cmp_temp',
+   'cmp_costoFormula','cmp_costoColor','cmp_costoQuim','cmp_notas'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  // Suavizante mantiene default $1.00
+  const sv = document.getElementById('cmp_costoSuav'); if (sv) sv.value = '1.00';
+  if (!keepDate) {
+    const f = document.getElementById('cmp_fecha'); if (f) f.value = _cmpNowStr();
+  }
+  // Reset chips a defaults
+  document.querySelectorAll('.cmp-proc-btn').forEach(b => b.classList.toggle('active', b.dataset.p === 'Empacado'));
+  const procHid = document.getElementById('cmp_proceso'); if (procHid) procHid.value = 'Empacado';
+  document.querySelectorAll('.cmp-motpase-btn').forEach(b => b.classList.toggle('active', b.dataset.mp === 'nuevo'));
+  const mpHid = document.getElementById('cmp_motivoPase'); if (mpHid) mpHid.value = 'nuevo';
+  _cmpUpdateCostoUI();
+}
+
+function renderCompact() {
+  const recs = (state.compact || []).slice();
+  // Fecha default en el form
+  const f = document.getElementById('cmp_fecha');
+  if (f && !f.value) f.value = _cmpNowStr();
+
+  // Filtro de rango de fechas para la tabla
+  const desdeEl = document.getElementById('cmpFiltroDesde');
+  const hastaEl = document.getElementById('cmpFiltroHasta');
+  const desde = desdeEl && desdeEl.value ? desdeEl.value : '';
+  const hasta = hastaEl && hastaEl.value ? hastaEl.value : '';
+  let filtered = recs;
+  if (desde) filtered = filtered.filter(r => (r.fecha||'') >= desde);
+  if (hasta) filtered = filtered.filter(r => (r.fecha||'') <= hasta);
+
+  // KPIs
+  const hoy = _cmpNowStr();
+  const hoyRecs = recs.filter(r => r.fecha === hoy);
+  const hoyEmpac = hoyRecs.filter(r => String(r.proceso||'').toLowerCase().includes('empac'));
+  const hoyKg    = hoyEmpac.reduce((s,r) => s + (parseFloat(r.kilos)||0), 0);
+  const hoyCosto = hoyRecs.reduce((s,r) => {
+    const kg = parseFloat(r.kilos)||0;
+    const cost = (r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoSuav||0);
+    return s + kg * cost;
+  }, 0);
+  const semStart = _cmpWeekStart(new Date());
+  const semStartStr = semStart.toLocaleDateString('en-CA');
+  const semRecs = recs.filter(r => (r.fecha||'') >= semStartStr);
+  const semKg = semRecs.reduce((s,r) => s + (parseFloat(r.kilos)||0), 0);
+
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt('cmp_hoyKg',    fmtKg(Math.round(hoyKg)) + ' kg');
+  setTxt('cmp_hoyLotes', new Set(hoyRecs.map(r => r.lote)).size);
+  setTxt('cmp_semKg',    fmtKg(Math.round(semKg)) + ' kg');
+  setTxt('cmp_hoyCosto', '$' + Math.round(hoyCosto).toLocaleString('en-US'));
+
+  // Tabla
+  const tbody = document.getElementById('cmpTblBody');
+  const empty = document.getElementById('cmpEmpty');
+  if (!tbody) return;
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+  // Limita a 200 filas para performance
+  const rows = filtered.slice(0, 200);
+  tbody.innerHTML = rows.map(r => {
+    const cost = (r.costoFormula||0)+(r.costoColor||0)+(r.costoQuim||0)+(r.costoSuav||0);
+    const procColor = String(r.proceso||'').toLowerCase().includes('empac') ? '#10b981'
+      : String(r.proceso||'').toLowerCase().includes('compact') ? '#22d3ee'
+      : '#fbbf24';
+    return `
+      <tr>
+        <td class="text-center">${r.fecha||'—'}</td>
+        <td class="text-center">${r.turno||''}</td>
+        <td>${r.operador||''}</td>
+        <td class="font-bold">${r.lote||''}</td>
+        <td>${r.tela||''}</td>
+        <td>${r.color||''}</td>
+        <td class="text-right font-mono">${fmtKg((parseFloat(r.kilos)||0).toFixed(1))}</td>
+        <td><span class="chip text-xs" style="background:${procColor}22; color:${procColor}; border:1px solid ${procColor}55">${r.proceso||'—'}</span></td>
+        <td class="text-right font-mono text-slate-400">${cost>0 ? '$'+cost.toFixed(2) : '—'}</td>
+        <td class="text-center">
+          <button class="text-red-400 hover:text-red-300 text-lg" title="Eliminar" onclick="deleteCompact('${r.id}')">×</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  if (filtered.length > 200) {
+    tbody.innerHTML += `<tr><td colspan="10" class="text-center text-slate-500 italic text-xs py-2">+${filtered.length - 200} más (usa el filtro de fechas)</td></tr>`;
+  }
+}
+
+function deleteCompact(id) {
+  if (!confirm('¿Eliminar esta ficha de Compactadora?')) return;
+  state.compact = (state.compact || []).filter(r => r.id !== id);
+  save(LS_KEYS.compact, state.compact);
+  logChange({ module:'Compactadora', action:'Eliminar ficha', detail:`id ${id}` });
+  renderCompact();
+  toast('Ficha eliminada');
+}
+
+// Bind events una sola vez
+let _cmpBinded = false;
+function _cmpBindEventsOnce() {
+  if (_cmpBinded) return;
+  _cmpBinded = true;
+
+  // Chips de proceso
+  document.querySelectorAll('.cmp-proc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cmp-proc-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const hid = document.getElementById('cmp_proceso');
+      if (hid) hid.value = btn.dataset.p;
+    });
+  });
+  // Chips de motivo
+  document.querySelectorAll('.cmp-motpase-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cmp-motpase-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const hid = document.getElementById('cmp_motivoPase');
+      if (hid) hid.value = btn.dataset.mp;
+    });
+  });
+  // Botones guardar/limpiar
+  const saveBtn = document.getElementById('cmpSave');
+  if (saveBtn) saveBtn.addEventListener('click', saveCompact);
+  const clearBtn = document.getElementById('cmpClear');
+  if (clearBtn) clearBtn.addEventListener('click', () => clearCompactForm(false));
+
+  // Recalcula total-cost al cambiar cualquier input relevante
+  ['cmp_kilos','cmp_costoFormula','cmp_costoColor','cmp_costoQuim','cmp_costoSuav'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', _cmpUpdateCostoUI);
+  });
+
+  // Filtros de fecha en la tabla
+  ['cmpFiltroDesde','cmpFiltroHasta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', renderCompact);
+  });
+  const fClear = document.getElementById('cmpFiltroClear');
+  if (fClear) fClear.addEventListener('click', () => {
+    const d = document.getElementById('cmpFiltroDesde'); if (d) d.value = '';
+    const h = document.getElementById('cmpFiltroHasta'); if (h) h.value = '';
+    renderCompact();
+  });
+}
+
 function renderAll() {
   renderOpenFichasPanel();
   renderReport();
   renderEfficiency();
   renderDowntime(); // already calls renderDowntimeAnalytics + renderRamaDowntime
   renderBruckner();
+  try { renderCompact(); } catch(e){ console.warn('cmp init:', e); }
   renderPT();
   renderHistory();
   try { renderCatalogoTelas(); } catch(e){}
