@@ -1390,7 +1390,7 @@
           <span id="rep_comp_compct" class="chip text-xs" style="background:#164e63;color:#67e8f9">Compactado: — kg</span>
           <span id="rep_comp_tdry"   class="chip text-xs" style="background:#422006;color:#fdba74">Tubular Dry: — kg</span>
         </div>
-        <div class="mt-2 text-[10px] text-slate-500 italic">Ruta tubular · PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON</div>
+        <div class="mt-2 text-[10px] text-slate-500 italic">Ruta tubular · PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS</div>
       </div>
 
       <!-- Monforts -->
@@ -2842,7 +2842,7 @@
       <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
         <div>
           <div class="text-sm font-bold text-amber-accent">🔄 Reclasificar histórico</div>
-          <p class="text-xs text-slate-400 mt-1">Escanea las fichas registradas en <b>Bruckner</b> y mueve las que tengan tela tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON) a <b>Compactadora</b>. Únicamente afecta registros existentes.</p>
+          <p class="text-xs text-slate-400 mt-1">Escanea las fichas registradas en <b>Bruckner</b> y mueve las que tengan tela tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS) a <b>Compactadora</b>. Únicamente afecta registros existentes.</p>
         </div>
         <button id="cmpReclassScan" class="btn btn-secondary !py-2 !px-3 text-xs">Escanear</button>
       </div>
@@ -3165,7 +3165,7 @@
               <th class="p-2 text-right border-b border-slate-800">Pronóstico</th>
               <th class="p-2 text-right border-b border-slate-800" title="Terminado en RAMA Bruckner (ruta ancha)">Terminado <span class="text-slate-500">(RAMA)</span></th>
               <th class="p-2 text-right border-b border-slate-800">Suavizado y Termofijado</th>
-              <th class="p-2 text-right border-b border-slate-800" title="Compactadora · ruta tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)">Compact. <span class="text-slate-500">(Tub.)</span></th>
+              <th class="p-2 text-right border-b border-slate-800" title="Compactadora · ruta tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)">Compact. <span class="text-slate-500">(Tub.)</span></th>
               <th class="p-2 text-right border-b border-slate-800">Total diario</th>
               <th class="p-2 text-right border-b border-slate-800">T. Muertos</th>
               <th class="p-2 text-right border-b border-slate-800">Diferencial</th>
@@ -3735,7 +3735,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       <span>Bruckner</span>
     </button>
-    <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)">
+    <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
       <span>Compactadora</span>
     </button>
@@ -4548,7 +4548,7 @@ const FB_COLLECTIONS = {
   prod:    'produccion',
   down:    'tiempos_muertos',
   bruck:   'bruckner',
-  compact: 'compactadora',      // Ruta tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)
+  compact: 'compactadora',      // Ruta tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)
   history: 'historial',
   telas:   'catalogo_telas'
 };
@@ -10292,7 +10292,7 @@ function _resumenComputeBruck(fecha) {
 /** Suma de kilos de la compactadora para una fecha. Por ahora 0 (placeholder hasta
  *  que el usuario envíe el formato de captura de compactadora). */
 function _resumenComputeComp(fecha) {
-  // Compactadora · ruta tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)
+  // Compactadora · ruta tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)
   // Solo cuenta como "terminado" del día lo que tiene proceso = Empacado
   // (los estados intermedios Compactado / Tubular Dry son etapas previas).
   const arr = Array.isArray(state.compact) ? state.compact : (Array.isArray(state.comp) ? state.comp : []);
@@ -11617,6 +11617,12 @@ const TUBULAR_TELAS_PATTERNS = [
   'kardigan',                // spelling alterno con K
   // RIB — como palabra completa (chequeo especial en isTubularTela para evitar falsos positivos como "brib", "tribal")
   'rib',
+  // CUELLOS y PUÑOS — accesorios tejidos tubularmente (van a Compactadora)
+  'cuello', 'cuellos',       // singular y plural
+  'cuelo',  'cuelos',        // typo común (una L)
+  'puño',   'puños',         // con ñ
+  'puno',   'punos',         // sin ñ (teclados sin ñ)
+  'punho',  'punhos',        // typo portugués/alterno
 ];
 
 // ¿Esta tela pasa por Compactadora en lugar de RAMA?
@@ -12255,7 +12261,7 @@ function _buscarBindEventsOnce() {
 }
 
 /* =================================================================
-   COMPACTADORA · Ruta tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON)
+   COMPACTADORA · Ruta tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)
    — Captura por operador dedicado (una computadora en área de compactadora)
    — Flujo: Teñido → Tubular Dry (+ Suavizado) → Compactadora → Empacado
 ================================================================= */
@@ -12528,7 +12534,7 @@ function _cmpBindEventsOnce() {
 
 /* ------------------------------------------------------------------ *
  *  Reclasificador · mueve registros históricos de Bruckner a Compactadora
- *  cuando la tela es tubular (PIQUE, INTERLOCK, RIB, CARDIGAN, CHIFON).
+ *  cuando la tela es tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS).
  * ------------------------------------------------------------------ */
 let _cmpReclassCandidates = [];
 
