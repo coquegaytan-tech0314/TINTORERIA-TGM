@@ -2667,6 +2667,76 @@
       </div>
     </div>
 
+    <!-- Plan del Día · Compactadora (mirror del Bruckner, sin Rend/Vel) -->
+    <div id="planCompactCard" class="card p-4 mb-4" style="border-left:4px solid #22d3ee">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🎯</span>
+          <h3 class="text-lg font-black text-white">Plan del Día · Compactadora</h3>
+          <span class="chip chip-info text-xs">Ruta Tubular</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="date" id="planC_fecha" class="field !py-2 !text-sm" style="width:140px" />
+          <button id="planCPasteBtn" class="btn btn-primary !py-2 !px-3 text-xs">📋 Pegar de Excel</button>
+          <button id="planCAddRowBtn" class="btn btn-ghost !py-2 !px-3 text-xs">+ Fila</button>
+          <button id="planCClearBtn" class="btn btn-ghost !py-2 !px-3 text-xs">Vaciar</button>
+        </div>
+      </div>
+
+      <!-- Help / tip -->
+      <p class="text-[11px] text-slate-500 mb-3">
+        💡 Este plan recibe automáticamente las filas <b>sin REND ni VEL</b> cuando pegas desde el Excel en la pestaña Bruckner. También puedes pegar aquí directamente sólo las filas tubulares.
+      </p>
+
+      <!-- Banner con KPIs del plan -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Meta total</div>
+          <div id="planC_metaTotal" class="text-xl font-black text-sky-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Real hoy</div>
+          <div id="planC_realTotal" class="text-xl font-black text-emer-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Avance</div>
+          <div id="planC_avancePct" class="text-xl font-black text-white">0%</div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+            <div id="planC_avanceBar" class="h-full bg-emer-accent transition-all" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Falta</div>
+          <div id="planC_faltaTotal" class="text-xl font-black text-amber-accent">0 <span class="text-xs text-slate-500">kg</span></div>
+        </div>
+      </div>
+
+      <!-- Sub-totales por proceso -->
+      <div id="planCSubtotals" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-xs"></div>
+
+      <!-- Tabla del plan (SIN Rend / Vel) -->
+      <div class="scroll-x rounded-lg border border-slate-800">
+        <table class="tbl text-sm">
+          <thead class="sticky top-0 bg-[#0c1320]">
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Tela</th>
+              <th>Color</th>
+              <th>Lote</th>
+              <th>KG meta</th>
+              <th>Proceso</th>
+              <th>Real kg</th>
+              <th>%</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="planCTbody"></tbody>
+        </table>
+      </div>
+      <p id="planCEmpty" class="text-center text-slate-500 text-sm py-6 hidden">Sin plan capturado todavía. Pega la tabla desde el Excel (las filas sin REND ni VEL) o agrega filas.</p>
+      <p class="text-[11px] text-slate-500 mt-2">💡 Copia desde Excel las columnas <b>Tela, Color, Lote, KG, Proceso</b> (o el Excel completo de Bruckner — se auto-filtran las filas sin REND/VEL).</p>
+    </div>
+
     <!-- KPIs rápidos -->
     <div id="cmpKpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
       <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
@@ -4545,12 +4615,14 @@ LS_KEYS.ptSheets = 'tg_tint_pt_sheets_v1'; // totales por hoja (footer reconcili
    - Si no hay conexión, Firestore encola las escrituras y las envía cuando vuelve
 --------------------------------------------------------------- */
 const FB_COLLECTIONS = {
-  prod:    'produccion',
-  down:    'tiempos_muertos',
-  bruck:   'bruckner',
-  compact: 'compactadora',      // Ruta tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)
-  history: 'historial',
-  telas:   'catalogo_telas'
+  prod:         'produccion',
+  down:         'tiempos_muertos',
+  bruck:        'bruckner',
+  compact:      'compactadora',      // Ruta tubular (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)
+  planDia:      'plan_dia',          // Plan del día Bruckner (RAMA) por fecha
+  planDiaComp:  'plan_dia_compact',  // Plan del día Compactadora (Tubular) por fecha
+  history:      'historial',
+  telas:        'catalogo_telas'
 };
 // Constantes de máquina RAMA Bruckner (confirmadas por Rogelio, 02/Jul/2026)
 // Se cargan de Firestore config/rama_bruckner si existen; fallback a estos defaults.
@@ -5264,6 +5336,7 @@ function init() {
   bindBrucknerForm();
   bindBruckFilters();
   bindPlanDia();
+  bindPlanCompact();
   bindResumenTerminado();
   bindReporteSemanal();
   bindPT();
@@ -8877,8 +8950,9 @@ function renderBruckner() {
     }
   }
 
-  // === Plan del Día · refrescar avance vs real ===
+  // === Plan del Día · refrescar avance vs real (Bruckner + Compactadora) ===
   if (typeof renderPlanAvance === 'function') renderPlanAvance();
+  if (typeof renderPlanCompactAvance === 'function') renderPlanCompactAvance();
 
   // === Resumen para el jefe · refrescar KPIs y mensaje ===
   if (typeof renderResumenTerminado === 'function') renderResumenTerminado();
@@ -10157,7 +10231,14 @@ async function subscribePlanDia(fecha) {
   }
 }
 
-/** Parsea texto pegado desde Excel/Sheets (TSV) y lo convierte en items */
+/** Parsea texto pegado desde Excel/Sheets (TSV) y lo convierte en items.
+ *  Cada item incluye un campo `route` = 'bruck' | 'compact':
+ *    - Si la fila tiene REND o VEL con valor → RUTA RAMA (bruck)
+ *    - Si la fila tiene REND y VEL vacíos → RUTA TUBULAR (compact)
+ *    - Adicionalmente, si la tela coincide con patrones tubulares (INTERLOCK,
+ *      CHIFON, CARDIGAN, RIB, PIQUE 1F/2F, CUELLOS, PUÑOS) se fuerza a compact
+ *      aunque tenga REND/VEL (por si el operador se equivoca).
+ */
 function _planParsePasted(text) {
   if (!text) return [];
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -10177,19 +10258,278 @@ function _planParsePasted(text) {
     if (lcAll.includes('total') || lcAll.includes('grand')) continue;
     const kgN = parseFloat((kg||'').replace(/[, ]/g,''));
     if (!tela && !lote && !kgN) continue;
+    const rendN = parseFloat((rend||'').replace(/[, ]/g,'')) || 0;
+    const velN  = parseFloat((vel||'').replace(/[, ]/g,'')) || 0;
+
+    // Regla del dueño (Jorge): la ruta la define el Excel, no la tela.
+    //   • REND + VEL con valor → RAMA (Bruckner) — la tela pasó por corte (ABIERTA) o es naturalmente ancha
+    //   • REND + VEL vacíos    → Compactadora (tubular)
+    // El operador decide antes de teñir si corta o no la tela; el resultado se refleja en el Excel.
+    const sinRendVel = (rendN === 0 && velN === 0);
+    const route = sinRendVel ? 'compact' : 'bruck';
+
     out.push({
       id: _planRowId(),
       tela, color, lote,
       kg:   kgN || 0,
-      rend: parseFloat((rend||'').replace(/[, ]/g,'')) || 0,
-      vel:  parseFloat((vel||'').replace(/[, ]/g,'')) || 0,
-      proceso: proceso || ''
+      rend: rendN,
+      vel:  velN,
+      proceso: proceso || '',
+      route: route
     });
   }
   return out;
 }
 
-/** Conecta todos los handlers del panel Plan del Día. Se invoca una sola vez. */
+/* ===============================================================
+   PLAN DEL DÍA · COMPACTADORA (Ruta Tubular)
+   - Espejo del plan Bruckner, sin columnas Rend/Vel
+   - Firestore: plan_dia_compact/{YYYY-MM-DD}
+   - Real de state.compact para la misma fecha
+=============================================================== */
+const PLAN_COMPACT_STATE = { fecha: '', items: [], unsub: null, dirty: false };
+
+function _planCRowId() { return 'pc_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3); }
+
+/** Render principal: tabla del plan Compactadora + banner de avance */
+function renderPlanCompactAvance() {
+  if (!document.getElementById('planCTbody')) return;
+  const items = PLAN_COMPACT_STATE.items || [];
+  const fecha = PLAN_COMPACT_STATE.fecha || todayISO();
+
+  // Real de Compactadora para la misma fecha
+  const cmpRows = (state.compact||[]).filter(r => r.fecha === fecha);
+  const realTotal = cmpRows.reduce((a,r) => a + (r.kilos||0), 0);
+
+  // Avance por lote: empareja por lote, si no por tela+color
+  function realForItem(it) {
+    const lote = (it.lote||'').trim().toLowerCase();
+    const tela = (it.tela||'').trim().toLowerCase();
+    const color = (it.color||'').trim().toLowerCase();
+    let matchKg = 0;
+    cmpRows.forEach(r => {
+      const rLote = (r.lote||'').trim().toLowerCase();
+      const rTela = (r.tela||'').trim().toLowerCase();
+      const rColor = (r.color||'').trim().toLowerCase();
+      if (lote && rLote && rLote === lote) { matchKg += (r.kilos||0); return; }
+      if (!lote && tela && rTela === tela && (!color || rColor === color)) { matchKg += (r.kilos||0); }
+    });
+    return matchKg;
+  }
+
+  const tb = document.getElementById('planCTbody');
+  const empty = document.getElementById('planCEmpty');
+  if (!items.length) {
+    tb.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+  } else {
+    if (empty) empty.classList.add('hidden');
+    tb.innerHTML = items.map((it, idx) => {
+      const real = realForItem(it);
+      const meta = parseFloat(it.kg)||0;
+      const pct  = meta>0 ? Math.min(999, Math.round((real/meta)*100)) : 0;
+      const pctColor = pct >= 100 ? 'text-emer-accent' : pct >= 70 ? 'text-sky-accent' : pct > 0 ? 'text-amber-accent' : 'text-slate-500';
+      const cat = _planCatProceso(it.proceso);
+      return `<tr data-pid="${it.id}">
+        <td class="text-slate-500">${idx+1}</td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="tela" value="${(it.tela||'').replace(/"/g,'&quot;')}" placeholder="Tela" /></td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="color" value="${(it.color||'').replace(/"/g,'&quot;')}" placeholder="Color" /></td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="lote" value="${(it.lote||'').replace(/"/g,'&quot;')}" placeholder="Lote" style="width:80px" /></td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs text-right" data-k="kg" type="number" step="1" min="0" value="${meta||''}" style="width:80px" /></td>
+        <td><select class="planc-edit field !py-1 !px-2 text-xs" data-k="proceso" style="min-width:110px">
+          ${['Suavizado','Termofijado','Empacado','Otros'].map(opt => `<option value="${opt}" ${cat===opt?'selected':''}>${opt}</option>`).join('')}
+        </select></td>
+        <td class="text-right font-bold">${real ? fmtKg(real) : '—'}</td>
+        <td class="text-right font-bold ${pctColor}">${pct}%</td>
+        <td><button class="btn btn-secondary !py-1 !px-2 text-xs" data-act="del">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    tb.querySelectorAll('.planc-edit').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const tr = inp.closest('tr');
+        const pid = tr?.dataset.pid;
+        const it = PLAN_COMPACT_STATE.items.find(x => x.id === pid);
+        if (!it) return;
+        const k = inp.dataset.k;
+        if (k === 'kg') { it[k] = parseFloat(inp.value) || 0; }
+        else { it[k] = inp.value; }
+        savePlanCompactDia();
+        if (k === 'proceso') renderPlanCompactAvance();
+      });
+    });
+    tb.querySelectorAll('button[data-act="del"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tr = btn.closest('tr');
+        const pid = tr?.dataset.pid;
+        PLAN_COMPACT_STATE.items = PLAN_COMPACT_STATE.items.filter(x => x.id !== pid);
+        savePlanCompactDia();
+        renderPlanCompactAvance();
+      });
+    });
+  }
+
+  // Banner totales
+  const metaTotal = items.reduce((a,it) => a + (parseFloat(it.kg)||0), 0);
+  const falta = Math.max(0, metaTotal - realTotal);
+  const avancePct = metaTotal > 0 ? Math.min(999, Math.round((realTotal/metaTotal)*100)) : 0;
+  const elMeta = document.getElementById('planC_metaTotal');
+  const elReal = document.getElementById('planC_realTotal');
+  const elPct  = document.getElementById('planC_avancePct');
+  const elBar  = document.getElementById('planC_avanceBar');
+  const elFalta= document.getElementById('planC_faltaTotal');
+  if (elMeta) elMeta.innerHTML = `${fmtKg(metaTotal)} <span class="text-xs text-slate-500">kg</span>`;
+  if (elReal) elReal.innerHTML = `${fmtKg(realTotal)} <span class="text-xs text-slate-500">kg</span>`;
+  if (elPct)  elPct.textContent = avancePct + '%';
+  if (elBar)  elBar.style.width = Math.min(100, avancePct) + '%';
+  if (elFalta) elFalta.innerHTML = `${fmtKg(falta)} <span class="text-xs text-slate-500">kg</span>`;
+
+  // Sub-totales por proceso
+  const cats = ['Suavizado','Termofijado','Empacado','Otros'];
+  const subt = {};
+  cats.forEach(c => subt[c] = { meta:0, real:0 });
+  items.forEach(it => {
+    const c = _planCatProceso(it.proceso);
+    subt[c].meta += parseFloat(it.kg)||0;
+    subt[c].real += realForItem(it);
+  });
+  const subEl = document.getElementById('planCSubtotals');
+  if (subEl) {
+    const colorMap = { Suavizado:'sky-accent', Termofijado:'amber-accent', Empacado:'emer-accent', Otros:'slate-400' };
+    subEl.innerHTML = cats.map(c => {
+      if (!subt[c].meta && !subt[c].real) return '';
+      const pct = subt[c].meta > 0 ? Math.round((subt[c].real/subt[c].meta)*100) : 0;
+      return `<div class="rounded-lg bg-[#0c1320] p-2 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">${c}</div>
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="font-bold text-${colorMap[c]}">${fmtKg(subt[c].real)} / ${fmtKg(subt[c].meta)}</span>
+          <span class="text-[10px] text-slate-400">${pct}%</span>
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+  }
+}
+
+/** Guarda el plan Compactadora a Firestore (y localStorage como respaldo) */
+async function savePlanCompactDia() {
+  try {
+    PLAN_COMPACT_STATE.dirty = true;
+    try { localStorage.setItem('tg_planC_'+PLAN_COMPACT_STATE.fecha, JSON.stringify(PLAN_COMPACT_STATE.items)); } catch(_){}
+    const FB = await whenFbReady();
+    if (!FB) return;
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) { console.warn('[PlanC] sin sesión, no se sube'); return; }
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.planDiaComp) || 'plan_dia_compact';
+    const docRef = FB.doc(FB.db, coll, PLAN_COMPACT_STATE.fecha);
+    const payload = {
+      fecha: PLAN_COMPACT_STATE.fecha,
+      items: PLAN_COMPACT_STATE.items,
+      updatedAt: Date.now(),
+      updatedBy: (window.TG_USER || {}).name || 'desconocido',
+      auth: FB_AUTH_TOKEN
+    };
+    await FB.setDoc(docRef, payload);
+    PLAN_COMPACT_STATE.dirty = false;
+  } catch (e) {
+    console.warn('[PlanC] savePlanCompactDia error', e);
+  }
+}
+
+/** Carga (o re-suscribe) el plan Compactadora para la fecha activa */
+async function subscribePlanCompactDia(fecha) {
+  PLAN_COMPACT_STATE.fecha = fecha;
+  try {
+    const cached = localStorage.getItem('tg_planC_'+fecha);
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { PLAN_COMPACT_STATE.items = arr; renderPlanCompactAvance(); }
+    } else {
+      PLAN_COMPACT_STATE.items = [];
+      renderPlanCompactAvance();
+    }
+  } catch(_){}
+
+  if (typeof PLAN_COMPACT_STATE.unsub === 'function') { try { PLAN_COMPACT_STATE.unsub(); } catch(_){} PLAN_COMPACT_STATE.unsub = null; }
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.planDiaComp) || 'plan_dia_compact';
+    const docRef = FB.doc(FB.db, coll, fecha);
+    PLAN_COMPACT_STATE.unsub = FB.onSnapshot(docRef, (snap) => {
+      if (!snap.exists()) {
+        if (!PLAN_COMPACT_STATE.items.length) { PLAN_COMPACT_STATE.items = []; renderPlanCompactAvance(); }
+        return;
+      }
+      const data = snap.data() || {};
+      const remoteItems = Array.isArray(data.items) ? data.items : [];
+      PLAN_COMPACT_STATE.items = remoteItems;
+      try { localStorage.setItem('tg_planC_'+fecha, JSON.stringify(remoteItems)); } catch(_){}
+      renderPlanCompactAvance();
+    }, (err) => console.warn('[PlanC] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[PlanC] subscribe error', e);
+  }
+}
+
+/** Conecta los handlers del panel Plan Compactadora. Se invoca una sola vez. */
+function bindPlanCompact() {
+  const fechaInput = document.getElementById('planC_fecha');
+  if (!fechaInput) return;
+  fechaInput.value = todayISO();
+  subscribePlanCompactDia(fechaInput.value);
+
+  fechaInput.addEventListener('change', () => {
+    const f = fechaInput.value || todayISO();
+    subscribePlanCompactDia(f);
+  });
+
+  // "Pegar de Excel" — acepta cualquier Excel de Bruckner y filtra las filas sin REND/VEL
+  document.getElementById('planCPasteBtn')?.addEventListener('click', async () => {
+    requireUserThen(async () => {
+      let text = '';
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          text = await navigator.clipboard.readText();
+        }
+      } catch(_){}
+      if (!text) {
+        text = prompt('Pega aquí las filas copiadas desde Excel/Sheets (columnas separadas por TAB):');
+      }
+      if (!text) return;
+      const parsed = _planParsePasted(text);
+      if (!parsed.length) { toast('No se detectaron filas válidas', true); return; }
+      // Filtrar sólo las tubulares (sin REND/VEL)
+      const compItems = parsed.filter(x => x.route === 'compact').map(x => { const {route, rend, vel, ...rest} = x; return rest; });
+      if (!compItems.length) { toast('No se detectaron filas tubulares (sin REND/VEL)', true); return; }
+      PLAN_COMPACT_STATE.items = compItems.map(x => ({ ...x, id: _planCRowId() }));
+      await savePlanCompactDia();
+      renderPlanCompactAvance();
+      const descartadas = parsed.length - compItems.length;
+      let msg = `Plan Compactadora cargado: ${compItems.length} líneas`;
+      if (descartadas > 0) msg += ` (${descartadas} filas de RAMA ignoradas)`;
+      toast(msg);
+    });
+  });
+
+  document.getElementById('planCAddRowBtn')?.addEventListener('click', () => {
+    requireUserThen(() => {
+      PLAN_COMPACT_STATE.items.push({ id:_planCRowId(), tela:'', color:'', lote:'', kg:0, proceso:'Empacado' });
+      savePlanCompactDia();
+      renderPlanCompactAvance();
+    });
+  });
+
+  document.getElementById('planCClearBtn')?.addEventListener('click', () => {
+    requireUserThen(() => {
+      if (!PLAN_COMPACT_STATE.items.length) return;
+      if (!confirm('¿Vaciar el plan del día Compactadora? Esta acción no se puede deshacer.')) return;
+      PLAN_COMPACT_STATE.items = [];
+      savePlanCompactDia();
+      renderPlanCompactAvance();
+    });
+  });
+}
+
 /* ===============================================================
    RESUMEN DEL DÍA · Producción de Terminado (formato WhatsApp)
    - Bruckner por proceso (Suavizado/Termofijado/Empacado/Otros)
@@ -11498,7 +11838,7 @@ function bindPlanDia() {
     subscribePlanDia(f);
   });
 
-  // "Pegar de Excel" — usa el portapapeles si está disponible, si no muestra un prompt
+  // "Pegar de Excel" — auto-rutea a Bruckner ó Compactadora según REND/VEL y tela
   document.getElementById('planPasteBtn')?.addEventListener('click', async () => {
     requireUserThen(async () => {
       let text = '';
@@ -11511,13 +11851,31 @@ function bindPlanDia() {
         text = prompt('Pega aquí las filas copiadas desde Excel/Sheets (columnas separadas por TAB):');
       }
       if (!text) return;
-      const newItems = _planParsePasted(text);
-      if (!newItems.length) { toast('No se detectaron filas válidas', true); return; }
-      // Reemplaza por completo el plan del día con lo pegado (mejor experiencia: pegar = nueva lista)
-      PLAN_STATE.items = newItems;
+      const parsed = _planParsePasted(text);
+      if (!parsed.length) { toast('No se detectaron filas válidas', true); return; }
+
+      // Auto-split: RAMA (bruck) vs TUBULAR (compact)
+      const bruckItems  = parsed.filter(x => x.route === 'bruck');
+      const compItems   = parsed.filter(x => x.route === 'compact');
+
+      // Reemplaza por completo el plan del día con lo pegado
+      PLAN_STATE.items = bruckItems.map(x => { const {route, ...rest} = x; return rest; });
       await savePlanDia();
       renderPlanAvance();
-      toast(`Plan cargado: ${newItems.length} líneas`);
+
+      // Si hay filas tubulares, también las manda al plan Compactadora
+      if (compItems.length && typeof PLAN_COMPACT_STATE !== 'undefined') {
+        // Usa la misma fecha que el plan Bruckner
+        PLAN_COMPACT_STATE.fecha = PLAN_STATE.fecha || todayISO();
+        PLAN_COMPACT_STATE.items = compItems.map(x => { const {route, rend, vel, ...rest} = x; return rest; });
+        try { await savePlanCompactDia(); } catch(e) { console.warn('[Plan] savePlanCompactDia error', e); }
+        try { renderPlanCompactAvance(); } catch(e) {}
+      }
+
+      // Mensaje resumen
+      let msg = `Plan cargado → Bruckner: ${bruckItems.length}`;
+      if (compItems.length) msg += ` · Compactadora: ${compItems.length}`;
+      toast(msg);
     });
   });
 
