@@ -3749,6 +3749,236 @@
   </section>
 
   <!-- ============================================================= -->
+  <!-- TAB: Mi Inicio  · Fase 2b                                     -->
+  <!-- Home page personalizada: saludo + tareas pendientes + avisos.  -->
+  <!-- No toca el dashboard existente.                                -->
+  <!-- ============================================================= -->
+  <section id="tab-inicio" class="tab-panel hidden">
+    <!-- Encabezado con saludo -->
+    <div class="card p-5 mb-4" style="background:linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(16,185,129,0.06) 100%); border:1px solid rgba(56,189,248,0.2)">
+      <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div class="flex-1 min-w-[220px]">
+          <div id="inicioSaludo" class="text-3xl md:text-4xl font-black text-white">Hola</div>
+          <div id="inicioSubSaludo" class="text-sm text-slate-400 mt-1">Bienvenido a Tintorería TGM</div>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div id="inicioHora" class="text-2xl font-black text-sky-accent">--:--</div>
+          <div id="inicioFecha" class="text-[11px] text-slate-500 mt-1">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs rápidos -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="card p-3 text-center">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Mis pendientes</div>
+        <div id="inicioKpiPend" class="text-2xl font-black text-warn mt-1">0</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">En curso</div>
+        <div id="inicioKpiEnCurso" class="text-2xl font-black text-sky-accent mt-1">0</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Vencidas</div>
+        <div id="inicioKpiVenc" class="text-2xl font-black text-danger mt-1">0</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Completadas hoy</div>
+        <div id="inicioKpiHechoHoy" class="text-2xl font-black text-emer-accent mt-1">0</div>
+      </div>
+    </div>
+
+    <!-- Mis próximas tareas -->
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <h3 class="text-lg font-black text-white">📌 Mis próximas tareas</h3>
+          <p class="text-[11px] text-slate-500">Tus tareas pendientes ordenadas por urgencia</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="inicioQuickAddBtn" class="btn btn-primary !py-2 !px-3 text-sm">+ Nueva tarea</button>
+          <button id="inicioVerTodasBtn" class="btn !py-2 !px-3 text-sm" style="background:rgba(148,163,184,0.12); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1">Ver todas →</button>
+        </div>
+      </div>
+      <div id="inicioTareasLista" class="space-y-2">
+        <div class="text-center py-6 text-slate-500 text-sm">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Avisos (placeholder Fase 5b) -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-black text-white">📢 Avisos de la empresa</h3>
+        <span class="chip chip-info text-[10px]">Próximamente</span>
+      </div>
+      <div class="text-center py-6 text-slate-500 text-sm">
+        Aquí aparecerán anuncios, recordatorios y comunicados de la empresa.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- TAB: Mis Tareas  · Fase 2a                                    -->
+  <!-- Kanban de 3 columnas: Pendiente / En curso / Hecho.            -->
+  <!-- No toca el dashboard existente.                                -->
+  <!-- ============================================================= -->
+  <section id="tab-tareas" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Mis Tareas <span class="text-slate-500 font-semibold text-base">· Kanban</span></h2>
+        <p class="text-xs text-slate-500 mt-1">Toca una tarjeta para moverla, editarla o marcarla como hecha.</p>
+      </div>
+      <div class="flex gap-2 flex-wrap items-center">
+        <label id="tarEquipoWrap" class="hidden inline-flex items-center gap-2 text-xs text-slate-300 bg-ink-800/60 px-3 py-2 rounded-lg cursor-pointer">
+          <input type="checkbox" id="tarVerEquipo" class="accent-sky-500" />
+          <span>Ver tareas del equipo</span>
+        </label>
+        <button id="tarAddBtn" class="btn btn-primary !py-2 !px-3 text-sm">+ Nueva tarea</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card p-3 mb-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <input id="tarSearch" type="text" placeholder="🔍 Buscar por título, descripción…" class="field !py-2 text-sm md:col-span-2" />
+        <select id="tarFilterPrio" class="field !py-2 text-sm">
+          <option value="">Todas las prioridades</option>
+          <option value="critica">🔴 Crítica</option>
+          <option value="urgente">🟡 Urgente</option>
+          <option value="normal">🟢 Normal</option>
+        </select>
+        <select id="tarFilterArea" class="field !py-2 text-sm">
+          <option value="">Todas las áreas</option>
+          <option value="Tintorería">Tintorería</option>
+          <option value="Tejido">Tejido</option>
+          <option value="Almacén">Almacén</option>
+          <option value="Administración">Administración</option>
+          <option value="Ventas">Ventas</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Corte">Corte</option>
+          <option value="Compras">Compras</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Kanban 3 columnas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <!-- Pendiente -->
+      <div class="card p-3" data-col="pendiente">
+        <div class="flex items-center justify-between mb-2 pb-2 border-b border-ink-700">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider">Pendiente</h3>
+          </div>
+          <span id="tarCountPend" class="chip text-[10px] font-bold" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1">0</span>
+        </div>
+        <div id="tarColPend" class="space-y-2 min-h-[120px]">
+          <div class="text-center py-6 text-slate-500 text-xs">Sin tareas</div>
+        </div>
+      </div>
+
+      <!-- En curso -->
+      <div class="card p-3" data-col="en_curso">
+        <div class="flex items-center justify-between mb-2 pb-2 border-b border-ink-700">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-accent animate-pulse"></span>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider">En curso</h3>
+          </div>
+          <span id="tarCountEnCurso" class="chip text-[10px] font-bold" style="background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.4); color:#38bdf8">0</span>
+        </div>
+        <div id="tarColEnCurso" class="space-y-2 min-h-[120px]">
+          <div class="text-center py-6 text-slate-500 text-xs">Sin tareas</div>
+        </div>
+      </div>
+
+      <!-- Hecho -->
+      <div class="card p-3" data-col="hecho">
+        <div class="flex items-center justify-between mb-2 pb-2 border-b border-ink-700">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emer-accent"></span>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider">Hecho</h3>
+          </div>
+          <span id="tarCountHecho" class="chip text-[10px] font-bold" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10b981">0</span>
+        </div>
+        <div id="tarColHecho" class="space-y-2 min-h-[120px]">
+          <div class="text-center py-6 text-slate-500 text-xs">Sin tareas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de tarea -->
+    <div id="tarModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div class="card p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="tarModalTitle" class="text-lg font-black text-white">Nueva tarea</h3>
+          <button id="tarModalClose" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-400">Título <span class="text-danger">*</span></label>
+            <input id="tarTitulo" type="text" class="field w-full" placeholder="Ej. Revisar lote 4521 antes del envío" maxlength="120" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Descripción</label>
+            <textarea id="tarDesc" class="field w-full" rows="3" placeholder="Detalles, notas, contexto…"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-400">Asignar a</label>
+              <select id="tarAsignado" class="field w-full">
+                <option value="">— Selecciona—</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Área</label>
+              <select id="tarArea" class="field w-full">
+                <option value="">— Sin área —</option>
+                <option value="Tintorería">Tintorería</option>
+                <option value="Tejido">Tejido</option>
+                <option value="Almacén">Almacén</option>
+                <option value="Administración">Administración</option>
+                <option value="Ventas">Ventas</option>
+                <option value="Mantenimiento">Mantenimiento</option>
+                <option value="Corte">Corte</option>
+                <option value="Compras">Compras</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-400">Prioridad</label>
+              <select id="tarPrio" class="field w-full">
+                <option value="normal">🟢 Normal</option>
+                <option value="urgente">🟡 Urgente</option>
+                <option value="critica">🔴 Crítica</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Fecha límite</label>
+              <input id="tarFechaLim" type="date" class="field w-full" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Estado</label>
+            <select id="tarEstado" class="field w-full">
+              <option value="pendiente">⚪ Pendiente</option>
+              <option value="en_curso">🔵 En curso</option>
+              <option value="hecho">✅ Hecho</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-between gap-2 mt-5">
+          <button id="tarDeleteBtn" class="btn hidden !py-2 !px-3 text-sm" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444">Eliminar</button>
+          <div class="flex gap-2 ml-auto">
+            <button id="tarCancelBtn" class="btn !py-2 !px-3 text-sm" style="background:rgba(148,163,184,0.12); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1">Cancelar</button>
+            <button id="tarSaveBtn" class="btn btn-primary !py-2 !px-3 text-sm">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
   <!-- TAB: Personal (Directorio de colaboradores)  · Fase 1a       -->
   <!-- Nuevo módulo, NO toca el dashboard existente.                 -->
   <!-- ============================================================= -->
@@ -3971,6 +4201,14 @@
     <button class="tab-btn" data-tab="tab-buscar" title="Buscar estado de producción de un lote/producto (Ctrl+K)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span>Buscar</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-inicio" title="Mi Inicio · tu página personal con tareas y avisos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Mi Inicio</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-tareas" title="Mis Tareas · Kanban personal (Pendiente / En curso / Hecho)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7"/><path d="M17.5 13.5v7"/></svg>
+      <span>Tareas</span>
     </button>
     <button class="tab-btn" data-tab="tab-personal" title="Directorio de personal · colaboradores de la empresa">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -5332,6 +5570,8 @@ function _setCurrentUser(userObj) {
   }
   _pushLastUserOnDevice({ name, empleado_id: userObj.empleado_id || null });
   updateUserPill();
+  // Mostrar el tutorial de Fase 2 una sola vez por dispositivo
+  try { _onboardingMaybeShow(); } catch(e) { console.warn('onboarding', e); }
 }
 
 /** Rellena el <select> del modal con los empleados activos */
@@ -5510,7 +5750,11 @@ function bindUserModal() {
 function hydrateUserFromSession() {
   const name = sessionStorage.getItem(SS_KEYS.user) || '';
   const empId = sessionStorage.getItem('tg_tint_empleado_id') || null;
-  if (name) window.TG_USER = { name, empleado_id: empId };
+  if (name) {
+    window.TG_USER = { name, empleado_id: empId };
+    // Mostrar el tutorial una vez si el usuario ya tenía sesión
+    try { _onboardingMaybeShow(); } catch(e) { console.warn('onboarding', e); }
+  }
 }
 
 /* ===============================================================
@@ -5796,6 +6040,8 @@ function init() {
   bindPlanDia();
   bindPlanCompact();
   bindEmpleados();
+  bindTareas();
+  bindInicio();
   bindResumenTerminado();
   bindReporteSemanal();
   bindPT();
@@ -5998,6 +6244,12 @@ function bindTabs() {
     }
     if (tab === 'tab-compact') {
       requestAnimationFrame(() => { try { _cmpBindEventsOnce(); renderCompact(); _cmpUpdateCostoUI(); } catch(e){ console.warn('cmp switch:', e); } });
+    }
+    if (tab === 'tab-inicio') {
+      requestAnimationFrame(() => { try { renderInicio(); } catch(e){ console.warn('inicio switch:', e); } });
+    }
+    if (tab === 'tab-tareas') {
+      requestAnimationFrame(() => { try { renderTareas(); } catch(e){ console.warn('tareas switch:', e); } });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -11361,6 +11613,635 @@ function bindEmpleados() {
   document.getElementById('empFilterRol')?.addEventListener('change', renderEmpleados);
 
   subscribeEmpleados();
+}
+
+/* ===============================================================
+   FASE 2  ·  TAREAS (Kanban) + MI INICIO + ONBOARDING
+   Nuevo módulo. NO toca el dashboard existente.
+   Firestore: tareas/{id}
+     titulo, descripcion, asignado_a (empleado_id), asignado_por,
+     area, estado ('pendiente'|'en_curso'|'hecho'),
+     prioridad ('normal'|'urgente'|'critica'),
+     fecha_creacion, fecha_limite, fecha_completado,
+     updatedAt, updatedBy, auth
+=============================================================== */
+
+const TAR_STATE = {
+  list: [],
+  loaded: false,
+  editingId: null,
+  unsubscribe: null,
+  verEquipo: false
+};
+
+const TAR_PRIO = {
+  critica: { label: 'Crítica', emoji: '🔴', color: '#ef4444', orden: 0 },
+  urgente: { label: 'Urgente', emoji: '🟡', color: '#f59e0b', orden: 1 },
+  normal:  { label: 'Normal',  emoji: '🟢', color: '#10b981', orden: 2 }
+};
+
+const TAR_ESTADO = {
+  pendiente: { label: 'Pendiente', emoji: '⚪', color: '#94a3b8' },
+  en_curso:  { label: 'En curso',  emoji: '🔵', color: '#38bdf8' },
+  hecho:     { label: 'Hecho',     emoji: '✅', color: '#10b981' }
+};
+
+/** ¿Es admin o manager? */
+function _tarIsManager() {
+  const u = (typeof EMP_STATE !== 'undefined') ? EMP_STATE.currentUserEmp : null;
+  return u && (u.rol === 'admin' || u.rol === 'manager');
+}
+
+/** Días restantes hasta fecha límite (negativo = vencida) */
+function _tarDiasRestantes(t) {
+  if (!t.fecha_limite) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const lim = new Date(t.fecha_limite + 'T00:00:00');
+  return Math.round((lim.getTime() - hoy.getTime()) / (1000*60*60*24));
+}
+
+/** Etiqueta corta de fecha límite: "Hoy", "Mañana", "En 3d", "Hace 2d" */
+function _tarFechaLimTexto(t) {
+  const d = _tarDiasRestantes(t);
+  if (d === null) return '';
+  if (d === 0) return 'Hoy';
+  if (d === 1) return 'Mañana';
+  if (d === -1) return 'Ayer';
+  if (d > 0) return `En ${d}d`;
+  return `Hace ${Math.abs(d)}d`;
+}
+
+/** Color del borde según urgencia (fecha límite) */
+function _tarBordeUrgencia(t) {
+  if (t.estado === 'hecho') return 'rgba(148,163,184,0.2)';
+  const d = _tarDiasRestantes(t);
+  if (d === null) return 'rgba(148,163,184,0.25)';
+  if (d < 0)  return 'rgba(239,68,68,0.7)';   // vencida = rojo fuerte
+  if (d === 0) return 'rgba(245,158,11,0.7)'; // hoy = naranja
+  if (d <= 2)  return 'rgba(245,158,11,0.4)'; // próxima
+  return 'rgba(148,163,184,0.25)';
+}
+
+/** Nombre del asignado (fallback si el empleado ya no existe) */
+function _tarNombreAsignado(t) {
+  if (!t.asignado_a) return 'Sin asignar';
+  const e = (typeof EMP_STATE !== 'undefined')
+    ? (EMP_STATE.list || []).find(x => x.id === t.asignado_a) : null;
+  return e ? e.nombre : (t.asignado_nombre || 'Colaborador eliminado');
+}
+
+/** Filtra tareas según el toggle "ver equipo" y filtros */
+function _tarFiltradas() {
+  const me = (typeof TG_USER !== 'undefined') ? TG_USER : null;
+  const meId = me && me.empleado_id;
+  const qEl = document.getElementById('tarSearch');
+  const prEl = document.getElementById('tarFilterPrio');
+  const arEl = document.getElementById('tarFilterArea');
+  const q = (qEl?.value || '').trim().toLowerCase();
+  const prio = prEl?.value || '';
+  const area = arEl?.value || '';
+
+  let list = TAR_STATE.list.slice();
+
+  // Alcance: mis tareas por defecto; si ver equipo, todo lo que el manager puede ver
+  if (!TAR_STATE.verEquipo) {
+    list = list.filter(t => t.asignado_a === meId);
+  } else if (_tarIsManager()) {
+    // Manager: sus tareas + las de sus reportes directos + las que el mismo asignó
+    const reportes = (EMP_STATE.list || []).filter(e => e.jefe_id === meId).map(e => e.id);
+    list = list.filter(t =>
+      t.asignado_a === meId ||
+      reportes.includes(t.asignado_a) ||
+      t.asignado_por === meId
+    );
+  }
+
+  if (q) {
+    list = list.filter(t =>
+      (t.titulo || '').toLowerCase().includes(q) ||
+      (t.descripcion || '').toLowerCase().includes(q)
+    );
+  }
+  if (prio) list = list.filter(t => t.prioridad === prio);
+  if (area) list = list.filter(t => t.area === area);
+  return list;
+}
+
+/** Renderiza una tarjeta de tarea (Kanban o Mi Inicio) */
+function _tarRenderCard(t, compacta) {
+  const prio = TAR_PRIO[t.prioridad] || TAR_PRIO.normal;
+  const borde = _tarBordeUrgencia(t);
+  const limTxt = _tarFechaLimTexto(t);
+  const d = _tarDiasRestantes(t);
+  const vencida = t.estado !== 'hecho' && d !== null && d < 0;
+  const asignadoNombre = _tarNombreAsignado(t);
+  const asignadoIni = (asignadoNombre || '?').split(/\s+/).slice(0,2).map(s => s[0]).join('').toUpperCase();
+
+  const nextEstadoBtn = t.estado === 'pendiente' ? 'en_curso'
+                       : t.estado === 'en_curso' ? 'hecho' : null;
+  const btnAvanzar = nextEstadoBtn
+    ? `<button class="btn text-[10px] !py-1 !px-2" style="background:${TAR_ESTADO[nextEstadoBtn].color}22; border:1px solid ${TAR_ESTADO[nextEstadoBtn].color}; color:${TAR_ESTADO[nextEstadoBtn].color}" data-act="avanzar" data-id="${t.id}" data-to="${nextEstadoBtn}">${TAR_ESTADO[nextEstadoBtn].emoji} ${TAR_ESTADO[nextEstadoBtn].label}</button>`
+    : `<button class="btn text-[10px] !py-1 !px-2" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1" data-act="reabrir" data-id="${t.id}">↻ Reabrir</button>`;
+
+  return `
+    <div class="tarea-card p-2.5 rounded-lg cursor-pointer transition-all hover:bg-ink-800/80"
+         style="background:rgba(30,41,59,0.5); border:2px solid ${borde}"
+         data-id="${t.id}" data-act="edit">
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-white truncate">${prio.emoji} ${t.titulo || '(sin título)'}</div>
+          ${t.descripcion ? `<div class="text-[11px] text-slate-400 mt-0.5 line-clamp-2">${t.descripcion}</div>` : ''}
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-2 mt-2 flex-wrap">
+        <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+          <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white" style="background:${prio.color}">${asignadoIni}</span>
+          <span class="truncate max-w-[110px]">${asignadoNombre}</span>
+        </div>
+        ${limTxt ? `<span class="chip text-[10px] font-bold" style="background:${vencida?'rgba(239,68,68,0.15)':'rgba(148,163,184,0.15)'}; border:1px solid ${vencida?'#ef4444':'rgba(148,163,184,0.3)'}; color:${vencida?'#ef4444':'#cbd5e1'}">${vencida?'⚠️ ':''}${limTxt}</span>` : ''}
+      </div>
+      ${t.area ? `<div class="text-[10px] text-slate-500 mt-1">🏷️ ${t.area}</div>` : ''}
+      <div class="mt-2 pt-2 border-t border-ink-700/50 flex items-center gap-1.5" data-act="actions">
+        ${btnAvanzar}
+      </div>
+    </div>
+  `;
+}
+
+/** Ordena por urgencia (crítica → normal, luego vencidas primero, luego más próximas) */
+function _tarOrdenar(list) {
+  return list.slice().sort((a, b) => {
+    const pa = (TAR_PRIO[a.prioridad] || TAR_PRIO.normal).orden;
+    const pb = (TAR_PRIO[b.prioridad] || TAR_PRIO.normal).orden;
+    if (pa !== pb) return pa - pb;
+    const da = _tarDiasRestantes(a);
+    const db = _tarDiasRestantes(b);
+    if (da === null && db === null) return (b.fecha_creacion||'').localeCompare(a.fecha_creacion||'');
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return da - db;
+  });
+}
+
+/** Render principal del Kanban */
+function renderTareas() {
+  const list = _tarFiltradas();
+  const cols = {
+    pendiente: _tarOrdenar(list.filter(t => t.estado === 'pendiente')),
+    en_curso:  _tarOrdenar(list.filter(t => t.estado === 'en_curso')),
+    hecho:     _tarOrdenar(list.filter(t => t.estado === 'hecho'))
+  };
+  const draw = (id, arr) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = arr.length
+      ? arr.map(t => _tarRenderCard(t, false)).join('')
+      : '<div class="text-center py-6 text-slate-500 text-xs">Sin tareas</div>';
+  };
+  draw('tarColPend', cols.pendiente);
+  draw('tarColEnCurso', cols.en_curso);
+  draw('tarColHecho', cols.hecho);
+  const setCount = (id, n, colorBg, colorBd, colorTx) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = n;
+  };
+  setCount('tarCountPend', cols.pendiente.length);
+  setCount('tarCountEnCurso', cols.en_curso.length);
+  setCount('tarCountHecho', cols.hecho.length);
+
+  // Toggle "Ver equipo" solo visible para admin/manager
+  const wrap = document.getElementById('tarEquipoWrap');
+  if (wrap) wrap.classList.toggle('hidden', !_tarIsManager());
+}
+
+/** Popula el select de asignado en el modal */
+function _tarPopulateAsignadoSelect(selectedId) {
+  const sel = document.getElementById('tarAsignado');
+  if (!sel) return;
+  const list = ((typeof EMP_STATE !== 'undefined') ? EMP_STATE.list : [])
+    .filter(e => e.activo !== false)
+    .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'', 'es'));
+  const meId = (typeof TG_USER !== 'undefined') ? TG_USER.empleado_id : null;
+  sel.innerHTML = '<option value="">— Selecciona colaborador —</option>'
+    + list.map(e => `<option value="${e.id}" ${selectedId===e.id?'selected':''}>${e.nombre}${e.puesto?' · '+e.puesto:''}${e.id===meId?' (yo)':''}</option>`).join('');
+  // Si no hay seleccionado y estoy creando, por defecto para mí
+  if (!selectedId && meId) sel.value = meId;
+}
+
+/** Abre el modal en modo NUEVO */
+function tarOpenNew(prefill) {
+  TAR_STATE.editingId = null;
+  document.getElementById('tarModalTitle').textContent = 'Nueva tarea';
+  document.getElementById('tarTitulo').value = (prefill && prefill.titulo) || '';
+  document.getElementById('tarDesc').value = (prefill && prefill.descripcion) || '';
+  document.getElementById('tarArea').value = (prefill && prefill.area) || '';
+  document.getElementById('tarPrio').value = 'normal';
+  document.getElementById('tarEstado').value = 'pendiente';
+  document.getElementById('tarFechaLim').value = '';
+  _tarPopulateAsignadoSelect((prefill && prefill.asignado_a) || null);
+  document.getElementById('tarDeleteBtn').classList.add('hidden');
+  document.getElementById('tarModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('tarTitulo')?.focus(), 50);
+}
+
+/** Abre el modal en modo EDITAR */
+function tarOpenEditor(t) {
+  TAR_STATE.editingId = t.id;
+  document.getElementById('tarModalTitle').textContent = 'Editar tarea';
+  document.getElementById('tarTitulo').value = t.titulo || '';
+  document.getElementById('tarDesc').value = t.descripcion || '';
+  document.getElementById('tarArea').value = t.area || '';
+  document.getElementById('tarPrio').value = t.prioridad || 'normal';
+  document.getElementById('tarEstado').value = t.estado || 'pendiente';
+  document.getElementById('tarFechaLim').value = t.fecha_limite || '';
+  _tarPopulateAsignadoSelect(t.asignado_a || null);
+  // Solo el creador, el asignado o un admin/manager pueden eliminar
+  const meId = (typeof TG_USER !== 'undefined') ? TG_USER.empleado_id : null;
+  const puedeBorrar = _tarIsManager() || t.asignado_por === meId || t.asignado_a === meId;
+  document.getElementById('tarDeleteBtn').classList.toggle('hidden', !puedeBorrar);
+  document.getElementById('tarModal').classList.remove('hidden');
+}
+
+/** Guarda (crea o actualiza) */
+async function tarSave() {
+  const titulo = document.getElementById('tarTitulo').value.trim();
+  if (!titulo) { toast('El título es obligatorio', true); return; }
+  const meId = (typeof TG_USER !== 'undefined') ? TG_USER.empleado_id : null;
+  const doc = {
+    titulo,
+    descripcion: document.getElementById('tarDesc').value.trim(),
+    asignado_a: document.getElementById('tarAsignado').value || meId || '',
+    area: document.getElementById('tarArea').value || '',
+    prioridad: document.getElementById('tarPrio').value || 'normal',
+    estado: document.getElementById('tarEstado').value || 'pendiente',
+    fecha_limite: document.getElementById('tarFechaLim').value || '',
+    updatedAt: Date.now(),
+    updatedBy: (window.TG_USER || {}).name || (typeof state !== 'undefined' ? state.user : '') || '',
+    auth: FB_AUTH_TOKEN
+  };
+  // Guardar snapshot del nombre por si el colaborador es eliminado después
+  if (doc.asignado_a) {
+    const e = (EMP_STATE.list || []).find(x => x.id === doc.asignado_a);
+    if (e) doc.asignado_nombre = e.nombre;
+  }
+  // Fecha completado si pasa a hecho
+  if (doc.estado === 'hecho') doc.fecha_completado = Date.now();
+
+  try {
+    const FB = await whenFbReady();
+    if (!FB) { toast('Sin conexión a Firestore', true); return; }
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) { toast('Sesión expirada, inicia sesión de nuevo', true); return; }
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.tareas) || 'tareas';
+    let id = TAR_STATE.editingId;
+    if (!id) {
+      id = 'tar_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7);
+      doc.id = id;
+      doc.fecha_creacion = Date.now();
+      doc.asignado_por = meId || '';
+    } else {
+      doc.id = id;
+    }
+    await FB.setDoc(FB.doc(FB.db, coll, id), doc, { merge: !!TAR_STATE.editingId });
+    toast(TAR_STATE.editingId ? 'Tarea actualizada' : 'Tarea creada');
+    document.getElementById('tarModal').classList.add('hidden');
+    TAR_STATE.editingId = null;
+  } catch (e) {
+    console.warn('[Tar] save error', e);
+    toast('Error al guardar: ' + (e.message||e), true);
+  }
+}
+
+/** Elimina la tarea en edición */
+async function tarDelete() {
+  const id = TAR_STATE.editingId;
+  if (!id) return;
+  if (!confirm('¿Eliminar esta tarea? Esta acción no se puede deshacer.')) return;
+  try {
+    const FB = await whenFbReady();
+    if (!FB) { toast('Sin conexión a Firestore', true); return; }
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.tareas) || 'tareas';
+    await FB.deleteDoc(FB.doc(FB.db, coll, id));
+    toast('Tarea eliminada');
+    document.getElementById('tarModal').classList.add('hidden');
+    TAR_STATE.editingId = null;
+  } catch (e) {
+    console.warn('[Tar] delete error', e);
+    toast('Error al eliminar: ' + (e.message||e), true);
+  }
+}
+
+/** Mueve el estado de una tarea (avanzar/reabrir desde la tarjeta) */
+async function tarCambiarEstado(id, nuevoEstado) {
+  const t = TAR_STATE.list.find(x => x.id === id);
+  if (!t) return;
+  const patch = {
+    estado: nuevoEstado,
+    updatedAt: Date.now(),
+    updatedBy: (window.TG_USER || {}).name || 'desconocido',
+    auth: FB_AUTH_TOKEN
+  };
+  if (nuevoEstado === 'hecho') patch.fecha_completado = Date.now();
+  else patch.fecha_completado = null;
+  try {
+    const FB = await whenFbReady();
+    if (!FB) { toast('Sin conexión a Firestore', true); return; }
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.tareas) || 'tareas';
+    await FB.setDoc(FB.doc(FB.db, coll, id), patch, { merge: true });
+    // Toast breve solo al completar
+    if (nuevoEstado === 'hecho') toast('✅ Tarea completada');
+  } catch (e) {
+    console.warn('[Tar] estado error', e);
+    toast('Error al cambiar estado', true);
+  }
+}
+
+/** Escucha cambios en Firestore */
+async function subscribeTareas() {
+  // Cache local primero
+  try {
+    const cached = localStorage.getItem('tg_tareas');
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { TAR_STATE.list = arr; renderTareas(); renderInicio(); }
+    }
+  } catch(_){}
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.tareas) || 'tareas';
+    const collRef = FB.collection(FB.db, coll);
+    if (typeof TAR_STATE.unsubscribe === 'function') { try { TAR_STATE.unsubscribe(); } catch(_){} }
+    TAR_STATE.unsubscribe = FB.onSnapshot(collRef, (snap) => {
+      const arr = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (!data.id) data.id = d.id;
+        arr.push(data);
+      });
+      TAR_STATE.list = arr;
+      TAR_STATE.loaded = true;
+      try { localStorage.setItem('tg_tareas', JSON.stringify(arr)); } catch(_){}
+      renderTareas();
+      renderInicio();
+    }, (err) => console.warn('[Tar] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[Tar] subscribe error', e);
+  }
+}
+
+/** Wire de eventos del módulo Tareas */
+function bindTareas() {
+  document.getElementById('tarAddBtn')?.addEventListener('click', () => requireUserThen(() => tarOpenNew()));
+  document.getElementById('tarModalClose')?.addEventListener('click', () => {
+    document.getElementById('tarModal').classList.add('hidden');
+    TAR_STATE.editingId = null;
+  });
+  document.getElementById('tarCancelBtn')?.addEventListener('click', () => {
+    document.getElementById('tarModal').classList.add('hidden');
+    TAR_STATE.editingId = null;
+  });
+  document.getElementById('tarSaveBtn')?.addEventListener('click', () => requireUserThen(tarSave));
+  document.getElementById('tarDeleteBtn')?.addEventListener('click', () => requireUserThen(tarDelete));
+  document.getElementById('tarSearch')?.addEventListener('input', renderTareas);
+  document.getElementById('tarFilterPrio')?.addEventListener('change', renderTareas);
+  document.getElementById('tarFilterArea')?.addEventListener('change', renderTareas);
+  document.getElementById('tarVerEquipo')?.addEventListener('change', (e) => {
+    TAR_STATE.verEquipo = e.target.checked;
+    renderTareas();
+  });
+
+  // Delegación: click en tarjetas del Kanban
+  const wireCol = (colId) => {
+    const col = document.getElementById(colId);
+    if (!col) return;
+    col.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const card = btn.closest('[data-id]');
+      if (!card) return;
+      const id = card.dataset.id;
+      const act = btn.dataset.act;
+      if (act === 'avanzar') {
+        e.stopPropagation();
+        requireUserThen(() => tarCambiarEstado(id, btn.dataset.to));
+      } else if (act === 'reabrir') {
+        e.stopPropagation();
+        requireUserThen(() => tarCambiarEstado(id, 'pendiente'));
+      } else if (act === 'edit' && btn === card) {
+        const t = TAR_STATE.list.find(x => x.id === id);
+        if (t) requireUserThen(() => tarOpenEditor(t));
+      }
+    });
+  };
+  wireCol('tarColPend');
+  wireCol('tarColEnCurso');
+  wireCol('tarColHecho');
+
+  subscribeTareas();
+}
+
+/* ---------------- MI INICIO ---------------- */
+
+/** Saludo según hora local */
+function _inicioSaludoHora() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Buenos días';
+  if (h < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+/** Render principal de Mi Inicio */
+function renderInicio() {
+  // Saludo + fecha/hora
+  const me = (typeof TG_USER !== 'undefined') ? TG_USER : null;
+  const nombre = (me && me.name) || 'colaborador';
+  const primerNombre = String(nombre).split(/\s+/)[0];
+  const sEl = document.getElementById('inicioSaludo');
+  const ssEl = document.getElementById('inicioSubSaludo');
+  if (sEl) sEl.textContent = `${_inicioSaludoHora()}, ${primerNombre}`;
+  if (ssEl) {
+    const emp = (typeof EMP_STATE !== 'undefined') ? EMP_STATE.currentUserEmp : null;
+    ssEl.textContent = emp && emp.puesto
+      ? `${emp.puesto}${emp.area?' · '+emp.area:''}`
+      : 'Bienvenido a Tintorería TGM';
+  }
+  const hEl = document.getElementById('inicioHora');
+  const fEl = document.getElementById('inicioFecha');
+  const now = new Date();
+  if (hEl) hEl.textContent = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  if (fEl) {
+    const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    fEl.textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} ${now.getFullYear()}`;
+  }
+
+  // KPIs (siempre calculan sobre MIS tareas)
+  const meId = me && me.empleado_id;
+  const mias = TAR_STATE.list.filter(t => t.asignado_a === meId);
+  const pend = mias.filter(t => t.estado === 'pendiente').length;
+  const enCurso = mias.filter(t => t.estado === 'en_curso').length;
+  const vencidas = mias.filter(t => {
+    if (t.estado === 'hecho') return false;
+    const d = _tarDiasRestantes(t);
+    return d !== null && d < 0;
+  }).length;
+  const hoy = new Date().toISOString().slice(0,10);
+  const hechoHoy = mias.filter(t => t.estado === 'hecho' && (t.fecha_completado||'').slice(0,10) === hoy).length;
+  const setNum = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  setNum('inicioKpiPend', pend);
+  setNum('inicioKpiEnCurso', enCurso);
+  setNum('inicioKpiVenc', vencidas);
+  setNum('inicioKpiHechoHoy', hechoHoy);
+
+  // Lista de próximas 5 (pendiente + en_curso, orden por urgencia)
+  const proximas = _tarOrdenar(mias.filter(t => t.estado !== 'hecho')).slice(0, 5);
+  const lista = document.getElementById('inicioTareasLista');
+  if (lista) {
+    if (proximas.length === 0) {
+      lista.innerHTML = '<div class="text-center py-6 text-slate-500 text-sm">✨ No tienes tareas pendientes. ¡Excelente trabajo!</div>';
+    } else {
+      lista.innerHTML = proximas.map(t => _tarRenderCard(t, true)).join('');
+      // Wire para editar y avanzar desde Mi Inicio
+      lista.addEventListener('click', _inicioListaClick, { once: true });
+    }
+  }
+}
+
+function _inicioListaClick(e) {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) { renderInicio(); return; }
+  const card = btn.closest('[data-id]');
+  if (!card) { renderInicio(); return; }
+  const id = card.dataset.id;
+  const act = btn.dataset.act;
+  if (act === 'avanzar') {
+    e.stopPropagation();
+    requireUserThen(() => tarCambiarEstado(id, btn.dataset.to));
+  } else if (act === 'reabrir') {
+    e.stopPropagation();
+    requireUserThen(() => tarCambiarEstado(id, 'pendiente'));
+  } else if (act === 'edit' && btn === card) {
+    const t = TAR_STATE.list.find(x => x.id === id);
+    if (t) requireUserThen(() => tarOpenEditor(t));
+  }
+  // Re-vincular listener
+  document.getElementById('inicioTareasLista')?.addEventListener('click', _inicioListaClick, { once: true });
+}
+
+/** Wire de eventos Mi Inicio */
+function bindInicio() {
+  document.getElementById('inicioQuickAddBtn')?.addEventListener('click', () => requireUserThen(() => tarOpenNew()));
+  document.getElementById('inicioVerTodasBtn')?.addEventListener('click', () => {
+    const btn = document.querySelector('.tab-btn[data-tab="tab-tareas"]');
+    if (btn) btn.click();
+  });
+  // Refrescar hora cada minuto si Mi Inicio está visible
+  setInterval(() => {
+    const panel = document.getElementById('tab-inicio');
+    if (panel && !panel.classList.contains('hidden')) renderInicio();
+  }, 60000);
+}
+
+/* ---------------- ONBOARDING (una sola vez por dispositivo) ---------------- */
+
+const ONBOARDING_KEY = 'tg_tint_onboarding_v2';
+const ONBOARDING_SLIDES = [
+  {
+    titulo: '¡Bienvenido a la nueva versión!',
+    subtitulo: 'Tintorería TGM · Fase 2',
+    icon: '🎉',
+    texto: 'Agregamos nuevas herramientas para que tu día a día sea más fácil. Todo lo que ya usabas sigue funcionando igual — solo hay cosas nuevas para ayudarte.',
+    color: '#38bdf8'
+  },
+  {
+    titulo: 'Mi Inicio — tu página personal',
+    subtitulo: 'Nuevo tab',
+    icon: '🏠',
+    texto: 'Verás un saludo, tus tareas pendientes, cuántas están vencidas y cuántas completaste hoy. Es tu "tablero de control" personal cada vez que entras.',
+    color: '#10b981'
+  },
+  {
+    titulo: 'Mis Tareas — Kanban simple',
+    subtitulo: 'Nuevo tab',
+    icon: '📌',
+    texto: 'Tres columnas: Pendiente, En curso, Hecho. Toca una tarjeta para editarla o toca el botón verde/azul para avanzar el estado. Los colores del borde te avisan si algo está vencido.',
+    color: '#a78bfa'
+  },
+  {
+    titulo: 'Personal — directorio de colaboradores',
+    subtitulo: 'Ya disponible',
+    icon: '👥',
+    texto: 'Los administradores pueden agregar colaboradores. Al entrar, ahora eliges tu nombre de una lista en vez de escribirlo. Así sabemos quién hizo qué.',
+    color: '#f59e0b'
+  },
+  {
+    titulo: '¿Sigues tú?',
+    subtitulo: 'Control de turnos',
+    icon: '🔄',
+    texto: 'Cada 4 horas y a las 7 AM el sistema pregunta si sigues tú. Si otra persona toma el equipo, dale "Cambiar" y elige su nombre. Así cada registro queda con el nombre correcto.',
+    color: '#22d3ee'
+  }
+];
+
+function _onboardingRender(idx) {
+  const total = ONBOARDING_SLIDES.length;
+  const s = ONBOARDING_SLIDES[idx];
+  const dotsHtml = ONBOARDING_SLIDES.map((_, i) =>
+    `<span class="w-2 h-2 rounded-full transition-all" style="background:${i===idx?s.color:'rgba(148,163,184,0.3)'}"></span>`
+  ).join('');
+  const esUltimo = idx === total - 1;
+  return `
+    <div class="card p-6 max-w-md w-full text-center" style="border:2px solid ${s.color}">
+      <div class="text-6xl mb-3">${s.icon}</div>
+      <div class="text-[11px] uppercase tracking-widest font-bold mb-1" style="color:${s.color}">${s.subtitulo}</div>
+      <h3 class="text-2xl font-black text-white mb-3">${s.titulo}</h3>
+      <p class="text-sm text-slate-300 leading-relaxed mb-5">${s.texto}</p>
+      <div class="flex items-center justify-center gap-1.5 mb-5">${dotsHtml}</div>
+      <div class="flex gap-2 justify-center">
+        ${idx > 0 ? `<button id="onbPrev" class="btn !py-2 !px-4 text-sm" style="background:rgba(148,163,184,0.12); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1">← Anterior</button>` : ''}
+        <button id="onbNext" class="btn btn-primary !py-2 !px-6 text-sm">${esUltimo ? '✅ Entendido, entrar' : 'Siguiente →'}</button>
+      </div>
+      <div class="text-[10px] text-slate-500 mt-4">Paso ${idx+1} de ${total}</div>
+    </div>
+  `;
+}
+
+function _onboardingShow() {
+  // No mostrar si ya se vio en este dispositivo
+  if (localStorage.getItem(ONBOARDING_KEY)) return;
+  // No mostrar si el usuario todavía no se identificó
+  const nowUser = (typeof state !== 'undefined' && state.user) || (typeof TG_USER !== 'undefined' && TG_USER.name);
+  if (!nowUser) return;
+
+  let idx = 0;
+  const overlay = document.createElement('div');
+  overlay.id = 'onboardingOverlay';
+  overlay.className = 'fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4';
+  overlay.innerHTML = _onboardingRender(idx);
+  document.body.appendChild(overlay);
+
+  const rewire = () => {
+    overlay.innerHTML = _onboardingRender(idx);
+    document.getElementById('onbPrev')?.addEventListener('click', () => { if (idx > 0) { idx--; rewire(); } });
+    document.getElementById('onbNext')?.addEventListener('click', () => {
+      if (idx < ONBOARDING_SLIDES.length - 1) { idx++; rewire(); }
+      else {
+        localStorage.setItem(ONBOARDING_KEY, new Date().toISOString());
+        overlay.remove();
+        // Enviar al usuario a Mi Inicio
+        const btn = document.querySelector('.tab-btn[data-tab="tab-inicio"]');
+        if (btn) btn.click();
+      }
+    });
+  };
+  rewire();
+}
+
+/** Punto de entrada del onboarding: se llama después de identificar al usuario */
+function _onboardingMaybeShow() {
+  // Retrasar un poco para no chocar con el login modal
+  setTimeout(_onboardingShow, 800);
 }
 
 /* ===============================================================
