@@ -13011,6 +13011,16 @@ function _buscarEstadoGrupo(g) {
   });
   const empacadoKg  = g.stagesKg.empacado || 0;
   const totalMovido = Object.values(g.stagesKg).reduce((s,v) => s+v, 0);
+
+  // Fecha en que se terminó el empacado — la más reciente de todos los registros
+  // de la etapa "empacado" del grupo. Sirve para saber cuándo salió de producción.
+  let empacadoTs = 0;
+  let empacadoFecha = '';
+  const empRecs = (g.stagesRec && g.stagesRec.empacado) || [];
+  empRecs.forEach(r => {
+    const ts = r.ts || Date.parse((r.fecha||'') + 'T12:00:00') || 0;
+    if (ts > empacadoTs) { empacadoTs = ts; empacadoFecha = r.fecha || (ts ? new Date(ts).toISOString().slice(0,10) : ''); }
+  });
   // Aproximación de "kg del lote": el máximo entre las etapas de la ruta
   const kgPorEtapa = etapas.map(et => g.stagesKg[et.key] || 0);
   const kgLoteEstimado = Math.max(...kgPorEtapa);
@@ -13064,7 +13074,8 @@ function _buscarEstadoGrupo(g) {
   }
 
   return { etapaActual, etapaIdx, kgLoteEstimado, kgRestante, empacadoKg,
-           luz, diasSinMov, etaTexto, totalMovido };
+           luz, diasSinMov, etaTexto, totalMovido,
+           empacadoTs, empacadoFecha };
 }
 
 // Renderiza el timeline visual de un grupo
@@ -13185,6 +13196,7 @@ function _buscarRenderFicha(g) {
         <div class="text-right flex-shrink-0">
           <div class="chip text-xs font-bold" style="background:${luzColor}22; border:1px solid ${luzColor}; color:${luzColor}">${luzTexto}</div>
           <div class="text-[11px] text-slate-500 mt-1">Etapa actual: <b class="text-slate-300">${etapaLabel}</b></div>
+          ${estado.empacadoFecha ? `<div class="text-[11px] text-emer-accent mt-1">📦 Empacado: <b>${estado.empacadoFecha}</b></div>` : ''}
         </div>
       </div>
 
@@ -13217,6 +13229,7 @@ function _buscarRenderFicha(g) {
       <div class="mt-3 flex items-center gap-3 flex-wrap text-[11px] text-slate-500">
         <span>Primer registro: <b>${g.firstTs ? new Date(g.firstTs).toISOString().slice(0,10) : '—'}</b></span>
         <span>Último movimiento: <b>${g.lastTs ? new Date(g.lastTs).toISOString().slice(0,10) : '—'}</b> (hace ${estado.diasSinMov === Infinity ? '—' : Math.round(estado.diasSinMov)+' días'})</span>
+        ${estado.empacadoFecha ? `<span class="text-emer-accent">📦 Fecha empacado: <b>${estado.empacadoFecha}</b>${(() => { const d = (Date.now() - estado.empacadoTs)/(1000*60*60*24); return d > 0.5 ? ` <span class="text-slate-500">(hace ${Math.round(d)} días)</span>` : ''; })()}</span>` : ''}
         <span>${g.records.length} registro${g.records.length===1?'':'s'} total</span>
       </div>
 
