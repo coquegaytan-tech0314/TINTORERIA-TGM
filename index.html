@@ -3749,6 +3749,149 @@
   </section>
 
   <!-- ============================================================= -->
+  <!-- TAB: Personal (Directorio de empleados)  · Fase 1a           -->
+  <!-- Nuevo módulo, NO toca el dashboard existente.                 -->
+  <!-- ============================================================= -->
+  <section id="tab-personal" class="tab-panel hidden">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="text-2xl font-black text-white">Personal <span class="text-slate-500 font-semibold text-base">· Directorio</span></h2>
+        <p class="text-xs text-slate-500 mt-1">Empleados de la empresa. Los administradores pueden agregar, editar y desactivar.</p>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <span id="empCount" class="chip chip-info text-xs">0 activos</span>
+        <button id="empAddBtn" class="btn btn-primary !py-2 !px-3 text-sm hidden">+ Agregar empleado</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card p-3 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+        <input id="empSearch" type="text" placeholder="🔍 Buscar por nombre, puesto…" class="field !py-2 text-sm md:col-span-2" />
+        <select id="empFilterArea" class="field !py-2 text-sm">
+          <option value="">Todas las áreas</option>
+          <option value="Tintorería">Tintorería</option>
+          <option value="Tejido">Tejido</option>
+          <option value="Almacén">Almacén</option>
+          <option value="Administración">Administración</option>
+          <option value="Ventas">Ventas</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Corte">Corte</option>
+          <option value="Compras">Compras</option>
+        </select>
+        <select id="empFilterRol" class="field !py-2 text-sm">
+          <option value="">Todos los roles</option>
+          <option value="admin">🛡️ Admin</option>
+          <option value="manager">👑 Manager</option>
+          <option value="operador">👷 Operador</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Total activos</div>
+        <div id="empKpiTotal" class="text-xl font-black text-white">0</div>
+      </div>
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Áreas</div>
+        <div id="empKpiAreas" class="text-xl font-black text-sky-accent">0</div>
+      </div>
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Managers</div>
+        <div id="empKpiManagers" class="text-xl font-black text-amber-accent">0</div>
+      </div>
+      <div class="rounded-lg bg-[#0c1320] p-3 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Operadores</div>
+        <div id="empKpiOperadores" class="text-xl font-black text-emer-accent">0</div>
+      </div>
+    </div>
+
+    <!-- Grid de personas -->
+    <div id="empGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+    <p id="empEmpty" class="text-center text-slate-500 text-sm py-10 hidden">Sin empleados capturados todavía. Presiona <b>+ Agregar empleado</b> para comenzar.</p>
+    <p class="text-[11px] text-slate-500 mt-4">💡 Solo los administradores pueden agregar/editar empleados. El resto del equipo puede consultar el directorio.</p>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- MODAL: Agregar / Editar empleado                              -->
+  <!-- ============================================================= -->
+  <div id="empModal" class="hidden fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="empModalTitle" class="text-lg font-black text-white">Agregar empleado</h3>
+        <button id="empModalClose" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-slate-400">Nombre completo *</label>
+          <input id="empNombre" type="text" class="field w-full" placeholder="Ej. Jorge Gaytán" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Puesto *</label>
+          <input id="empPuesto" type="text" class="field w-full" placeholder="Ej. Operador Bruckner" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Área *</label>
+          <select id="empArea" class="field w-full">
+            <option value="">— Selecciona —</option>
+            <option value="Tintorería">Tintorería</option>
+            <option value="Tejido">Tejido</option>
+            <option value="Almacén">Almacén</option>
+            <option value="Administración">Administración</option>
+            <option value="Ventas">Ventas</option>
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Corte">Corte</option>
+            <option value="Compras">Compras</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Rol *</label>
+          <select id="empRol" class="field w-full">
+            <option value="operador">👷 Operador</option>
+            <option value="manager">👑 Manager</option>
+            <option value="admin">🛡️ Admin</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Teléfono</label>
+          <input id="empTel" type="tel" class="field w-full" placeholder="Ej. 445-123-4567" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Email</label>
+          <input id="empEmail" type="email" class="field w-full" placeholder="Ej. juan@empresa.com" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Jefe directo</label>
+          <select id="empJefe" class="field w-full">
+            <option value="">— Sin jefe directo —</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Fecha de ingreso</label>
+          <input id="empFechaIngreso" type="date" class="field w-full" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-xs text-slate-400">URL de foto (opcional)</label>
+          <input id="empFoto" type="url" class="field w-full" placeholder="https://… (se puede dejar vacío, se usarán iniciales)" />
+        </div>
+        <div class="md:col-span-2 flex items-center gap-2">
+          <input id="empActivo" type="checkbox" checked class="w-4 h-4" />
+          <label for="empActivo" class="text-sm text-slate-300">Activo (aparece en el login y directorio)</label>
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-2 mt-6 flex-wrap">
+        <button id="empDeleteBtn" class="btn btn-secondary !py-2 !px-3 text-sm hidden">🗑️ Eliminar</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="empCancelBtn" class="btn btn-ghost !py-2 !px-3 text-sm">Cancelar</button>
+          <button id="empSaveBtn" class="btn btn-primary !py-2 !px-3 text-sm">💾 Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
   <!-- MODAL: Buscador global (Ctrl+K)                              -->
   <!-- ============================================================= -->
   <div id="buscarModal" class="hidden fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm p-4" style="padding-top:6vh">
@@ -3829,6 +3972,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span>Buscar</span>
     </button>
+    <button class="tab-btn" data-tab="tab-personal" title="Directorio de personal · empleados de la empresa">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Personal</span>
+    </button>
   </div>
 </nav>
 
@@ -3847,15 +3994,35 @@
       </div>
       <div>
         <h3 class="text-xl font-black text-white">¿Quién está capturando?</h3>
-        <p class="text-sm text-slate-400">Sólo lo preguntamos una vez por sesión.</p>
+        <p class="text-sm text-slate-400">Identifícate para registrar tus movimientos.</p>
       </div>
     </div>
-    <label class="lbl">Nombre u número de empleado</label>
-    <input id="userModalInput" type="text" class="field" placeholder="Ej: Pablo / 3255 / Ricardo" autocomplete="off" />
+
+    <!-- Quick-switch: últimos usuarios en este equipo -->
+    <div id="userQuickSwitch" class="hidden mb-3">
+      <div class="text-[11px] uppercase tracking-wide text-slate-500 mb-1.5">Últimos usuarios en este equipo</div>
+      <div id="userQuickSwitchList" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <label class="lbl">Elige tu nombre</label>
+    <select id="userModalPicker" class="field">
+      <option value="">— Selecciona un empleado —</option>
+    </select>
+
+    <div class="mt-3">
+      <label class="lbl flex items-center justify-between">
+        <span>¿No estás en la lista?</span>
+        <button id="userModalNewBtn" class="text-xs text-sky-accent hover:underline">Escribir mi nombre</button>
+      </label>
+      <input id="userModalInput" type="text" class="field hidden" placeholder="Ej: Pablo / Ricardo" autocomplete="off" />
+    </div>
+
     <div class="grid grid-cols-2 gap-3 mt-4">
       <button id="userModalSkip" class="btn btn-secondary touch-lg">Ahora no</button>
       <button id="userModalOk" class="btn btn-primary touch-lg">Continuar</button>
     </div>
+
+    <p class="text-[11px] text-slate-500 mt-3 text-center">Puedes cambiar de usuario en cualquier momento desde tu insignia arriba a la derecha.</p>
   </div>
 </div>
 
@@ -4622,7 +4789,10 @@ const FB_COLLECTIONS = {
   planDia:      'plan_dia',          // Plan del día Bruckner (RAMA) por fecha
   planDiaComp:  'plan_dia_compact',  // Plan del día Compactadora (Tubular) por fecha
   history:      'historial',
-  telas:        'catalogo_telas'
+  telas:        'catalogo_telas',
+  empleados:    'empleados',         // Fase 1a · Personal / Org chart / identidad
+  tareas:       'tareas',             // Fase 2 · Kanban personal
+  avisos:       'avisos'               // Fase 5 · Announcements
 };
 // Constantes de máquina RAMA Bruckner (confirmadas por Rogelio, 02/Jul/2026)
 // Se cargan de Firestore config/rama_bruckner si existen; fallback a estos defaults.
@@ -5097,17 +5267,161 @@ function calcDesempeno(machineId, kilos, procesoTexto) {
 --------------------------------------------------------------- */
 function updateUserPill() {
   const name = state.user || 'Invitado';
-  $('#userPillName').textContent = name;
+  const pill = $('#userPill');
+  const nameEl = $('#userPillName');
+  if (nameEl) nameEl.textContent = name;
+
+  // Enriquecer el pill con avatar + rol si tenemos empleado_id
+  const cur = window.TG_USER || null;
+  if (pill && cur && cur.name && cur.name !== 'Invitado') {
+    const emp = (typeof EMP_STATE !== 'undefined' && cur.empleado_id)
+      ? EMP_STATE.list.find(e => e.id === cur.empleado_id) : null;
+    const ini = _empInitials(cur.name);
+    const bg = _empAvatarColor(cur.name);
+    const rolIcon = emp ? (emp.rol === 'admin' ? '🛡️' : emp.rol === 'manager' ? '👑' : '👷') : '';
+    pill.innerHTML = `
+      <span style="width:22px;height:22px;background:${bg};color:white;font-weight:800;font-size:10px" class="rounded-full flex items-center justify-center flex-shrink-0">${ini}</span>
+      <span id="userPillName" class="text-white font-semibold">${cur.name}</span>
+      ${rolIcon ? `<span class="text-[10px]">${rolIcon}</span>` : ''}
+      <svg viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" class="w-3.5 h-3.5" title="Cambiar usuario"><path d="M17 3l4 4-4 4"/><path d="M21 7H9a4 4 0 0 0-4 4"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12a4 4 0 0 0 4-4"/></svg>
+    `;
+    pill.title = 'Cambiar usuario';
+  }
+}
+
+/* ---------- Ayudantes de identidad (Fase 1a) ---------- */
+
+/** Devuelve los últimos usuarios de este dispositivo (máx 4) */
+function _getLastUsersOnDevice() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('tg_last_users') || '[]');
+    return Array.isArray(arr) ? arr.slice(0, 4) : [];
+  } catch(_) { return []; }
+}
+
+/** Registra al usuario actual como el más reciente en este dispositivo */
+function _pushLastUserOnDevice(userObj) {
+  if (!userObj || !userObj.name) return;
+  try {
+    let arr = JSON.parse(localStorage.getItem('tg_last_users') || '[]');
+    if (!Array.isArray(arr)) arr = [];
+    // Sacar duplicados por empleado_id o por nombre
+    arr = arr.filter(u => (u.empleado_id ? u.empleado_id !== userObj.empleado_id : true) && u.name !== userObj.name);
+    arr.unshift({ name: userObj.name, empleado_id: userObj.empleado_id || null, ts: Date.now() });
+    arr = arr.slice(0, 4);
+    localStorage.setItem('tg_last_users', JSON.stringify(arr));
+  } catch(_) {}
+}
+
+/** Fija el usuario actual (nombre + empleado_id opcional) */
+function _setCurrentUser(userObj) {
+  const name = (userObj && userObj.name || '').trim();
+  if (!name) return;
+  state.user = name;
+  sessionStorage.setItem(SS_KEYS.user, name);
+  sessionStorage.removeItem(SS_KEYS.skipped);
+  sessionStorage.setItem('tg_tint_session_start', String(Date.now()));
+  sessionStorage.setItem('tg_tint_session_lastcheck', String(Date.now()));
+  if (userObj.empleado_id) sessionStorage.setItem('tg_tint_empleado_id', userObj.empleado_id);
+  else sessionStorage.removeItem('tg_tint_empleado_id');
+  window.TG_USER = { name, empleado_id: userObj.empleado_id || null };
+  // Actualizar el empleado actual en EMP_STATE si aplica
+  if (typeof EMP_STATE !== 'undefined' && userObj.empleado_id) {
+    EMP_STATE.currentUserEmp = EMP_STATE.list.find(e => e.id === userObj.empleado_id) || null;
+    if (typeof renderEmpleados === 'function') renderEmpleados();
+  }
+  _pushLastUserOnDevice({ name, empleado_id: userObj.empleado_id || null });
+  updateUserPill();
+}
+
+/** Rellena el <select> del modal con los empleados activos */
+function _populateUserModalPicker() {
+  const sel = document.getElementById('userModalPicker');
+  if (!sel) return;
+  const list = (typeof EMP_STATE !== 'undefined' ? (EMP_STATE.list || []) : [])
+    .filter(e => e.activo !== false)
+    .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'', 'es'));
+  sel.innerHTML = '<option value="">— Selecciona un empleado —</option>'
+    + list.map(e => `<option value="${e.id}">${e.nombre}${e.puesto?' · '+e.puesto:''}</option>`).join('');
+}
+
+/** Rellena los botones de acceso rápido con los últimos usuarios */
+function _populateUserQuickSwitch() {
+  const wrap = document.getElementById('userQuickSwitch');
+  const list = document.getElementById('userQuickSwitchList');
+  if (!wrap || !list) return;
+  const last = _getLastUsersOnDevice();
+  if (!last.length) { wrap.classList.add('hidden'); list.innerHTML=''; return; }
+  wrap.classList.remove('hidden');
+  list.innerHTML = last.map(u => {
+    const ini = (typeof _empInitials === 'function' ? _empInitials(u.name) : u.name.slice(0,2).toUpperCase());
+    const bg = (typeof _empAvatarColor === 'function' ? _empAvatarColor(u.name) : '#334155');
+    return `<button type="button" data-emp-id="${u.empleado_id||''}" data-name="${u.name.replace(/"/g,'&quot;')}" class="user-quick-btn flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
+      <span style="width:22px;height:22px;background:${bg};color:white;font-weight:800;font-size:10px" class="rounded-full flex items-center justify-center">${ini}</span>
+      <span class="text-xs text-white">${u.name}</span>
+    </button>`;
+  }).join('');
+  list.querySelectorAll('.user-quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const empId = btn.dataset.empId || null;
+      const name = btn.dataset.name;
+      _setCurrentUser({ name, empleado_id: empId });
+      closeUserModal();
+      const fn = state.pendingAfterUser; state.pendingAfterUser = null;
+      if (typeof fn === 'function') fn();
+    });
+  });
+}
+
+/** [OBSOLETO] Reservado; el pill del header ya cumple esta función */
+function _renderIdentityBadge() {
+  const badge = document.getElementById('identityBadge');
+  if (!badge) { updateUserPill(); return; }
+  const cur = window.TG_USER || { name: state.user || '', empleado_id: null };
+  if (!cur.name || cur.name === 'Invitado') {
+    badge.innerHTML = `<button id="identityLoginBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 transition text-xs text-slate-300">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Identifícate
+    </button>`;
+    badge.querySelector('#identityLoginBtn')?.addEventListener('click', () => openUserModal(null));
+    return;
+  }
+  const emp = (typeof EMP_STATE !== 'undefined' && cur.empleado_id)
+    ? EMP_STATE.list.find(e => e.id === cur.empleado_id) : null;
+  const ini = _empInitials(cur.name);
+  const bg = _empAvatarColor(cur.name);
+  const puesto = emp ? (emp.puesto || '') : '';
+  const rol = emp ? emp.rol : '';
+  badge.innerHTML = `<div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700">
+      <span style="width:22px;height:22px;background:${bg};color:white;font-weight:800;font-size:10px" class="rounded-full flex items-center justify-center">${ini}</span>
+      <span class="text-xs text-white font-semibold">${cur.name}</span>
+      ${puesto ? `<span class="text-[10px] text-slate-400 hidden sm:inline">· ${puesto}</span>` : ''}
+      ${rol === 'admin' ? '<span class="text-[10px]">🛡️</span>' : rol === 'manager' ? '<span class="text-[10px]">👑</span>' : ''}
+    </div>
+    <button id="identitySwitchBtn" title="Cambiar usuario" class="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" class="w-4 h-4"><path d="M17 3l4 4-4 4"/><path d="M21 7H9a4 4 0 0 0-4 4v0"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12a4 4 0 0 0 4-4v0"/></svg>
+    </button>
+  </div>`;
+  badge.querySelector('#identitySwitchBtn')?.addEventListener('click', () => {
+    sessionStorage.removeItem(SS_KEYS.skipped);
+    openUserModal(null);
+  });
 }
 
 /** Abre el modal. Si `pendingFn` se pasa, se ejecutará después de
  *  que el usuario confirme su nombre (o lo omita). */
 function openUserModal(pendingFn) {
   state.pendingAfterUser = pendingFn || null;
+  _populateUserModalPicker();
+  _populateUserQuickSwitch();
+  const inp = $('#userModalInput');
+  inp.value = '';
+  inp.classList.add('hidden');
+  const sel = $('#userModalPicker');
+  if (sel) sel.value = '';
   const m = $('#userModal');
-  $('#userModalInput').value = state.user || '';
   m.classList.remove('hidden');
-  setTimeout(() => $('#userModalInput').focus(), 80);
 }
 function closeUserModal() { $('#userModal').classList.add('hidden'); }
 
@@ -5126,15 +5440,23 @@ function requireUserThen(fn) {
 }
 
 function bindUserModal() {
-  // Confirmar
+  // Confirmar (con picker de empleado o con nombre libre)
   $('#userModalOk').addEventListener('click', () => {
-    const v = $('#userModalInput').value.trim();
-    if (v) {
-      state.user = v;
-      sessionStorage.setItem(SS_KEYS.user, v);
-      sessionStorage.removeItem(SS_KEYS.skipped);
+    const sel = $('#userModalPicker');
+    const empId = sel ? sel.value : '';
+    const freeName = ($('#userModalInput').value || '').trim();
+
+    let userObj = null;
+    if (empId) {
+      const emp = (typeof EMP_STATE !== 'undefined' ? EMP_STATE.list.find(x => x.id === empId) : null);
+      if (emp) userObj = { name: emp.nombre, empleado_id: emp.id };
+    } else if (freeName) {
+      userObj = { name: freeName, empleado_id: null };
     }
-    updateUserPill();
+
+    if (userObj) {
+      _setCurrentUser(userObj);
+    }
     closeUserModal();
     // Ejecutar acción pendiente (ej: guardado que disparó el modal)
     const fn = state.pendingAfterUser; state.pendingAfterUser = null;
@@ -5149,6 +5471,25 @@ function bindUserModal() {
     if (typeof fn === 'function') fn();
   });
 
+  // Cambio en el picker — auto-continuar si se elige un empleado
+  $('#userModalPicker')?.addEventListener('change', () => {
+    const sel = $('#userModalPicker');
+    if (sel && sel.value) {
+      // Ocultar input libre si el usuario cambia de opinión y elige del picker
+      $('#userModalInput').classList.add('hidden');
+      $('#userModalInput').value = '';
+    }
+  });
+
+  // Botón "Escribir mi nombre" — revela el input libre
+  $('#userModalNewBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const inp = $('#userModalInput');
+    inp.classList.remove('hidden');
+    $('#userModalPicker').value = '';
+    setTimeout(() => inp.focus(), 60);
+  });
+
   // Enter para confirmar
   $('#userModalInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('#userModalOk').click();
@@ -5160,6 +5501,123 @@ function bindUserModal() {
     sessionStorage.removeItem(SS_KEYS.skipped);
     openUserModal(null);
   });
+
+  // Insignia de identidad — refrescar al iniciar
+  updateUserPill();
+}
+
+/** Hidrata window.TG_USER al arranque desde la sesión previa (compat) */
+function hydrateUserFromSession() {
+  const name = sessionStorage.getItem(SS_KEYS.user) || '';
+  const empId = sessionStorage.getItem('tg_tint_empleado_id') || null;
+  if (name) window.TG_USER = { name, empleado_id: empId };
+}
+
+/* ===============================================================
+   ¿SIGUES TÚ? · Verificación de turno (Fase 1a)
+   - Cada 4 horas muestra un banner suave preguntando si sigue la
+     misma persona en el equipo.
+   - A las 7:00 AM automáticamente abre el picker de identidad para
+     el cambio de turno matutino (solo una vez por día por dispositivo).
+=============================================================== */
+const TURN_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4h
+
+/** Muestra el banner "¿Sigues tú?" arriba del contenido */
+function _showSiguesTuBanner() {
+  const cur = window.TG_USER || null;
+  if (!cur || !cur.name || cur.name === 'Invitado') return;
+  let b = document.getElementById('siguesTuBanner');
+  if (b) return; // ya visible
+  b = document.createElement('div');
+  b.id = 'siguesTuBanner';
+  b.className = 'fixed left-1/2 -translate-x-1/2 top-[70px] z-[95] max-w-md w-[calc(100%-24px)] card p-3 shadow-2xl border-sky-accent/40 flex items-center gap-3';
+  b.style.animation = 'slideDown 0.3s ease-out';
+  b.innerHTML = `
+    <div class="w-9 h-9 rounded-full bg-sky-accent/15 border border-sky-accent/30 flex items-center justify-center flex-shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="text-xs text-slate-400">Verificación de turno</div>
+      <div class="text-sm text-white font-semibold truncate">¿Sigues siendo <span class="text-sky-accent">${cur.name}</span>?</div>
+    </div>
+    <button id="siguesTuYes" class="btn btn-primary !py-1.5 !px-3 text-xs whitespace-nowrap">Sí, soy yo</button>
+    <button id="siguesTuNo" class="btn btn-secondary !py-1.5 !px-3 text-xs whitespace-nowrap">Cambiar</button>
+  `;
+  document.body.appendChild(b);
+  b.querySelector('#siguesTuYes').addEventListener('click', () => {
+    sessionStorage.setItem('tg_tint_session_lastcheck', String(Date.now()));
+    b.remove();
+  });
+  b.querySelector('#siguesTuNo').addEventListener('click', () => {
+    b.remove();
+    sessionStorage.removeItem(SS_KEYS.skipped);
+    openUserModal(null);
+  });
+}
+
+/** Chequeo periódico: si han pasado 4h desde la última confirmación, muestra el banner */
+function _turnCheckTick() {
+  const cur = window.TG_USER || null;
+  if (!cur || !cur.name || cur.name === 'Invitado') return;
+  const last = parseInt(sessionStorage.getItem('tg_tint_session_lastcheck') || '0', 10);
+  const now = Date.now();
+  if (!last || (now - last) >= TURN_CHECK_INTERVAL_MS) {
+    _showSiguesTuBanner();
+  }
+}
+
+/** Prompt matutino: al llegar las 7:00 AM abre el picker (una vez por día/dispositivo) */
+function _morningShiftPrompt() {
+  const now = new Date();
+  if (now.getHours() < 7) return; // aún no son las 7
+  const today = now.toISOString().slice(0,10);
+  const lastPrompt = localStorage.getItem('tg_morning_prompt_date') || '';
+  if (lastPrompt === today) return; // ya se preguntó hoy
+  // Solo preguntar si ya hay un usuario activo (no molestar en carga inicial "Invitado")
+  const cur = window.TG_USER || null;
+  if (!cur || !cur.name || cur.name === 'Invitado') return;
+  localStorage.setItem('tg_morning_prompt_date', today);
+  // Mostrar un modal breve preguntando si empieza turno nuevo
+  const b = document.createElement('div');
+  b.className = 'fixed inset-0 z-[105] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4';
+  b.innerHTML = `
+    <div class="card p-5 w-full max-w-md">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-11 h-11 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" class="w-6 h-6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white">Buenos días</h3>
+          <p class="text-xs text-slate-400">Cambio de turno matutino</p>
+        </div>
+      </div>
+      <p class="text-sm text-slate-300 mb-4">La sesión anterior fue de <span class="text-white font-semibold">${cur.name}</span>. ¿Sigues tú o cambia el usuario?</p>
+      <div class="grid grid-cols-2 gap-3">
+        <button id="morningKeep" class="btn btn-secondary touch-lg">Sigo yo</button>
+        <button id="morningSwitch" class="btn btn-primary touch-lg">Cambiar usuario</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(b);
+  b.querySelector('#morningKeep').addEventListener('click', () => {
+    sessionStorage.setItem('tg_tint_session_lastcheck', String(Date.now()));
+    b.remove();
+  });
+  b.querySelector('#morningSwitch').addEventListener('click', () => {
+    b.remove();
+    sessionStorage.removeItem(SS_KEYS.skipped);
+    openUserModal(null);
+  });
+}
+
+/** Arranca los timers de verificación de turno */
+function startTurnChecks() {
+  // Un chequeo inicial al cargar (por si la sesión vino con lastcheck viejo)
+  setTimeout(() => { _morningShiftPrompt(); _turnCheckTick(); }, 8000);
+  // Chequeo cada 5 minutos (barato) — el banner solo aparece si toca
+  setInterval(_turnCheckTick, 5 * 60 * 1000);
+  // Chequeo del prompt matutino cada 10 minutos
+  setInterval(_morningShiftPrompt, 10 * 60 * 1000);
 }
 
 /* ===============================================================
@@ -5337,11 +5795,14 @@ function init() {
   bindBruckFilters();
   bindPlanDia();
   bindPlanCompact();
+  bindEmpleados();
   bindResumenTerminado();
   bindReporteSemanal();
   bindPT();
   bindExport();
+  hydrateUserFromSession();
   bindUserModal();
+  startTurnChecks();
   bindHistoryTab();
   bindCloudSync();
   bindEditFichaModal();
@@ -10528,6 +10989,373 @@ function bindPlanCompact() {
       renderPlanCompactAvance();
     });
   });
+}
+
+/* ===============================================================
+   PERSONAL · Directorio de empleados (Fase 1a)
+   - Firestore: empleados/{id}
+   - Solo admins pueden crear/editar/eliminar
+   - Todos pueden leer (para directorio y para el picker de identidad)
+   - Los datos que ya existen en el dashboard NO cambian, sólo se AÑADE
+     un empleado_id opcional cuando el usuario está identificado.
+=============================================================== */
+const EMP_STATE = { list: [], unsub: null, editingId: null, currentUserEmp: null };
+
+/** Genera iniciales limpias desde un nombre completo (ej. "Jorge Gaytán" → "JG") */
+function _empInitials(nombre) {
+  if (!nombre) return '??';
+  const clean = nombre.trim().split(/\s+/).filter(Boolean);
+  if (!clean.length) return '??';
+  if (clean.length === 1) return clean[0].slice(0,2).toUpperCase();
+  return (clean[0][0] + clean[clean.length-1][0]).toUpperCase();
+}
+
+/** Color determinista para el avatar basado en el nombre (hash → hue) */
+function _empAvatarColor(nombre) {
+  const s = (nombre||'').trim().toLowerCase();
+  let h = 0;
+  for (let i=0; i<s.length; i++) h = (h*31 + s.charCodeAt(i)) | 0;
+  const hue = Math.abs(h) % 360;
+  return `hsl(${hue}, 55%, 42%)`;
+}
+
+/** Devuelve chip HTML con emoji del rol */
+function _empRolChip(rol) {
+  const map = {
+    admin:    { label:'Admin',    icon:'🛡️', cls:'chip-warn' },
+    manager:  { label:'Manager',  icon:'👑', cls:'chip-info' },
+    operador: { label:'Operador', icon:'👷', cls:'chip-ok' }
+  };
+  const m = map[rol] || map.operador;
+  return `<span class="chip ${m.cls} text-[10px]">${m.icon} ${m.label}</span>`;
+}
+
+/** Renderiza el avatar (imagen si hay foto_url, iniciales de lo contrario) */
+function _empAvatarHTML(emp, size=48) {
+  const bg = _empAvatarColor(emp.nombre);
+  const ini = _empInitials(emp.nombre);
+  if (emp.foto_url && /^https?:\/\//i.test(emp.foto_url)) {
+    return `<div style="width:${size}px;height:${size}px" class="rounded-full bg-slate-800 overflow-hidden border-2 border-slate-700 flex items-center justify-center">
+      <img src="${emp.foto_url}" alt="${emp.nombre||''}" style="width:100%;height:100%;object-fit:cover" onerror="this.replaceWith(Object.assign(document.createElement('div'),{style:'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bg};color:white;font-weight:900;font-size:${Math.round(size*0.36)}px',innerText:'${ini}'}))" />
+    </div>`;
+  }
+  return `<div style="width:${size}px;height:${size}px;background:${bg};color:white;font-weight:900;font-size:${Math.round(size*0.36)}px" class="rounded-full border-2 border-slate-700 flex items-center justify-center">${ini}</div>`;
+}
+
+/** ¿El usuario actual es admin? — se usa para mostrar u ocultar botones de edición */
+function _empIsAdmin() {
+  const cur = EMP_STATE.currentUserEmp;
+  return !!(cur && cur.rol === 'admin');
+}
+
+/** Render principal del directorio (grid de cards + KPIs) */
+function renderEmpleados() {
+  const grid = document.getElementById('empGrid');
+  const empty = document.getElementById('empEmpty');
+  const addBtn = document.getElementById('empAddBtn');
+  const cnt = document.getElementById('empCount');
+  if (!grid) return;
+
+  // Mostrar/ocultar botón de agregar según rol
+  if (addBtn) {
+    if (_empIsAdmin() || EMP_STATE.list.length === 0) addBtn.classList.remove('hidden');
+    else addBtn.classList.add('hidden');
+  }
+
+  // Filtros
+  const q = (document.getElementById('empSearch')?.value || '').trim().toLowerCase();
+  const fArea = document.getElementById('empFilterArea')?.value || '';
+  const fRol = document.getElementById('empFilterRol')?.value || '';
+
+  const activos = EMP_STATE.list.filter(e => e.activo !== false);
+  let filtrados = activos.slice();
+  if (q) {
+    filtrados = filtrados.filter(e => {
+      const hay = ((e.nombre||'') + ' ' + (e.puesto||'') + ' ' + (e.area||'')).toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  if (fArea) filtrados = filtrados.filter(e => e.area === fArea);
+  if (fRol) filtrados = filtrados.filter(e => e.rol === fRol);
+
+  // Ordenar: admin > manager > operador, luego alfabético
+  const rolOrder = { admin:0, manager:1, operador:2 };
+  filtrados.sort((a,b) => {
+    const ra = rolOrder[a.rol] ?? 3, rb = rolOrder[b.rol] ?? 3;
+    if (ra !== rb) return ra - rb;
+    return (a.nombre||'').localeCompare(b.nombre||'', 'es');
+  });
+
+  // KPIs
+  if (cnt) cnt.textContent = `${activos.length} activo${activos.length===1?'':'s'}`;
+  const areas = new Set(activos.map(e => e.area).filter(Boolean));
+  const managers = activos.filter(e => e.rol === 'manager').length;
+  const operadores = activos.filter(e => e.rol === 'operador').length;
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent = v; };
+  setEl('empKpiTotal', activos.length);
+  setEl('empKpiAreas', areas.size);
+  setEl('empKpiManagers', managers);
+  setEl('empKpiOperadores', operadores);
+
+  if (!filtrados.length) {
+    grid.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    if (empty) empty.textContent = EMP_STATE.list.length === 0
+      ? 'Sin empleados capturados todavía. Presiona + Agregar empleado para comenzar.'
+      : 'No hay empleados que coincidan con los filtros.';
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  grid.innerHTML = filtrados.map(emp => {
+    const jefe = EMP_STATE.list.find(x => x.id === emp.jefe_id);
+    return `<div class="card p-3 hover:border-sky-accent transition cursor-pointer" data-emp-id="${emp.id}">
+      <div class="flex items-start gap-3">
+        ${_empAvatarHTML(emp, 56)}
+        <div class="min-w-0 flex-1">
+          <div class="font-bold text-white truncate">${emp.nombre || 'Sin nombre'}</div>
+          <div class="text-xs text-slate-400 truncate">${emp.puesto || '—'}</div>
+          <div class="flex flex-wrap gap-1 mt-2">
+            ${emp.area ? `<span class="chip text-[10px]">${emp.area}</span>` : ''}
+            ${_empRolChip(emp.rol||'operador')}
+          </div>
+        </div>
+      </div>
+      <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
+        ${emp.tel ? `<div>📞 <a href="tel:${emp.tel}" class="text-sky-accent hover:underline">${emp.tel}</a></div>` : ''}
+        ${emp.email ? `<div>✉️ <a href="mailto:${emp.email}" class="text-sky-accent hover:underline truncate inline-block max-w-full">${emp.email}</a></div>` : ''}
+        ${jefe ? `<div>👑 Reporta a <span class="text-slate-300">${jefe.nombre}</span></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Click abre editor (si admin) o modal read-only (si no)
+  grid.querySelectorAll('[data-emp-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.empId;
+      const emp = EMP_STATE.list.find(x => x.id === id);
+      if (!emp) return;
+      if (_empIsAdmin()) empOpenEditor(emp);
+      else empOpenReadonly(emp);
+    });
+  });
+}
+
+/** Genera un ID nuevo para un empleado */
+function _empNewId() { return 'e_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3); }
+
+/** Abre el modal en modo agregar */
+function empOpenNew() {
+  EMP_STATE.editingId = null;
+  const modal = document.getElementById('empModal');
+  document.getElementById('empModalTitle').textContent = 'Agregar empleado';
+  document.getElementById('empNombre').value = '';
+  document.getElementById('empPuesto').value = '';
+  document.getElementById('empArea').value = '';
+  document.getElementById('empRol').value = 'operador';
+  document.getElementById('empTel').value = '';
+  document.getElementById('empEmail').value = '';
+  document.getElementById('empFechaIngreso').value = todayISO();
+  document.getElementById('empFoto').value = '';
+  document.getElementById('empActivo').checked = true;
+  _empPopulateJefeSelect(null);
+  document.getElementById('empDeleteBtn').classList.add('hidden');
+  modal.classList.remove('hidden');
+}
+
+/** Abre el modal en modo editar */
+function empOpenEditor(emp) {
+  EMP_STATE.editingId = emp.id;
+  const modal = document.getElementById('empModal');
+  document.getElementById('empModalTitle').textContent = 'Editar empleado';
+  document.getElementById('empNombre').value = emp.nombre || '';
+  document.getElementById('empPuesto').value = emp.puesto || '';
+  document.getElementById('empArea').value = emp.area || '';
+  document.getElementById('empRol').value = emp.rol || 'operador';
+  document.getElementById('empTel').value = emp.tel || '';
+  document.getElementById('empEmail').value = emp.email || '';
+  document.getElementById('empFechaIngreso').value = emp.fecha_ingreso || '';
+  document.getElementById('empFoto').value = emp.foto_url || '';
+  document.getElementById('empActivo').checked = emp.activo !== false;
+  _empPopulateJefeSelect(emp.jefe_id, emp.id);
+  document.getElementById('empDeleteBtn').classList.remove('hidden');
+  modal.classList.remove('hidden');
+}
+
+/** Vista de solo lectura para no-admin (reutiliza el mismo modal deshabilitado) */
+function empOpenReadonly(emp) {
+  empOpenEditor(emp);
+  ['empNombre','empPuesto','empArea','empRol','empTel','empEmail','empFechaIngreso','empFoto','empActivo','empJefe'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('disabled','disabled');
+  });
+  document.getElementById('empSaveBtn').classList.add('hidden');
+  document.getElementById('empDeleteBtn').classList.add('hidden');
+}
+
+/** Rehabilita el modal después de haberlo puesto readonly */
+function _empResetModalEditable() {
+  ['empNombre','empPuesto','empArea','empRol','empTel','empEmail','empFechaIngreso','empFoto','empActivo','empJefe'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.removeAttribute('disabled');
+  });
+  document.getElementById('empSaveBtn').classList.remove('hidden');
+}
+
+/** Rellena el <select> de jefe con la lista actual */
+function _empPopulateJefeSelect(selectedId, excludeId) {
+  const sel = document.getElementById('empJefe');
+  if (!sel) return;
+  const managers = EMP_STATE.list
+    .filter(e => (e.rol === 'admin' || e.rol === 'manager') && e.activo !== false && e.id !== excludeId)
+    .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'', 'es'));
+  sel.innerHTML = '<option value="">— Sin jefe directo —</option>'
+    + managers.map(e => `<option value="${e.id}" ${selectedId===e.id?'selected':''}>${e.nombre} · ${e.puesto||''}</option>`).join('');
+}
+
+/** Guarda al empleado (crea o actualiza) */
+async function empSave() {
+  const nombre = document.getElementById('empNombre').value.trim();
+  const puesto = document.getElementById('empPuesto').value.trim();
+  const area = document.getElementById('empArea').value;
+  const rol = document.getElementById('empRol').value;
+  if (!nombre) { toast('El nombre es obligatorio', true); return; }
+  if (!puesto) { toast('El puesto es obligatorio', true); return; }
+  if (!area)   { toast('El área es obligatoria', true); return; }
+
+  const id = EMP_STATE.editingId || _empNewId();
+  const emp = {
+    id,
+    nombre,
+    puesto,
+    area,
+    rol,
+    tel: document.getElementById('empTel').value.trim(),
+    email: document.getElementById('empEmail').value.trim(),
+    jefe_id: document.getElementById('empJefe').value || null,
+    fecha_ingreso: document.getElementById('empFechaIngreso').value || null,
+    foto_url: document.getElementById('empFoto').value.trim(),
+    activo: document.getElementById('empActivo').checked,
+    updatedAt: Date.now(),
+    updatedBy: (window.TG_USER || {}).name || 'desconocido',
+    auth: FB_AUTH_TOKEN
+  };
+
+  try {
+    const FB = await whenFbReady();
+    if (!FB) { toast('Sin conexión a Firestore', true); return; }
+    if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) { toast('Sesión expirada, inicia sesión de nuevo', true); return; }
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.empleados) || 'empleados';
+    await FB.setDoc(FB.doc(FB.db, coll, id), emp);
+    toast(EMP_STATE.editingId ? 'Empleado actualizado' : 'Empleado agregado');
+    document.getElementById('empModal').classList.add('hidden');
+    EMP_STATE.editingId = null;
+  } catch (e) {
+    console.warn('[Emp] save error', e);
+    toast('Error al guardar: ' + (e.message||e), true);
+  }
+}
+
+/** Elimina al empleado (con confirmación) */
+async function empDelete() {
+  const id = EMP_STATE.editingId;
+  if (!id) return;
+  const emp = EMP_STATE.list.find(x => x.id === id);
+  if (!emp) return;
+  if (!confirm(`¿Eliminar a ${emp.nombre}? Esta acción no se puede deshacer.\n\nSugerencia: en lugar de eliminar, marca al empleado como "Inactivo" para conservar el historial.`)) return;
+  try {
+    const FB = await whenFbReady();
+    if (!FB) { toast('Sin conexión a Firestore', true); return; }
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.empleados) || 'empleados';
+    await FB.deleteDoc(FB.doc(FB.db, coll, id));
+    toast('Empleado eliminado');
+    document.getElementById('empModal').classList.add('hidden');
+    EMP_STATE.editingId = null;
+  } catch (e) {
+    console.warn('[Emp] delete error', e);
+    toast('Error al eliminar: ' + (e.message||e), true);
+  }
+}
+
+/** Muestra una guía una sola vez si la colección empleados está vacía */
+function _empMaybeShowBootstrapHint() {
+  if (EMP_STATE.list.length > 0) return;
+  if (localStorage.getItem('tg_emp_bootstrap_shown') === '1') return;
+  // solo mostrar si la pestaña Personal está visible
+  const panel = document.getElementById('tab-personal');
+  if (!panel || panel.classList.contains('hidden')) return;
+  localStorage.setItem('tg_emp_bootstrap_shown', '1');
+  toast('Agrega el primer administrador para comenzar (sugerencia: Jorge Gaytán · Admin · Administración)');
+}
+
+/** Se suscribe a los cambios en la colección empleados */
+async function subscribeEmpleados() {
+  try {
+    const cached = localStorage.getItem('tg_empleados');
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { EMP_STATE.list = arr; renderEmpleados(); }
+    }
+  } catch(_){}
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.empleados) || 'empleados';
+    const collRef = FB.collection(FB.db, coll);
+    if (typeof EMP_STATE.unsub === 'function') { try { EMP_STATE.unsub(); } catch(_){} }
+    EMP_STATE.unsub = FB.onSnapshot(collRef, (snap) => {
+      const arr = [];
+      snap.forEach(d => arr.push(d.data()));
+      EMP_STATE.list = arr;
+      try { localStorage.setItem('tg_empleados', JSON.stringify(arr)); } catch(_){}
+
+      // Actualizar el registro del usuario actual si su empleado_id coincide
+      const meId = (window.TG_USER || {}).empleado_id;
+      if (meId) EMP_STATE.currentUserEmp = arr.find(e => e.id === meId) || null;
+
+      // Refrescar el pill del header por si el rol cambió
+      if (typeof updateUserPill === 'function') updateUserPill();
+
+      _empMaybeShowBootstrapHint();
+      renderEmpleados();
+      // Refrescar select de jefe si el modal está abierto
+      const modalOpen = !document.getElementById('empModal').classList.contains('hidden');
+      if (modalOpen) _empPopulateJefeSelect(EMP_STATE.editingId ? (arr.find(e=>e.id===EMP_STATE.editingId)||{}).jefe_id : null, EMP_STATE.editingId);
+    }, (err) => console.warn('[Emp] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[Emp] subscribe error', e);
+  }
+}
+
+/** Conecta los handlers del módulo Personal (una sola vez) */
+function bindEmpleados() {
+  document.getElementById('empAddBtn')?.addEventListener('click', () => {
+    // Si es el PRIMER empleado del sistema, permitir crearlo aunque no haya admin (bootstrap)
+    if (EMP_STATE.list.length === 0 || _empIsAdmin()) {
+      _empResetModalEditable();
+      empOpenNew();
+    } else {
+      toast('Solo los administradores pueden agregar empleados', true);
+    }
+  });
+  document.getElementById('empModalClose')?.addEventListener('click', () => {
+    document.getElementById('empModal').classList.add('hidden');
+    EMP_STATE.editingId = null;
+    _empResetModalEditable();
+  });
+  document.getElementById('empCancelBtn')?.addEventListener('click', () => {
+    document.getElementById('empModal').classList.add('hidden');
+    EMP_STATE.editingId = null;
+    _empResetModalEditable();
+  });
+  document.getElementById('empSaveBtn')?.addEventListener('click', () => requireUserThen(empSave));
+  document.getElementById('empDeleteBtn')?.addEventListener('click', () => requireUserThen(empDelete));
+  document.getElementById('empSearch')?.addEventListener('input', renderEmpleados);
+  document.getElementById('empFilterArea')?.addEventListener('change', renderEmpleados);
+  document.getElementById('empFilterRol')?.addEventListener('change', renderEmpleados);
+
+  subscribeEmpleados();
 }
 
 /* ===============================================================
