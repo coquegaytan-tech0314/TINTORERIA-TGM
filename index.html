@@ -3862,10 +3862,10 @@
           <label class="text-xs text-slate-400">Email</label>
           <input id="empEmail" type="email" class="field w-full" placeholder="Ej. juan@empresa.com" />
         </div>
-        <div>
-          <label class="text-xs text-slate-400">Jefe directo</label>
+        <div id="empJefeWrap" class="hidden">
+          <label class="text-xs text-slate-400">Supervisor directo</label>
           <select id="empJefe" class="field w-full">
-            <option value="">— Sin jefe directo —</option>
+            <option value="">— Sin supervisor directo —</option>
           </select>
         </div>
         <div>
@@ -11159,6 +11159,9 @@ function empOpenNew() {
   document.getElementById('empFoto').value = '';
   document.getElementById('empActivo').checked = true;
   _empPopulateJefeSelect(null);
+  // Al agregar un nuevo colaborador, ocultar el campo de supervisor directo
+  // (se asigna después desde "Editar" para no saturar el formulario inicial)
+  document.getElementById('empJefeWrap')?.classList.add('hidden');
   document.getElementById('empDeleteBtn').classList.add('hidden');
   modal.classList.remove('hidden');
 }
@@ -11178,6 +11181,8 @@ function empOpenEditor(emp) {
   document.getElementById('empFoto').value = emp.foto_url || '';
   document.getElementById('empActivo').checked = emp.activo !== false;
   _empPopulateJefeSelect(emp.jefe_id, emp.id);
+  // En modo editar sí se muestra el supervisor directo
+  document.getElementById('empJefeWrap')?.classList.remove('hidden');
   document.getElementById('empDeleteBtn').classList.remove('hidden');
   modal.classList.remove('hidden');
 }
@@ -11209,7 +11214,7 @@ function _empPopulateJefeSelect(selectedId, excludeId) {
   const managers = EMP_STATE.list
     .filter(e => (e.rol === 'admin' || e.rol === 'manager') && e.activo !== false && e.id !== excludeId)
     .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'', 'es'));
-  sel.innerHTML = '<option value="">— Sin jefe directo —</option>'
+  sel.innerHTML = '<option value="">— Sin supervisor directo —</option>'
     + managers.map(e => `<option value="${e.id}" ${selectedId===e.id?'selected':''}>${e.nombre} · ${e.puesto||''}</option>`).join('');
 }
 
