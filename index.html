@@ -1051,7 +1051,7 @@
         </div>
         <div>
           <label class="lbl">Operador</label>
-          <input type="text" id="f_operador" class="field" placeholder="Nombre o # de empleado" />
+          <input type="text" id="f_operador" class="field" placeholder="Nombre o # de colaborador" />
         </div>
         <div>
           <label class="lbl">Fecha</label>
@@ -2222,7 +2222,7 @@
         </div>
         <div>
           <label class="lbl">Operador</label>
-          <input type="text" id="br_operador" class="field" placeholder="Nombre o # empleado" />
+          <input type="text" id="br_operador" class="field" placeholder="Nombre o # colaborador" />
         </div>
         <div>
           <label class="lbl">Lote</label>
@@ -2775,7 +2775,7 @@
         </div>
         <div>
           <label class="lbl">Operador</label>
-          <input type="text" id="cmp_operador" class="field" placeholder="Nombre o # empleado" />
+          <input type="text" id="cmp_operador" class="field" placeholder="Nombre o # colaborador" />
         </div>
         <div>
           <label class="lbl">Lote</label>
@@ -3749,18 +3749,18 @@
   </section>
 
   <!-- ============================================================= -->
-  <!-- TAB: Personal (Directorio de empleados)  · Fase 1a           -->
+  <!-- TAB: Personal (Directorio de colaboradores)  · Fase 1a       -->
   <!-- Nuevo módulo, NO toca el dashboard existente.                 -->
   <!-- ============================================================= -->
   <section id="tab-personal" class="tab-panel hidden">
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="text-2xl font-black text-white">Personal <span class="text-slate-500 font-semibold text-base">· Directorio</span></h2>
-        <p class="text-xs text-slate-500 mt-1">Empleados de la empresa. Los administradores pueden agregar, editar y desactivar.</p>
+        <p class="text-xs text-slate-500 mt-1">Colaboradores de la empresa. Los administradores pueden agregar, editar y desactivar.</p>
       </div>
       <div class="flex gap-2 flex-wrap">
         <span id="empCount" class="chip chip-info text-xs">0 activos</span>
-        <button id="empAddBtn" class="btn btn-primary !py-2 !px-3 text-sm hidden">+ Agregar empleado</button>
+        <button id="empAddBtn" class="btn btn-primary !py-2 !px-3 text-sm hidden">+ Agregar colaborador</button>
       </div>
     </div>
 
@@ -3810,17 +3810,17 @@
 
     <!-- Grid de personas -->
     <div id="empGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
-    <p id="empEmpty" class="text-center text-slate-500 text-sm py-10 hidden">Sin empleados capturados todavía. Presiona <b>+ Agregar empleado</b> para comenzar.</p>
-    <p class="text-[11px] text-slate-500 mt-4">💡 Solo los administradores pueden agregar/editar empleados. El resto del equipo puede consultar el directorio.</p>
+    <p id="empEmpty" class="text-center text-slate-500 text-sm py-10 hidden">Sin colaboradores capturados todavía. Presiona <b>+ Agregar colaborador</b> para comenzar.</p>
+    <p class="text-[11px] text-slate-500 mt-4">💡 Solo los administradores pueden agregar/editar colaboradores. El resto del equipo puede consultar el directorio.</p>
   </section>
 
   <!-- ============================================================= -->
-  <!-- MODAL: Agregar / Editar empleado                              -->
+  <!-- MODAL: Agregar / Editar colaborador                          -->
   <!-- ============================================================= -->
   <div id="empModal" class="hidden fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
-        <h3 id="empModalTitle" class="text-lg font-black text-white">Agregar empleado</h3>
+        <h3 id="empModalTitle" class="text-lg font-black text-white">Agregar colaborador</h3>
         <button id="empModalClose" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -3972,7 +3972,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span>Buscar</span>
     </button>
-    <button class="tab-btn" data-tab="tab-personal" title="Directorio de personal · empleados de la empresa">
+    <button class="tab-btn" data-tab="tab-personal" title="Directorio de personal · colaboradores de la empresa">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Personal</span>
     </button>
@@ -4006,7 +4006,7 @@
 
     <label class="lbl">Elige tu nombre</label>
     <select id="userModalPicker" class="field">
-      <option value="">— Selecciona un empleado —</option>
+      <option value="">— Selecciona un colaborador —</option>
     </select>
 
     <div class="mt-3">
@@ -5341,7 +5341,7 @@ function _populateUserModalPicker() {
   const list = (typeof EMP_STATE !== 'undefined' ? (EMP_STATE.list || []) : [])
     .filter(e => e.activo !== false)
     .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'', 'es'));
-  sel.innerHTML = '<option value="">— Selecciona un empleado —</option>'
+  sel.innerHTML = '<option value="">— Selecciona un colaborador —</option>'
     + list.map(e => `<option value="${e.id}">${e.nombre}${e.puesto?' · '+e.puesto:''}</option>`).join('');
 }
 
@@ -11101,8 +11101,8 @@ function renderEmpleados() {
     grid.innerHTML = '';
     if (empty) empty.classList.remove('hidden');
     if (empty) empty.textContent = EMP_STATE.list.length === 0
-      ? 'Sin empleados capturados todavía. Presiona + Agregar empleado para comenzar.'
-      : 'No hay empleados que coincidan con los filtros.';
+      ? 'Sin colaboradores capturados todavía. Presiona + Agregar colaborador para comenzar.'
+      : 'No hay colaboradores que coincidan con los filtros.';
     return;
   }
   if (empty) empty.classList.add('hidden');
@@ -11148,7 +11148,7 @@ function _empNewId() { return 'e_' + Math.random().toString(36).slice(2,9) + Dat
 function empOpenNew() {
   EMP_STATE.editingId = null;
   const modal = document.getElementById('empModal');
-  document.getElementById('empModalTitle').textContent = 'Agregar empleado';
+  document.getElementById('empModalTitle').textContent = 'Agregar colaborador';
   document.getElementById('empNombre').value = '';
   document.getElementById('empPuesto').value = '';
   document.getElementById('empArea').value = '';
@@ -11167,7 +11167,7 @@ function empOpenNew() {
 function empOpenEditor(emp) {
   EMP_STATE.editingId = emp.id;
   const modal = document.getElementById('empModal');
-  document.getElementById('empModalTitle').textContent = 'Editar empleado';
+  document.getElementById('empModalTitle').textContent = 'Editar colaborador';
   document.getElementById('empNombre').value = emp.nombre || '';
   document.getElementById('empPuesto').value = emp.puesto || '';
   document.getElementById('empArea').value = emp.area || '';
@@ -11247,7 +11247,7 @@ async function empSave() {
     if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) { toast('Sesión expirada, inicia sesión de nuevo', true); return; }
     const coll = (FB_COLLECTIONS && FB_COLLECTIONS.empleados) || 'empleados';
     await FB.setDoc(FB.doc(FB.db, coll, id), emp);
-    toast(EMP_STATE.editingId ? 'Empleado actualizado' : 'Empleado agregado');
+    toast(EMP_STATE.editingId ? 'Colaborador actualizado' : 'Colaborador agregado');
     document.getElementById('empModal').classList.add('hidden');
     EMP_STATE.editingId = null;
   } catch (e) {
@@ -11262,13 +11262,13 @@ async function empDelete() {
   if (!id) return;
   const emp = EMP_STATE.list.find(x => x.id === id);
   if (!emp) return;
-  if (!confirm(`¿Eliminar a ${emp.nombre}? Esta acción no se puede deshacer.\n\nSugerencia: en lugar de eliminar, marca al empleado como "Inactivo" para conservar el historial.`)) return;
+  if (!confirm(`¿Eliminar a ${emp.nombre}? Esta acción no se puede deshacer.\n\nSugerencia: en lugar de eliminar, marca al colaborador como "Inactivo" para conservar el historial.`)) return;
   try {
     const FB = await whenFbReady();
     if (!FB) { toast('Sin conexión a Firestore', true); return; }
     const coll = (FB_COLLECTIONS && FB_COLLECTIONS.empleados) || 'empleados';
     await FB.deleteDoc(FB.doc(FB.db, coll, id));
-    toast('Empleado eliminado');
+    toast('Colaborador eliminado');
     document.getElementById('empModal').classList.add('hidden');
     EMP_STATE.editingId = null;
   } catch (e) {
@@ -11336,7 +11336,7 @@ function bindEmpleados() {
       _empResetModalEditable();
       empOpenNew();
     } else {
-      toast('Solo los administradores pueden agregar empleados', true);
+      toast('Solo los administradores pueden agregar colaboradores', true);
     }
   });
   document.getElementById('empModalClose')?.addEventListener('click', () => {
