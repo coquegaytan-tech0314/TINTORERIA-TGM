@@ -3906,7 +3906,10 @@
       </div>
     </div>
 
-    <!-- Modal de tarea -->
+  </section>
+
+  <!-- Modal de tarea (fuera del tab para que se vea desde Mi Inicio también) -->
+  <div id="tarModalWrapper" style="display:contents">
     <div id="tarModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div class="card p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
@@ -3976,7 +3979,7 @@
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
   <!-- ============================================================= -->
   <!-- TAB: Personal (Directorio de colaboradores)  · Fase 1a       -->
@@ -10978,8 +10981,18 @@ function _planParsePasted(text) {
     //   • REND + VEL con valor → RAMA (Bruckner) — la tela pasó por corte (ABIERTA) o es naturalmente ancha
     //   • REND + VEL vacíos    → Compactadora (tubular)
     // El operador decide antes de teñir si corta o no la tela; el resultado se refleja en el Excel.
+    //
+    // EXCEPCIÓN (jul-2026): CARDIGAN FILAMENTO e INTERLOCK (y sus typos) SIEMPRE van a
+    // Compactadora, sin importar si el Excel trae REND/VEL. Son telas angostas por
+    // diseño (0.45m / 1.00m) que no caben abiertas en la RAMA.
     const sinRendVel = (rendN === 0 && velN === 0);
-    const route = sinRendVel ? 'compact' : 'bruck';
+    const telaNorm = _buscarNorm(tela);
+    const esCardiganFilamento = telaNorm.includes('cardigan filamento')
+      || telaNorm.includes('carigan filamento')
+      || telaNorm.includes('kardigan filamento');
+    const esInterlockLike = /\b(interlock|interlok|interloc|intelock|inteloc|inter lock)\b/.test(telaNorm);
+    const forzarCompact = esCardiganFilamento || esInterlockLike;
+    const route = forzarCompact ? 'compact' : (sinRendVel ? 'compact' : 'bruck');
 
     out.push({
       id: _planRowId(),
