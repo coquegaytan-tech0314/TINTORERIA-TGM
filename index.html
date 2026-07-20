@@ -4015,7 +4015,7 @@
         <select id="empFilterRol" class="field !py-2 text-sm">
           <option value="">Todos los roles</option>
           <option value="admin">🛡️ Admin</option>
-          <option value="manager">👑 Manager</option>
+          <option value="manager">⭐ Manager</option>
           <option value="operador">👷 Operador</option>
         </select>
       </div>
@@ -4083,7 +4083,7 @@
           <label class="text-xs text-slate-400">Rol *</label>
           <select id="empRol" class="field w-full">
             <option value="operador">👷 Operador</option>
-            <option value="manager">👑 Manager</option>
+            <option value="manager">⭐ Manager</option>
             <option value="admin">🛡️ Admin</option>
           </select>
         </div>
@@ -5519,7 +5519,7 @@ function updateUserPill() {
       ? EMP_STATE.list.find(e => e.id === cur.empleado_id) : null;
     const ini = _empInitials(cur.name);
     const bg = _empAvatarColor(cur.name);
-    const rolIcon = emp ? (emp.rol === 'admin' ? '🛡️' : emp.rol === 'manager' ? '👑' : '👷') : '';
+    const rolIcon = emp ? (emp.rol === 'admin' ? '🛡️' : emp.rol === 'manager' ? '⭐' : '👷') : '';
     pill.innerHTML = `
       <span style="width:22px;height:22px;background:${bg};color:white;font-weight:800;font-size:10px" class="rounded-full flex items-center justify-center flex-shrink-0">${ini}</span>
       <span id="userPillName" class="text-white font-semibold">${cur.name}</span>
@@ -5640,7 +5640,7 @@ function _renderIdentityBadge() {
       <span style="width:22px;height:22px;background:${bg};color:white;font-weight:800;font-size:10px" class="rounded-full flex items-center justify-center">${ini}</span>
       <span class="text-xs text-white font-semibold">${cur.name}</span>
       ${puesto ? `<span class="text-[10px] text-slate-400 hidden sm:inline">· ${puesto}</span>` : ''}
-      ${rol === 'admin' ? '<span class="text-[10px]">🛡️</span>' : rol === 'manager' ? '<span class="text-[10px]">👑</span>' : ''}
+      ${rol === 'admin' ? '<span class="text-[10px]">🛡️</span>' : rol === 'manager' ? '<span class="text-[10px]">⭐</span>' : ''}
     </div>
     <button id="identitySwitchBtn" title="Cambiar usuario" class="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition">
       <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" class="w-4 h-4"><path d="M17 3l4 4-4 4"/><path d="M21 7H9a4 4 0 0 0-4 4v0"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12a4 4 0 0 0 4-4v0"/></svg>
@@ -11288,7 +11288,7 @@ function _empAvatarColor(nombre) {
 function _empRolChip(rol) {
   const map = {
     admin:    { label:'Admin',    icon:'🛡️', cls:'chip-warn' },
-    manager:  { label:'Manager',  icon:'👑', cls:'chip-info' },
+    manager:  { label:'Manager',  icon:'⭐', cls:'chip-info' },
     operador: { label:'Operador', icon:'👷', cls:'chip-ok' }
   };
   const m = map[rol] || map.operador;
@@ -11389,7 +11389,7 @@ function renderEmpleados() {
       <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
         ${emp.tel ? `<div>📞 <a href="tel:${emp.tel}" class="text-sky-accent hover:underline">${emp.tel}</a></div>` : ''}
         ${emp.email ? `<div>✉️ <a href="mailto:${emp.email}" class="text-sky-accent hover:underline truncate inline-block max-w-full">${emp.email}</a></div>` : ''}
-        ${jefe ? `<div>👑 Reporta a <span class="text-slate-300">${jefe.nombre}</span></div>` : ''}
+        ${jefe ? `<div>👤 Reporta a <span class="text-slate-300">${jefe.nombre}</span></div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -11717,8 +11717,16 @@ function _tarFiltradas() {
   let list = TAR_STATE.list.slice();
 
   // Alcance: mis tareas por defecto; si ver equipo, todo lo que el manager puede ver
+  // "Mis tareas" incluye: asignadas a mí, creadas por mí, o sin asignar (si soy quien las creó).
+  // Esto evita que las tareas "desaparezcan" cuando el usuario no tiene empleado_id vinculado.
   if (!TAR_STATE.verEquipo) {
-    list = list.filter(t => t.asignado_a === meId);
+    const meName = (window.TG_USER || {}).name || '';
+    list = list.filter(t =>
+      (meId && t.asignado_a === meId) ||
+      (meId && t.asignado_por === meId) ||
+      (!t.asignado_a && meName && t.updatedBy === meName) ||
+      (meName && t.updatedBy === meName && !meId)
+    );
   } else if (_tarIsManager()) {
     // Manager: sus tareas + las de sus reportes directos + las que el mismo asignó
     const reportes = (EMP_STATE.list || []).filter(e => e.jefe_id === meId).map(e => e.id);
@@ -12090,8 +12098,16 @@ function renderInicio() {
   }
 
   // KPIs (siempre calculan sobre MIS tareas)
+  // Incluye tareas asignadas a mí, creadas por mí, o sin asignar creadas por mí
+  // (por si el usuario no tiene empleado_id vinculado)
   const meId = me && me.empleado_id;
-  const mias = TAR_STATE.list.filter(t => t.asignado_a === meId);
+  const meName = (me && me.name) || '';
+  const mias = TAR_STATE.list.filter(t =>
+    (meId && t.asignado_a === meId) ||
+    (meId && t.asignado_por === meId) ||
+    (!t.asignado_a && meName && t.updatedBy === meName) ||
+    (meName && t.updatedBy === meName && !meId)
+  );
   const pend = mias.filter(t => t.estado === 'pendiente').length;
   const enCurso = mias.filter(t => t.estado === 'en_curso').length;
   const vencidas = mias.filter(t => {
