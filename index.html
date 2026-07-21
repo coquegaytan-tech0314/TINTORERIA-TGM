@@ -3792,8 +3792,8 @@
     <div class="card p-4 mb-4">
       <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <h3 class="text-lg font-black text-white">📌 Mis próximas tareas</h3>
-          <p class="text-[11px] text-slate-500">Tus tareas pendientes ordenadas por urgencia</p>
+          <h3 class="text-lg font-black text-white">📌 Próximas tareas</h3>
+          <p class="text-[11px] text-slate-500">Tareas del equipo ordenadas por urgencia</p>
         </div>
         <div class="flex gap-2">
           <button id="inicioQuickAddBtn" class="btn btn-primary !py-2 !px-3 text-sm">+ Nueva tarea</button>
@@ -3829,9 +3829,9 @@
         <p class="text-xs text-slate-500 mt-1">Toca una tarjeta para moverla, editarla o marcarla como hecha.</p>
       </div>
       <div class="flex gap-2 flex-wrap items-center">
-        <label id="tarEquipoWrap" class="hidden inline-flex items-center gap-2 text-xs text-slate-300 bg-ink-800/60 px-3 py-2 rounded-lg cursor-pointer">
-          <input type="checkbox" id="tarVerEquipo" class="accent-sky-500" />
-          <span>Ver tareas del equipo</span>
+        <label id="tarSoloMiasWrap" class="inline-flex items-center gap-2 text-xs text-slate-300 bg-ink-800/60 px-3 py-2 rounded-lg cursor-pointer">
+          <input type="checkbox" id="tarSoloMias" class="accent-sky-500" />
+          <span>Solo mías</span>
         </label>
         <button id="tarAddBtn" class="btn btn-primary !py-2 !px-3 text-sm">+ Nueva tarea</button>
       </div>
@@ -11696,7 +11696,8 @@ const TAR_STATE = {
   loaded: false,
   editingId: null,
   unsubscribe: null,
-  verEquipo: false
+  verEquipo: false,
+  soloMias: false
 };
 
 const TAR_PRIO = {
@@ -11759,6 +11760,7 @@ function _tarNombreAsignado(t) {
 function _tarFiltradas() {
   const me = (typeof TG_USER !== 'undefined') ? TG_USER : null;
   const meId = me && me.empleado_id;
+  const meName = (me && me.name) || '';
   const qEl = document.getElementById('tarSearch');
   const prEl = document.getElementById('tarFilterPrio');
   const arEl = document.getElementById('tarFilterArea');
@@ -11768,24 +11770,16 @@ function _tarFiltradas() {
 
   let list = TAR_STATE.list.slice();
 
-  // Alcance: mis tareas por defecto; si ver equipo, todo lo que el manager puede ver
-  // "Mis tareas" incluye: asignadas a mí, creadas por mí, o sin asignar (si soy quien las creó).
-  // Esto evita que las tareas "desaparezcan" cuando el usuario no tiene empleado_id vinculado.
-  if (!TAR_STATE.verEquipo) {
-    const meName = (window.TG_USER || {}).name || '';
+  // NUEVO comportamiento (jul-2026): por default se ven TODAS las tareas.
+  // El toggle "Solo mías" en el header permite filtrar a las mías.
+  // Esto elimina el problema donde una tarea recién creada no aparecía por
+  // discrepancias de empleado_id / nombre.
+  if (TAR_STATE.soloMias) {
     list = list.filter(t =>
       (meId && t.asignado_a === meId) ||
       (meId && t.asignado_por === meId) ||
-      (!t.asignado_a && meName && t.updatedBy === meName) ||
-      (meName && t.updatedBy === meName && !meId)
-    );
-  } else if (_tarIsManager()) {
-    // Manager: sus tareas + las de sus reportes directos + las que el mismo asignó
-    const reportes = (EMP_STATE.list || []).filter(e => e.jefe_id === meId).map(e => e.id);
-    list = list.filter(t =>
-      t.asignado_a === meId ||
-      reportes.includes(t.asignado_a) ||
-      t.asignado_por === meId
+      (meName && t.updatedBy === meName) ||
+      (meName && t.asignado_nombre === meName)
     );
   }
 
@@ -11883,8 +11877,7 @@ function renderTareas() {
   setCount('tarCountHecho', cols.hecho.length);
 
   // Toggle "Ver equipo" solo visible para admin/manager
-  const wrap = document.getElementById('tarEquipoWrap');
-  if (wrap) wrap.classList.toggle('hidden', !_tarIsManager());
+  // El toggle "Solo mías" está disponible para todos (ya no depende de rol)
 }
 
 /** Popula el select de asignado en el modal */
@@ -12079,8 +12072,8 @@ function bindTareas() {
   document.getElementById('tarSearch')?.addEventListener('input', renderTareas);
   document.getElementById('tarFilterPrio')?.addEventListener('change', renderTareas);
   document.getElementById('tarFilterArea')?.addEventListener('change', renderTareas);
-  document.getElementById('tarVerEquipo')?.addEventListener('change', (e) => {
-    TAR_STATE.verEquipo = e.target.checked;
+  document.getElementById('tarSoloMias')?.addEventListener('change', (e) => {
+    TAR_STATE.soloMias = e.target.checked;
     renderTareas();
   });
 
@@ -12149,17 +12142,11 @@ function renderInicio() {
     fEl.textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} ${now.getFullYear()}`;
   }
 
-  // KPIs (siempre calculan sobre MIS tareas)
-  // Incluye tareas asignadas a mí, creadas por mí, o sin asignar creadas por mí
-  // (por si el usuario no tiene empleado_id vinculado)
+  // KPIs: comportamiento nuevo (jul-2026) — muestra el resumen de TODAS las tareas.
+  // Esto refleja el trabajo del equipo y evita el problema "creé una tarea pero no la veo".
   const meId = me && me.empleado_id;
   const meName = (me && me.name) || '';
-  const mias = TAR_STATE.list.filter(t =>
-    (meId && t.asignado_a === meId) ||
-    (meId && t.asignado_por === meId) ||
-    (!t.asignado_a && meName && t.updatedBy === meName) ||
-    (meName && t.updatedBy === meName && !meId)
-  );
+  const mias = TAR_STATE.list.slice();
   const pend = mias.filter(t => t.estado === 'pendiente').length;
   const enCurso = mias.filter(t => t.estado === 'en_curso').length;
   const vencidas = mias.filter(t => {
