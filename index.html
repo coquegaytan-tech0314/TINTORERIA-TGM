@@ -4048,6 +4048,34 @@
   </section>
 
   <!-- ============================================================= -->
+  <!-- TAB: Duplicados detectados  · Fase QA integridad de datos     -->
+  <!-- Agrupa por lote+proceso cualquier grupo con 2+ fichas en los  -->
+  <!-- últimos 30 días. Muestra kg inflado estimado.                 -->
+  <!-- ============================================================= -->
+  <section id="tab-duplicados" class="tab-panel hidden">
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h2 class="text-lg font-black text-white flex items-center gap-2">
+            <span>🔍</span> Duplicados detectados
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">
+            Fichas con el mismo <b>lote + proceso</b> en los últimos 30 días. Los kilos duplicados inflan los totales de RAMA y Compactadora.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button id="dupRefreshBtn" class="btn !py-2 !px-3 text-sm" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.35); color:#93c5fd">🔄 Recargar</button>
+        </div>
+      </div>
+      <div id="dupSummary"></div>
+      <div id="dupPanelBody"></div>
+      <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-500">
+        💡 <b>Tip:</b> si es un reproceso legítimo (retanda, corrección de color), marca la ficha como legítima y dejará de aparecer aquí. Si es un error de captura, elimínala para corregir los totales de producción.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
   <!-- MODAL: Agregar / Editar colaborador                          -->
   <!-- ============================================================= -->
   <div id="empModal" class="hidden fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -4216,6 +4244,10 @@
     <button class="tab-btn" data-tab="tab-personal" title="Directorio de personal · colaboradores de la empresa">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Personal</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-duplicados" title="Duplicados detectados · fichas repetidas por lote+proceso en los últimos 30 días">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v6a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V8z"/><line x1="3" y1="8" x2="21" y2="8"/></svg>
+      <span>Duplicados</span>
     </button>
   </div>
 </nav>
@@ -6045,6 +6077,9 @@ function init() {
   bindEmpleados();
   bindTareas();
   bindInicio();
+  // Bind refresh button del panel Duplicados
+  const _dupRefBtn = document.getElementById('dupRefreshBtn');
+  if (_dupRefBtn) _dupRefBtn.addEventListener('click', () => renderDuplicados());
   bindResumenTerminado();
   bindReporteSemanal();
   bindPT();
@@ -6254,6 +6289,9 @@ function bindTabs() {
     if (tab === 'tab-tareas') {
       requestAnimationFrame(() => { try { renderTareas(); } catch(e){ console.warn('tareas switch:', e); } });
     }
+    if (tab === 'tab-duplicados') {
+      requestAnimationFrame(() => { try { renderDuplicados(); } catch(e){ console.warn('dup switch:', e); } });
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -6389,24 +6427,38 @@ function saveProd(andNew) {
     estado:   'cerrada'
   };
 
-  state.prod.unshift(rec);
-  save(LS_KEYS.prod, state.prod);
-  saveToCloud('prod', rec); // fire-and-forget
-  logChange({ module:'Ficha', action:'Nuevo registro', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.color||'sin color'}` });
-  toast('Ficha guardada ✓');
-  renderAll();
+  // ⚠️ Detección de duplicados: mismo lote + mismo proceso en últimos 7 días
+  const _doSaveProdRec = (esReproceso) => {
+    if (esReproceso) rec.es_reproceso = true;
+    state.prod.unshift(rec);
+    save(LS_KEYS.prod, state.prod);
+    saveToCloud('prod', rec); // fire-and-forget
+    logChange({ module:'Ficha', action:'Nuevo registro', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · ${rec.color||'sin color'}${esReproceso ? ' · reproceso' : ''}` });
+    toast('Ficha guardada ✓');
+    renderAll();
+    if (andNew) {
+      ['#f_lote','#f_tela','#f_color','#f_diseno','#f_pedido','#f_kilos','#f_hEntrada','#f_hSalida','#f_proceso','#f_apq','#f_notas']
+        .forEach(s => $(s).value = '');
+      $('#f_banos').value = '1';
+      $$('.proceso-btn').forEach(x => x.classList.remove('active'));
+      recalc();
+      $('#f_lote').focus();
+    } else {
+      clearProdForm();
+    }
+  };
 
-  if (andNew) {
-    // Mantener máquina+turno+operador+fecha; limpiar resto
-    ['#f_lote','#f_tela','#f_color','#f_diseno','#f_pedido','#f_kilos','#f_hEntrada','#f_hSalida','#f_proceso','#f_apq','#f_notas']
-      .forEach(s => $(s).value = '');
-    $('#f_banos').value = '1';
-    $$('.proceso-btn').forEach(x => x.classList.remove('active'));
-    recalc();
-    $('#f_lote').focus();
-  } else {
-    clearProdForm();
+  if (rec.lote && rec.proceso) {
+    const dups = _findLoteProcesoDuplicate(rec.lote, rec.proceso, 7, rec.id);
+    if (dups.length > 0) {
+      _dupWarnModal(dups, { lote: rec.lote, proceso: rec.proceso, tela: rec.tela, kilos: rec.kilos, origen: 'RAMA · ' + rec.machine },
+        (esRepro) => _doSaveProdRec(esRepro),
+        () => { toast('Guardado cancelado. Revisa antes de re-capturar.', true); }
+      );
+      return;
+    }
   }
+  _doSaveProdRec(false);
 }
 
 function clearProdForm() {
@@ -12274,6 +12326,305 @@ function _onboardingMaybeShow() {
 }
 
 /* ===============================================================
+   DUPLICADOS  ·  Detección de fichas repetidas por lote+proceso
+   ---------------------------------------------------------------
+   Problema real (jul-2026): el equipo a veces registra 2× la misma
+   ficha (mismo lote + mismo proceso), inflando los kilos de
+   empacado y descuadrando los totales diarios.
+
+   Regla del dueño (Jorge, jul-21-2026):
+     • Clave de duplicado: LOTE + PROCESO (sin importar la tela)
+     • Ventana de advertencia al guardar: 7 días
+     • Panel retroactivo: últimos 30 días
+     • Acceso: todos por ahora
+
+   Flujo:
+     1) Al guardar (RAMA o Compactadora), buscar en los últimos 7
+        días otra ficha con el mismo lote+proceso.
+     2) Si existe, mostrar modal con detalles y dos opciones:
+         - "Sí, es reproceso legítimo"  → guardar con es_reproceso: true
+         - "Cancelar"                    → no guardar
+     3) Nueva pestaña "🔍 Duplicados" agrupa por lote+proceso
+        cualquier grupo con 2+ fichas en los últimos 30 días.
+=============================================================== */
+
+/** Normaliza un string para comparación (case-insensitive, trim) */
+function _dupNorm(s) {
+  return String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+/** Devuelve la fecha ISO YYYY-MM-DD de un registro (bruck o compact) */
+function _dupFecha(r) {
+  if (!r) return '';
+  if (r.fecha) return String(r.fecha).slice(0, 10);
+  if (r.ts) {
+    try { return new Date(r.ts).toISOString().slice(0, 10); } catch(e) { return ''; }
+  }
+  return '';
+}
+
+/** Une los registros de RAMA (state.prod) y Compactadora (state.compact) con un flag de origen */
+function _dupAllRecords() {
+  const bruck = (state.prod || []).map(r => ({ ...r, __src: 'RAMA' }));
+  const comp  = (state.compact || []).map(r => ({ ...r, __src: 'Compactadora' }));
+  return bruck.concat(comp);
+}
+
+/**
+ * Busca fichas con el mismo lote+proceso en los últimos `dias` días.
+ * excludeId: id a excluir (para no matchearse contra sí mismo al editar).
+ * Ignora fichas que ya fueron marcadas como reproceso legítimo (es_reproceso: true).
+ */
+function _findLoteProcesoDuplicate(lote, proceso, dias, excludeId) {
+  const loteN = _dupNorm(lote);
+  const procN = _dupNorm(proceso);
+  if (!loteN || !procN) return [];
+  const ventanaMs = (dias || 7) * 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+  return _dupAllRecords().filter(r => {
+    if (excludeId && r.id === excludeId) return false;
+    if (r.es_reproceso === true) return false; // ya fue confirmado como legítimo
+    if (_dupNorm(r.lote) !== loteN) return false;
+    if (_dupNorm(r.proceso) !== procN) return false;
+    const ts = r.ts || 0;
+    if (!ts) return false;
+    return (nowMs - ts) <= ventanaMs;
+  }).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+}
+
+/**
+ * Muestra un modal advertencia con la lista de duplicados encontrados.
+ * onProceed(esReproceso=true): guardar con flag es_reproceso: true
+ * onCancel(): no hacer nada
+ */
+function _dupWarnModal(existing, ctx, onProceed, onCancel) {
+  // ctx = { lote, proceso, tela, kilos, origen }
+  const filas = existing.map(r => {
+    const f = _dupFecha(r);
+    const kg = Number(r.kilos || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const maq = r.__src === 'RAMA' ? (r.machine || 'RAMA') : 'Compactadora';
+    const oper = r.operador || r.operator || 's/o';
+    return `
+      <div style="padding:10px 12px; background:rgba(148,163,184,0.08); border:1px solid rgba(148,163,184,0.2); border-radius:8px; margin-bottom:8px">
+        <div style="font-size:12px; color:#e2e8f0; font-weight:600">
+          ${f || 's/fecha'} · <span style="color:#f59e0b">${maq}</span> · ${kg} kg
+        </div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:2px">
+          ${_dupNorm(r.tela) || 's/tela'} · ${_dupNorm(r.color) || 's/color'} · turno ${r.shift || r.turno || 's/t'} · op: ${oper}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const totKg = existing.reduce((s, r) => s + (Number(r.kilos) || 0), 0);
+  const totKgFmt = totKg.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  // Modal HTML
+  let modal = document.getElementById('dupWarnModal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'dupWarnModal';
+  modal.className = 'fixed inset-0 z-[60] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4';
+  modal.setAttribute('role', 'dialog');
+  modal.innerHTML = `
+    <div class="card p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto" style="background:#1e293b; border:1px solid rgba(239,68,68,0.4)">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
+        <div style="font-size:28px">⚠️</div>
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#fca5a5">Posible ficha duplicada</div>
+          <div style="font-size:12px; color:#94a3b8">Ya existe(n) ${existing.length} ficha(s) del mismo lote+proceso en los últimos 7 días</div>
+        </div>
+      </div>
+
+      <div style="padding:10px 12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:8px; margin-bottom:12px">
+        <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px">Estás por guardar</div>
+        <div style="font-size:13px; color:#e2e8f0; font-weight:600">
+          Lote <span style="color:#38bdf8">${_dupNorm(ctx.lote)}</span> · <span style="color:#f59e0b">${_dupNorm(ctx.proceso)}</span> · ${Number(ctx.kilos || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg
+        </div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:2px">
+          ${_dupNorm(ctx.tela) || 's/tela'} · en ${ctx.origen}
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px">Fichas existentes (${existing.length} · ${totKgFmt} kg total)</div>
+      <div style="max-height:220px; overflow-y:auto">${filas}</div>
+
+      <div style="padding:10px 12px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:8px; margin-top:12px; font-size:12px; color:#fde68a">
+        <strong>¿Es un reproceso legítimo?</strong><br/>
+        Si el mismo lote pasó de nuevo por ${_dupNorm(ctx.proceso)} a propósito (retanda, corrección de color), marca sí. Si no, cancela y revisa con quien capturó.
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:16px">
+        <button id="dupWarnCancel" class="btn !py-2 !px-3 text-sm" style="flex:1; background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.35); color:#cbd5e1">Cancelar</button>
+        <button id="dupWarnProceed" class="btn !py-2 !px-3 text-sm" style="flex:1; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.4); color:#fde68a">Sí, es reproceso legítimo</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const closeAndCall = (fn) => { modal.remove(); if (typeof fn === 'function') fn(); };
+  document.getElementById('dupWarnCancel').addEventListener('click', () => closeAndCall(onCancel));
+  document.getElementById('dupWarnProceed').addEventListener('click', () => closeAndCall(() => onProceed(true)));
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeAndCall(onCancel); });
+}
+
+/**
+ * Agrupa TODOS los registros por lote+proceso, considerando los últimos 30 días.
+ * Devuelve arreglo de grupos con 2+ fichas, ordenado por total_kg desc.
+ * Cada grupo: { lote, proceso, entries[], total_kg, count, telas, fechas, hasLegit }
+ */
+function _dupBuildGroups(dias) {
+  const ventanaMs = (dias || 30) * 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+  const recs = _dupAllRecords().filter(r => (r.ts || 0) >= (nowMs - ventanaMs) && _dupNorm(r.lote) && _dupNorm(r.proceso));
+  const groups = {};
+  recs.forEach(r => {
+    const key = _dupNorm(r.lote) + '||' + _dupNorm(r.proceso);
+    if (!groups[key]) {
+      groups[key] = { lote: _dupNorm(r.lote), proceso: _dupNorm(r.proceso), entries: [], total_kg: 0, count: 0, telas: new Set(), fechas: new Set(), hasLegit: false };
+    }
+    const g = groups[key];
+    g.entries.push(r);
+    g.total_kg += Number(r.kilos || 0);
+    g.count += 1;
+    if (r.tela) g.telas.add(_dupNorm(r.tela));
+    const f = _dupFecha(r); if (f) g.fechas.add(f);
+    if (r.es_reproceso) g.hasLegit = true;
+  });
+  return Object.values(groups)
+    .filter(g => g.count >= 2)
+    .map(g => ({ ...g, telas: Array.from(g.telas), fechas: Array.from(g.fechas).sort() }))
+    .sort((a, b) => b.total_kg - a.total_kg);
+}
+
+/** Marca una ficha como reproceso legítimo (persiste local + nube) */
+async function _dupMarcarLegitimo(recId, src) {
+  const arr = src === 'RAMA' ? state.prod : state.compact;
+  const rec = (arr || []).find(x => x.id === recId);
+  if (!rec) { toast('Ficha no encontrada', true); return; }
+  rec.es_reproceso = true;
+  rec.es_reproceso_marcadoBy = (window.TG_USER && TG_USER.name) || 'usuario';
+  rec.es_reproceso_marcadoTs = Date.now();
+  save(src === 'RAMA' ? LS_KEYS.prod : LS_KEYS.compact, arr);
+  try { await saveToCloud(src === 'RAMA' ? 'prod' : 'compact', rec); } catch(e) { console.warn('cloud save legit:', e); }
+  logChange({ module: 'Duplicados', action: 'Marcar legítimo', lote: rec.lote, detail: `${rec.proceso} · ${rec.kilos} kg` });
+  toast('Marcado como reproceso legítimo ✓');
+  renderDuplicados();
+}
+
+/** Elimina una ficha duplicada (persiste local + intenta borrar en nube) */
+async function _dupEliminarFicha(recId, src) {
+  if (!confirm('¿Eliminar esta ficha? Esta acción no se puede deshacer.')) return;
+  const key = src === 'RAMA' ? 'prod' : 'compact';
+  const arr = state[key];
+  const idx = (arr || []).findIndex(x => x.id === recId);
+  if (idx < 0) { toast('Ficha no encontrada', true); return; }
+  const rec = arr[idx];
+  arr.splice(idx, 1);
+  save(LS_KEYS[key], arr);
+  // Borrar de la nube
+  try {
+    if (window.FB && FB.db && FB.doc && FB.deleteDoc) {
+      const collName = src === 'RAMA' ? 'produccion' : 'compactadora';
+      await FB.deleteDoc(FB.doc(FB.db, collName, recId));
+    }
+  } catch(e) { console.warn('cloud delete dup:', e); }
+  logChange({ module: 'Duplicados', action: 'Eliminar duplicado', lote: rec.lote, detail: `${rec.proceso} · ${rec.kilos} kg` });
+  toast('Ficha eliminada ✓');
+  renderAll();
+  renderDuplicados();
+}
+
+/** Renderiza el panel Duplicados en el contenedor #dupPanelBody */
+function renderDuplicados() {
+  const body = document.getElementById('dupPanelBody');
+  if (!body) return;
+  const groups = _dupBuildGroups(30);
+  const summary = document.getElementById('dupSummary');
+  if (summary) {
+    const totalKg = groups.reduce((s, g) => s + g.total_kg, 0);
+    const kgInflado = groups.reduce((s, g) => {
+      // Suma inflada = todos los kg menos la ficha de mayor tamaño (asumiendo esa es la "real")
+      const maxKg = Math.max(...g.entries.map(e => Number(e.kilos) || 0));
+      return s + (g.total_kg - maxKg);
+    }, 0);
+    summary.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:14px">
+        <div style="padding:12px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:8px">
+          <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px">Grupos con duplicados</div>
+          <div style="font-size:22px; font-weight:800; color:#fca5a5">${groups.length}</div>
+        </div>
+        <div style="padding:12px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:8px">
+          <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px">Kg total en grupos</div>
+          <div style="font-size:22px; font-weight:800; color:#fde68a">${totalKg.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</div>
+        </div>
+        <div style="padding:12px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.4); border-radius:8px">
+          <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px">Kg inflado estimado</div>
+          <div style="font-size:22px; font-weight:800; color:#f87171">${kgInflado.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</div>
+        </div>
+      </div>
+    `;
+  }
+  if (!groups.length) {
+    body.innerHTML = `
+      <div style="padding:40px 20px; text-align:center; color:#94a3b8">
+        <div style="font-size:48px; margin-bottom:8px">✅</div>
+        <div style="font-size:14px; font-weight:600; color:#e2e8f0">No hay duplicados detectados</div>
+        <div style="font-size:12px; margin-top:4px">En los últimos 30 días no hay fichas repetidas del mismo lote+proceso.</div>
+      </div>`;
+    return;
+  }
+  body.innerHTML = groups.map(g => {
+    const totalFmt = g.total_kg.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const maxKg = Math.max(...g.entries.map(e => Number(e.kilos) || 0));
+    const infladoKg = (g.total_kg - maxKg).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const fechasStr = g.fechas.length > 3 ? `${g.fechas[0]} → ${g.fechas[g.fechas.length-1]}` : g.fechas.join(', ');
+    const filas = g.entries.map(r => {
+      const f = _dupFecha(r);
+      const kg = Number(r.kilos || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      const maq = r.__src === 'RAMA' ? (r.machine || 'RAMA') : 'Compactadora';
+      const oper = r.operador || r.operator || 's/o';
+      const legitBadge = r.es_reproceso
+        ? `<span style="display:inline-block; padding:2px 6px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); border-radius:4px; font-size:10px; color:#6ee7b7; margin-left:6px">✓ Legítimo</span>`
+        : '';
+      return `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:rgba(15,23,42,0.5); border:1px solid rgba(148,163,184,0.15); border-radius:6px; margin-bottom:6px">
+          <div style="flex:1; min-width:0">
+            <div style="font-size:12px; color:#e2e8f0; font-weight:600">
+              ${f || 's/fecha'} · <span style="color:#f59e0b">${maq}</span> · ${kg} kg${legitBadge}
+            </div>
+            <div style="font-size:10px; color:#94a3b8; margin-top:2px">
+              ${_dupNorm(r.tela) || 's/tela'} · ${_dupNorm(r.color) || 's/color'} · turno ${r.shift || r.turno || 's/t'} · op: ${oper}
+            </div>
+          </div>
+          <div style="display:flex; gap:4px; flex-shrink:0">
+            ${!r.es_reproceso ? `<button onclick="_dupMarcarLegitimo('${r.id}', '${r.__src}')" title="Marcar como reproceso legítimo" style="padding:5px 8px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:4px; font-size:10px; color:#6ee7b7; cursor:pointer">✓ Legítimo</button>` : ''}
+            <button onclick="_dupEliminarFicha('${r.id}', '${r.__src}')" title="Eliminar esta ficha" style="padding:5px 8px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:4px; font-size:10px; color:#fca5a5; cursor:pointer">🗑</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    const bgColor = g.hasLegit ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.05)';
+    const borderColor = g.hasLegit ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.3)';
+    return `
+      <div style="padding:14px; background:${bgColor}; border:1px solid ${borderColor}; border-radius:10px; margin-bottom:12px">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px">
+          <div>
+            <span style="font-size:15px; font-weight:800; color:#e2e8f0">Lote ${g.lote}</span>
+            <span style="font-size:12px; color:#94a3b8; margin-left:8px">· ${g.proceso}</span>
+          </div>
+          <div style="font-size:12px; color:#fde68a; font-weight:700">${g.count} fichas · ${totalFmt} kg <span style="color:#f87171">(+${infladoKg} kg inflado)</span></div>
+        </div>
+        <div style="font-size:10px; color:#94a3b8; margin-bottom:8px">
+          Telas: ${g.telas.join(', ') || 's/t'} · Fechas: ${fechasStr}
+        </div>
+        ${filas}
+      </div>
+    `;
+  }).join('');
+}
+
+/* ===============================================================
    RESUMEN DEL DÍA · Producción de Terminado (formato WhatsApp)
    - Bruckner por proceso (Suavizado/Termofijado/Empacado/Otros)
    - Compactadora (se añadirá cuando el usuario envíe la captura)
@@ -14437,19 +14788,34 @@ function saveCompact() {
   };
 
   if (!Array.isArray(state.compact)) state.compact = [];
-  state.compact.unshift(rec);
-  save(LS_KEYS.compact, state.compact);
-  try { saveToCloud('compact', rec); } catch(e) { console.warn('cloud save compact:', e); }
 
-  logChange({
-    module: 'Compactadora',
-    action: 'Nueva ficha',
-    detail: `${lote} · ${tela} · ${color} · ${kilos} kg · ${proceso}`
-  });
+  const _doSaveCompactRec = (esReproceso) => {
+    if (esReproceso) rec.es_reproceso = true;
+    state.compact.unshift(rec);
+    save(LS_KEYS.compact, state.compact);
+    try { saveToCloud('compact', rec); } catch(e) { console.warn('cloud save compact:', e); }
+    logChange({
+      module: 'Compactadora',
+      action: 'Nueva ficha',
+      detail: `${lote} · ${tela} · ${color} · ${kilos} kg · ${proceso}${esReproceso ? ' · reproceso' : ''}`
+    });
+    toast(`Ficha guardada · ${lote} · ${kilos} kg`);
+    clearCompactForm(true /* keepDate */);
+    renderCompact();
+  };
 
-  toast(`Ficha guardada · ${lote} · ${kilos} kg`);
-  clearCompactForm(true /* keepDate */);
-  renderCompact();
+  // ⚠️ Detección de duplicados: mismo lote + mismo proceso en últimos 7 días
+  if (lote && proceso) {
+    const dups = _findLoteProcesoDuplicate(lote, proceso, 7, rec.id);
+    if (dups.length > 0) {
+      _dupWarnModal(dups, { lote, proceso, tela, kilos, origen: 'Compactadora' },
+        (esRepro) => _doSaveCompactRec(esRepro),
+        () => { toast('Guardado cancelado. Revisa antes de re-capturar.', true); }
+      );
+      return;
+    }
+  }
+  _doSaveCompactRec(false);
 }
 
 function clearCompactForm(keepDate) {
