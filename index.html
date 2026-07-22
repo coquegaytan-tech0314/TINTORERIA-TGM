@@ -4155,7 +4155,7 @@
               <th class="p-2 text-center">N. Ped.</th>
               <th class="p-2 text-center" title="Línea de producto (Mix, Básico, etc.)">L.</th>
               <th class="p-2 text-center" title="Turno">Tur.</th>
-              <th class="p-2 text-right" title="Kilos crudo/base">C.B.</th>
+              <th class="p-2 text-right" title="Clase B · kilos defectuosos reportados por Calidad (entrada manual)">C.B.</th>
               <th class="p-2 text-right">Rev.</th>
               <th class="p-2 text-right">Pla.</th>
               <th class="p-2 text-right">Com.</th>
@@ -16629,7 +16629,7 @@ function _estBuildRows(dateISO) {
       rowsMap[lote] = {
         lote,
         tela: '', color: '', pedido: '', linea: '', turno: '',
-        cb: 0,          // kilos crudo/base (tintorería)
+        cb: 0,          // Clase B — kilos defectuosos reportados por CALIDAD (entrada manual)
         rev: 0,         // revisión (usaremos empacado/terminado de compact)
         pla: 0,         // planchado (línea planchado, si aplica)
         com: 0,         // compactado
@@ -16644,10 +16644,11 @@ function _estBuildRows(dateISO) {
     return rowsMap[lote];
   };
 
-  // Tintorería → C.B. (kilos base)
+  // Tintorería → sólo se usa para completar metadatos (Tela / Color / N.Pedido / Turno) del lote.
+  // ⚠ C.B. NO se autocalcula desde state.prod: C.B. = kilos Clase B reportados por CALIDAD (defectos).
+  // El campo permanece 0 hasta que Estadística (o eventualmente el tab Calidad) capture el valor.
   (state.prod || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
     const row = ensureRow(String(r.lote).trim());
-    row.cb += Number(r.kilos) || 0;
     if (!row.tela)   row.tela = r.tela || r.diseno || '';
     if (!row.color)  row.color = r.color || '';
     if (!row.pedido) row.pedido = r.pedido || '';
@@ -16694,8 +16695,8 @@ function _estBuildRows(dateISO) {
         if (o[k] !== undefined && o[k] !== null && o[k] !== '') row[k] = o[k];
       });
     }
-    // Prog default = suma de trabajo real (para no aparecer 100% "faltante")
-    if (!row.prog) row.prog = row.cb || row.monforts + row.bru + row.com;
+    // Prog default = suma de trabajo real (Monforts + BRU + COM). C.B. es aparte (defectos).
+    if (!row.prog) row.prog = row.monforts + row.bru + row.com;
     // Aprev default = terminado = monforts + bru + com
     if (!row.aprev) row.aprev = row.monforts + row.bru + row.com;
     row.faltante = (Number(row.prog) || 0) - (Number(row.aprev) || 0);
