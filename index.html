@@ -363,6 +363,40 @@
   /* Evitar que cualquier hijo del botón robe el tap */
   .tab-btn * { pointer-events: none; }
 
+  /* Estadística · sub-tabs (pill style con chip contador) */
+  .est-subtab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(30,41,59,0.6);
+    border: 1px solid rgba(51,65,85,0.6);
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1;
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .est-subtab:hover { color: #cbd5e1; border-color: rgba(56,189,248,0.35); }
+  .est-subtab.est-subtab-active {
+    background: rgba(56,189,248,0.12);
+    border-color: rgba(56,189,248,0.55);
+    color: #38bdf8;
+  }
+  .est-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 24px; padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(15,23,42,0.85);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .est-chip.est-chip-active {
+    background: rgba(56,189,248,0.85);
+    color: #0f172a;
+  }
+
   /* Toast */
   #toast {
     position: fixed; left: 50%; bottom: 110px;
@@ -4055,6 +4089,28 @@
   <!-- editables (Calidad A/B, Prog, Faltante) sin perder trazabilidad -->
   <!-- ============================================================= -->
   <section id="tab-estadistica" class="tab-panel hidden">
+    <!-- Sub-tabs Estadística -->
+    <div class="flex items-center gap-2 mb-4 flex-wrap" role="tablist" aria-label="Sub-secciones de Estadística">
+      <button type="button" class="est-subtab est-subtab-active" data-sub="dia" role="tab" aria-selected="true">
+        <span class="font-bold">📊 Día</span>
+        <span id="estChipDia" class="est-chip est-chip-active">0 kg</span>
+      </button>
+      <button type="button" class="est-subtab" data-sub="semanal" role="tab" aria-selected="false">
+        <span class="font-bold">📅 Semanal</span>
+        <span id="estChipSem" class="est-chip">0 kg</span>
+      </button>
+      <button type="button" class="est-subtab" data-sub="pt" role="tab" aria-selected="false">
+        <span class="font-bold">📦 P. Terminado</span>
+        <span id="estChipPT" class="est-chip">—</span>
+      </button>
+    </div>
+
+    <!-- Placeholders donde se relocan las secciones Semanal y PT al arranque -->
+    <div id="estSubSemanal" class="est-sub-view hidden"></div>
+    <div id="estSubPT" class="est-sub-view hidden"></div>
+
+    <!-- Vista Día (contenido original de Estadística) -->
+    <div id="estSubDia" class="est-sub-view">
     <div class="card p-4 mb-4">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
         <div>
@@ -4146,6 +4202,7 @@
         💡 <b>Tip:</b> los valores de RAMA (Monforts/BRU) y Compactadora se autocalculan desde las fichas de producción de ese día. Puedes editar cualquier celda directamente si detectas un error — los cambios manuales se guardan localmente para ese lote.
       </div>
     </div>
+    </div><!-- /#estSubDia -->
   </section>
 
   <!-- ============================================================= -->
@@ -4318,18 +4375,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
       <span>Estadística</span>
     </button>
-    <button class="tab-btn" data-tab="tab-weekly">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>Semanal</span>
-    </button>
-    <button class="tab-btn" data-tab="tab-pt">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-      <span>P. Term.</span>
-    </button>
-    <button class="tab-btn" data-tab="tab-history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 14"/></svg>
-      <span>Historial</span>
-    </button>
     <button class="tab-btn" data-tab="tab-catalogo" title="Catálogo de telas: composición, ancho, rendimiento, peso">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
       <span>Catálogo</span>
@@ -4364,6 +4409,10 @@
     <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-personal">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Personal</span>
+    </button>
+    <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 14"/></svg>
+      <span>Historial</span>
     </button>
   </div>
 </nav>
@@ -6383,9 +6432,13 @@ function bindTabs() {
 
   const switchTo = (btn) => {
     if (!btn) return;
-    const tab = btn.dataset.tab;
+    let tab = btn.dataset.tab;
     if (!tab) return;
-    $$('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    // Redirect legacy tab IDs into Estadística sub-tabs
+    let forcedSub = null;
+    if (tab === 'tab-weekly') { tab = 'tab-estadistica'; forcedSub = 'semanal'; }
+    else if (tab === 'tab-pt') { tab = 'tab-estadistica'; forcedSub = 'pt'; }
+    $$('.tab-btn').forEach(b => b.classList.toggle('active', (b.dataset.tab === tab)));
     $$('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== tab));
     renderAll();
     // Re-render analytics charts after tab becomes visible (Chart.js needs visible canvas)
@@ -6414,7 +6467,12 @@ function bindTabs() {
       requestAnimationFrame(() => { try { renderDuplicados(); } catch(e){ console.warn('dup switch:', e); } });
     }
     if (tab === 'tab-estadistica') {
-      requestAnimationFrame(() => { try { renderEstadistica(); } catch(e){ console.warn('estadistica switch:', e); } });
+      requestAnimationFrame(() => {
+        try {
+          renderEstadistica();
+          if (forcedSub) _estShowSub(forcedSub);
+        } catch(e){ console.warn('estadistica switch:', e); }
+      });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -16746,7 +16804,126 @@ function _estSaveCellEdit(dateISO, lote, field, value) {
   _estSaveOverrides(overrides);
 }
 
+// ============================================================
+// Estadística · Sub-tabs (Día / Semanal / Producto Terminado)
+// ============================================================
+let _estRelocated = false;
+let _estSubtabsBound = false;
+let _estCurrentSub = null; // 'dia' | 'semanal' | 'pt'
+
+/** Mueve el contenido de #tab-weekly → #estSubSemanal y #tab-pt → #estSubPT (una sola vez) */
+function _estRelocateSections() {
+  if (_estRelocated) return; _estRelocated = true;
+  try {
+    const wk = document.getElementById('tab-weekly');
+    const wkDest = document.getElementById('estSubSemanal');
+    if (wk && wkDest && !wkDest.dataset.filled) {
+      while (wk.firstChild) wkDest.appendChild(wk.firstChild);
+      wkDest.dataset.filled = '1';
+      wk.style.display = 'none'; // ya no se usa como panel independiente
+    }
+    const pt = document.getElementById('tab-pt');
+    const ptDest = document.getElementById('estSubPT');
+    if (pt && ptDest && !ptDest.dataset.filled) {
+      while (pt.firstChild) ptDest.appendChild(pt.firstChild);
+      ptDest.dataset.filled = '1';
+      pt.style.display = 'none';
+    }
+  } catch(e) { console.warn('[Est] relocate error', e); }
+}
+
+/** Ata los clicks de las pill-tabs (una sola vez) */
+function _estBindSubtabs() {
+  if (_estSubtabsBound) return; _estSubtabsBound = true;
+  document.querySelectorAll('.est-subtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.sub;
+      _estShowSub(name);
+    });
+  });
+}
+
+/** Cambia a la sub-vista indicada y refresca contadores */
+function _estShowSub(name) {
+  const valid = ['dia','semanal','pt'];
+  if (!valid.includes(name)) name = 'dia';
+  _estCurrentSub = name;
+  // Toggle pill visual
+  document.querySelectorAll('.est-subtab').forEach(btn => {
+    const isActive = btn.dataset.sub === name;
+    btn.classList.toggle('est-subtab-active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    const chip = btn.querySelector('.est-chip');
+    if (chip) chip.classList.toggle('est-chip-active', isActive);
+  });
+  // Toggle contenido
+  const map = { dia: 'estSubDia', semanal: 'estSubSemanal', pt: 'estSubPT' };
+  Object.entries(map).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', k !== name);
+  });
+  // Render de la sub-vista
+  try {
+    if (name === 'semanal' && typeof renderReporteSemanal === 'function') renderReporteSemanal();
+    else if (name === 'pt' && typeof renderPT === 'function') renderPT();
+  } catch(e) { console.warn('[Est] sub render error', e); }
+  // Refrescar chips
+  _estUpdateChips();
+}
+
+/** Actualiza los contadores de las 3 pill-tabs */
+function _estUpdateChips() {
+  try {
+    const dateISO = _estFechaISO ? _estFechaISO() : new Date().toISOString().slice(0,10);
+    // Día: kg terminados del día (Monforts+Bru+Comp para esa fecha)
+    let diaKg = 0;
+    (state.bruck || []).forEach(r => {
+      if (r && r.fecha && _estIsSameDay && _estIsSameDay(r.fecha, dateISO)) diaKg += Number(r.kilos) || 0;
+    });
+    (state.compact || []).forEach(r => {
+      if (r && r.fecha && _estIsSameDay && _estIsSameDay(r.fecha, dateISO)) diaKg += Number(r.kilos) || 0;
+    });
+    const chipDia = document.getElementById('estChipDia');
+    if (chipDia) chipDia.textContent = diaKg > 0 ? (Math.round(diaKg).toLocaleString('es-MX') + ' kg') : '0 kg';
+
+    // Semanal: sumar los últimos 7 días de bruck+compact
+    const now = new Date(dateISO + 'T00:00:00');
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
+    let semKg = 0;
+    const inWeek = (r) => {
+      if (!r || !r.fecha) return false;
+      const d = new Date(String(r.fecha).slice(0,10) + 'T00:00:00');
+      return !isNaN(d.getTime()) && d >= weekStart && d <= now;
+    };
+    (state.bruck || []).forEach(r => { if (inWeek(r)) semKg += Number(r.kilos) || 0; });
+    (state.compact || []).forEach(r => { if (inWeek(r)) semKg += Number(r.kilos) || 0; });
+    const chipSem = document.getElementById('estChipSem');
+    if (chipSem) chipSem.textContent = semKg > 0 ? (Math.round(semKg).toLocaleString('es-MX') + ' kg') : '0 kg';
+
+    // P. Terminado: número de fichas pendientes (state.prod sin liberar)
+    // Aproximación: fichas de state.prod sin correspondencia en state.bruck/compact este mes
+    let ptCount = 0;
+    if (Array.isArray(state.prod)) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const doneLotes = new Set([...(state.compact||[]), ...(state.bruck||[])]
+        .filter(r => r && r.fecha && new Date(String(r.fecha).slice(0,10)+'T00:00:00') >= monthStart)
+        .map(r => r.lote));
+      state.prod.forEach(r => {
+        if (!r || !r.fecha) return;
+        const d = new Date(String(r.fecha).slice(0,10)+'T00:00:00');
+        if (isNaN(d.getTime()) || d < monthStart) return;
+        if (!doneLotes.has(r.lote)) ptCount++;
+      });
+    }
+    const chipPT = document.getElementById('estChipPT');
+    if (chipPT) chipPT.textContent = ptCount > 0 ? (ptCount + ' pend.') : '✓';
+  } catch(e) { /* silencioso */ }
+}
+
 function renderEstadistica() {
+  _estRelocateSections();
+  _estBindSubtabs();
+  if (!_estCurrentSub) _estShowSub('dia'); else _estUpdateChips();
   _estBindOnce();
   // Default fecha = hoy
   const inp = document.getElementById('estFecha');
