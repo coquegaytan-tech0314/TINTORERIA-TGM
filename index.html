@@ -4338,30 +4338,32 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span>Buscar</span>
     </button>
-    <button class="tab-btn" data-tab="tab-tareas" title="Mis Tareas · Kanban personal (Pendiente / En curso / Hecho)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7"/><path d="M17.5 13.5v7"/></svg>
-      <span>Tareas</span>
-    </button>
-    <button class="tab-btn" data-tab="tab-personal" title="Directorio de personal · colaboradores de la empresa">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      <span>Personal</span>
-    </button>
     <button class="tab-btn" data-tab="tab-duplicados" title="Duplicados detectados · fichas repetidas por lote+proceso en los últimos 30 días">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v6a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V8z"/><line x1="3" y1="8" x2="21" y2="8"/></svg>
       <span>Duplicados</span>
     </button>
-    <button type="button" class="tab-btn" id="tabMoreBtn" title="Más opciones">
+    <button type="button" class="tab-btn relative" id="tabMoreBtn" title="Más opciones">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
       <span>Más</span>
+      <span id="tabMoreBadge" class="hidden absolute top-1 right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center leading-none border-2 border-ink-950 pointer-events-none">0</span>
     </button>
   </div>
 
   <!-- Popover "Más" -->
-  <div id="tabMorePopover" class="hidden fixed bottom-[70px] right-3 z-50 bg-ink-900 border border-ink-700 rounded-xl shadow-2xl p-2 w-52" style="display:none">
+  <div id="tabMorePopover" class="hidden fixed bottom-[70px] right-3 z-50 bg-ink-900 border border-ink-700 rounded-xl shadow-2xl p-2 w-60" style="display:none">
     <div class="text-[10px] text-slate-500 uppercase tracking-wider px-2 py-1 font-bold">Más opciones</div>
     <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-inicio">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Mi Inicio</span>
+    </button>
+    <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-tareas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7"/><path d="M17.5 13.5v7"/></svg>
+      <span class="flex-1">Tareas</span>
+      <span id="moreItemBadgeTareas" class="hidden min-w-[20px] h-[20px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center leading-none">0</span>
+    </button>
+    <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-personal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Personal</span>
     </button>
   </div>
 </nav>
@@ -5713,6 +5715,7 @@ function _setCurrentUser(userObj) {
   if (userObj.empleado_id) sessionStorage.setItem('tg_tint_empleado_id', userObj.empleado_id);
   else sessionStorage.removeItem('tg_tint_empleado_id');
   window.TG_USER = { name, empleado_id: userObj.empleado_id || null };
+  try { moreBadgesUpdate(); } catch(_){}
   // Actualizar el empleado actual en EMP_STATE si aplica
   if (typeof EMP_STATE !== 'undefined' && userObj.empleado_id) {
     EMP_STATE.currentUserEmp = EMP_STATE.list.find(e => e.id === userObj.empleado_id) || null;
@@ -12255,6 +12258,63 @@ const TAR_ESTADO = {
   hecho:     { label: 'Hecho',     emoji: '✅', color: '#10b981' }
 };
 
+/**
+ * Cuenta las notificaciones activas del usuario para el botón "Más".
+ * - Tareas asignadas a mí y no completadas (estatus !== 'hecho')
+ * - Da prioridad visual a vencidas (color más intenso) pero suma todas
+ */
+function _moreCountTareasPendientes() {
+  const me = (typeof TG_USER !== 'undefined') ? TG_USER : null;
+  const meId = me && me.empleado_id;
+  if (!meId) return { total: 0, vencidas: 0 };
+  const list = (TAR_STATE && Array.isArray(TAR_STATE.list)) ? TAR_STATE.list : [];
+  const now = new Date(); now.setHours(0,0,0,0);
+  let total = 0, vencidas = 0;
+  list.forEach(t => {
+    if (t.asignado_a !== meId) return;
+    if (t.estatus === 'hecho') return;
+    total++;
+    if (t.fecha_limite) {
+      const fl = new Date(t.fecha_limite + 'T00:00:00');
+      if (!isNaN(fl.getTime()) && fl < now) vencidas++;
+    }
+  });
+  return { total, vencidas };
+}
+
+/** Refresca los badges del botón "Más" y de los items del popover. */
+function moreBadgesUpdate() {
+  const tareasInfo = _moreCountTareasPendientes();
+  // Badge en el item Tareas del popover
+  const itemBadge = document.getElementById('moreItemBadgeTareas');
+  if (itemBadge) {
+    if (tareasInfo.total > 0) {
+      itemBadge.textContent = String(tareasInfo.total > 99 ? '99+' : tareasInfo.total);
+      itemBadge.classList.remove('hidden');
+      itemBadge.style.display = 'flex';
+      // Vencidas = color más intenso (rojo puro); sólo pendientes = ámbar-rojo
+      itemBadge.style.background = tareasInfo.vencidas > 0 ? '#dc2626' : '#f59e0b';
+    } else {
+      itemBadge.classList.add('hidden');
+      itemBadge.style.display = 'none';
+    }
+  }
+  // Badge global en el botón Más = suma de notificaciones de todos los items
+  const totalAll = tareasInfo.total; // por ahora sólo Tareas; agregar Avisos u otros aquí
+  const moreBadge = document.getElementById('tabMoreBadge');
+  if (moreBadge) {
+    if (totalAll > 0) {
+      moreBadge.textContent = String(totalAll > 99 ? '99+' : totalAll);
+      moreBadge.classList.remove('hidden');
+      moreBadge.style.display = 'flex';
+      moreBadge.style.background = tareasInfo.vencidas > 0 ? '#dc2626' : '#f59e0b';
+    } else {
+      moreBadge.classList.add('hidden');
+      moreBadge.style.display = 'none';
+    }
+  }
+}
+
 /** ¿Es admin o manager? */
 function _tarIsManager() {
   const u = (typeof EMP_STATE !== 'undefined') ? EMP_STATE.currentUserEmp : null;
@@ -12571,7 +12631,7 @@ async function subscribeTareas() {
     const cached = localStorage.getItem('tg_tareas');
     if (cached) {
       const arr = JSON.parse(cached);
-      if (Array.isArray(arr)) { TAR_STATE.list = arr; renderTareas(); renderInicio(); }
+      if (Array.isArray(arr)) { TAR_STATE.list = arr; renderTareas(); renderInicio(); moreBadgesUpdate(); }
     }
   } catch(_){}
 
@@ -12593,6 +12653,7 @@ async function subscribeTareas() {
       try { localStorage.setItem('tg_tareas', JSON.stringify(arr)); } catch(_){}
       renderTareas();
       renderInicio();
+      moreBadgesUpdate();
     }, (err) => console.warn('[Tar] onSnapshot error', err));
   } catch (e) {
     console.warn('[Tar] subscribe error', e);
