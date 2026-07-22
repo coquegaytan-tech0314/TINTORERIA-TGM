@@ -22,7 +22,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Chart.js para gráficas -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
 <!-- ============================================================
      FIREBASE - sincronización entre dispositivos
@@ -10898,101 +10898,266 @@ function exportDayReport() {
     wsResumen['!cols'] = [{ wch: 42 }, { wch: 38 }];
     XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
 
-    // ---------- Hoja 2: Tintorería (por máquina) ----------
+    // Helper: convierte grupos {machineName: rows[]} en una hoja con formato
+    // "group-header row" que replica el diseño del dashboard (una barra azul
+    // con nombre de máquina y totales, luego los headers de columnas, luego
+    // los rows, luego una fila vacía antes del siguiente grupo).
+    //
+    // groupedByMachine: array de { machine, rows, totalKg, totalCQ }
+    // columns: array de { key, label, decimals?, currency?, kind? }
+    //   kind: 'kilos' → aplica estilo highlight
+    // Retorna { aoa, merges, styleHints } listo para armar la hoja.
+    function _buildGroupedSheet(groupedByMachine, columns) {
+      const aoa = [];
+      const merges = [];
+      const bandRows = [];    // índices de filas que son "header de grupo" (barra azul)
+      const headerRows = [];  // índices de filas que son "encabezados de columna"
+      const colCount = columns.length;
+
+      groupedByMachine.forEach((grp, gi) => {
+        // 1) Fila de banda azul: [MACHINE ... Total: X kg · N ficha · $Y]
+        const totKg   = grp.totalKg;
+        const totCQ   = grp.totalCQ;
+        const nFichas = grp.rows.length;
+        const totText = `Total: ${_fmtNum(totKg, 1)} kg · ${nFichas} ficha${nFichas === 1 ? '' : 's'}` +
+                        (totCQ > 0 ? ` · $${Math.round(totCQ).toLocaleString('es-MX')} MXN quím.` : '');
+        const bandRow = new Array(colCount).fill('');
+        bandRow[0] = grp.machine;
+        bandRow[colCount - 1] = totText;
+        aoa.push(bandRow);
+        bandRows.push(aoa.length - 1);
+        // Merge del rango medio para que quede visualmente limpio
+        if (colCount > 2) {
+          merges.push({
+            s: { r: aoa.length - 1, c: 1 },
+            e: { r: aoa.length - 1, c: colCount - 2 }
+          });
+        }
+
+        // 2) Fila de encabezados de columna
+        aoa.push(columns.map(c => c.label));
+        headerRows.push(aoa.length - 1);
+
+        // 3) Filas de datos
+        grp.rows.forEach(r => {
+          aoa.push(columns.map(c => {
+            let v = r[c.key];
+            if (c.decimals != null) v = _fmtNum(v, c.decimals);
+            else if (v == null || v === '') v = c.blankDash ? '—' : '';
+            return v;
+          }));
+        });
+
+        // 4) Fila en blanco antes del próximo grupo (excepto el último)
+        if (gi < groupedByMachine.length - 1) {
+          aoa.push(new Array(colCount).fill(''));
+        }
+      });
+
+      return { aoa, merges, bandRows, headerRows };
+    }
+
+    // Helper: aplica estilos (fondo azul + bold blanco a las bandas; bold a headers)
+    function _styleGroupedSheet(ws, meta) {
+      const bandFill  = { patternType: 'solid', fgColor: { rgb: '1E40AF' } }; // azul intenso
+      const bandFont  = { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 };
+      const bandAlign = { horizontal: 'left', vertical: 'center' };
+      const bandAlignR= { horizontal: 'right', vertical: 'center' };
+      const hdrFill   = { patternType: 'solid', fgColor: { rgb: '334155' } }; // gris oscuro
+      const hdrFont   = { bold: true, color: { rgb: 'F1F5F9' }, sz: 10 };
+      const hdrAlign  = { horizontal: 'center', vertical: 'center' };
+
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const nCols = range.e.c + 1;
+
+      meta.bandRows.forEach(r => {
+        for (let c = 0; c < nCols; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+          ws[addr].s = {
+            fill: bandFill,
+            font: bandFont,
+            alignment: c === nCols - 1 ? bandAlignR : bandAlign
+          };
+        }
+        // Alto de fila para que la banda azul se vea prominente
+        if (!ws['!rows']) ws['!rows'] = [];
+        ws['!rows'][r] = { hpx: 22 };
+      });
+
+      meta.headerRows.forEach(r => {
+        for (let c = 0; c < nCols; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+          ws[addr].s = { fill: hdrFill, font: hdrFont, alignment: hdrAlign };
+        }
+      });
+    }
+
+    // ---------- Hoja 2: Tintorería (agrupado por máquina) ----------
     if (prodRows.length) {
       const order = MACHINES.map(m => m.id);
-      const rowsOrdenados = prodRows.slice().sort((a, b) => {
-        const oa = order.indexOf(a.machine); const ob = order.indexOf(b.machine);
-        if (oa !== ob) return (oa < 0 ? 999 : oa) - (ob < 0 ? 999 : ob);
-        return (a.ts || 0) - (b.ts || 0);
+      // Agrupar por máquina en el orden oficial
+      const byM = {};
+      prodRows.forEach(r => { (byM[r.machine || 'Sin máquina'] = byM[r.machine || 'Sin máquina'] || []).push(r); });
+      const grupos = order.filter(id => byM[id]).map(id => {
+        const rows = byM[id].slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+        return {
+          machine: id,
+          rows,
+          totalKg: rows.reduce((s, r) => s + (Number(r.kilos) || 0), 0),
+          totalCQ: rows.reduce((s, r) => s + ((Number(r.apq)||0) * (Number(r.kilos)||0)), 0)
+        };
       });
-      const tintData = rowsOrdenados.map(r => ({
-        'Máquina':      r.machine || '',
-        'Turno':         r.shift || '',
-        'Kilos':         _fmtNum(r.kilos, 1),
-        'Color':         r.color || '',
-        'Diseño':        r.diseno || '',
-        'Tela':          r.tela || '',
-        'Lote':          r.lote || '',
-        'Pedido':        r.pedido || '',
-        'Proceso':       r.proceso || '',
-        'Hr. Ent.':      r.hEntrada || '',
-        'Hr. Sal.':      r.hSalida || '',
-        'Hora reg.':     r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
-        'Químico/kg':    _fmtNum(r.apq, 2),
-        'Costo Quím.':   _fmtNum((Number(r.apq)||0) * (Number(r.kilos)||0), 0),
-        'Baños':         r.banos || 1,
-        'Operador':      r.operador || '',
-        'Notas':         r.notas || '',
-        'Estado':        r.estado || 'cerrada',
-        'Reproceso':     r.es_reproceso ? 'SÍ' : ''
-      }));
-      const wsTint = XLSX.utils.json_to_sheet(tintData);
-      wsTint['!cols'] = [
-        { wch: 10 }, { wch: 6 }, { wch: 8 }, { wch: 16 }, { wch: 14 }, { wch: 18 },
-        { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 8 }, { wch: 18 },
-        { wch: 10 }, { wch: 10 }, { wch: 6 }, { wch: 14 }, { wch: 20 }, { wch: 10 }, { wch: 10 }
+      // Añadir cualquier máquina no listada al final
+      Object.keys(byM).filter(m => !order.includes(m)).forEach(m => {
+        const rows = byM[m].slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+        grupos.push({
+          machine: m, rows,
+          totalKg: rows.reduce((s, r) => s + (Number(r.kilos) || 0), 0),
+          totalCQ: rows.reduce((s, r) => s + ((Number(r.apq)||0) * (Number(r.kilos)||0)), 0)
+        });
+      });
+
+      const tintCols = [
+        { key: 'shift',     label: 'Turno' },
+        { key: 'kilos',     label: 'Kilos',        decimals: 1 },
+        { key: 'color',     label: 'Color' },
+        { key: 'diseno',    label: 'Diseño' },
+        { key: 'tela',      label: 'Tela' },
+        { key: 'lote',      label: 'Lote' },
+        { key: 'pedido',    label: 'Pedido' },
+        { key: 'proceso',   label: 'Proceso' },
+        { key: 'hEntrada',  label: 'Hr. Ent.' },
+        { key: 'hSalida',   label: 'Hr. Sal.' },
+        { key: '_horaReg',  label: 'Hora reg.' },
+        { key: 'apq',       label: 'Químico/kg',   decimals: 2 },
+        { key: '_costoQ',   label: 'Costo Quím.',  decimals: 0 },
+        { key: 'banos',     label: 'Baños' },
+        { key: 'operador',  label: 'Operador' },
+        { key: 'notas',     label: 'Notas' },
+        { key: 'estado',    label: 'Estado' },
+        { key: '_repro',    label: 'Reproceso' }
       ];
+      // Enriquecer rows con los campos derivados
+      grupos.forEach(g => {
+        g.rows = g.rows.map(r => ({
+          ...r,
+          _horaReg: r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
+          _costoQ:  (Number(r.apq)||0) * (Number(r.kilos)||0),
+          _repro:   r.es_reproceso ? 'SÍ' : ''
+        }));
+      });
+
+      const built = _buildGroupedSheet(grupos, tintCols);
+      const wsTint = XLSX.utils.aoa_to_sheet(built.aoa);
+      wsTint['!merges'] = built.merges;
+      wsTint['!cols'] = [
+        { wch: 7 }, { wch: 9 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 10 },
+        { wch: 10 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 18 }, { wch: 11 },
+        { wch: 12 }, { wch: 7 }, { wch: 14 }, { wch: 20 }, { wch: 10 }, { wch: 10 }
+      ];
+      _styleGroupedSheet(wsTint, built);
       XLSX.utils.book_append_sheet(wb, wsTint, 'Tintorería');
     }
 
     // ---------- Hoja 3: RAMA (Bruckner + Monforts) ----------
     if (bruckAll.length) {
-      const bruckData = bruckAll.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(r => ({
-        'Máquina':      r.rama || 'Bruckner',
-        'Turno':         r.shift || r.turno || '',
-        'Kilos':         _fmtNum(r.kilos, 1),
-        'Metros':        _fmtNum(r.metros, 1),
-        'Ancho':         _fmtNum(r.ancho, 2),
-        'Velocidad':     _fmtNum(r.velocidad || r.vel, 1),
-        'Temperatura':   _fmtNum(r.temperatura || r.temp, 0),
-        'Rendimiento':   _fmtNum(r.rendimiento || r.rend, 2),
-        'Color':         r.color || '',
-        'Tela':          r.tela || '',
-        'Lote':          r.lote || '',
-        'Proceso':       r.proceso || '',
-        'Hr. Ent.':      r.hEntrada || '',
-        'Hr. Sal.':      r.hSalida || '',
-        'Hora reg.':     r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
-        'Operador':      r.operador || '',
-        'Notas':         r.notas || r.observaciones || '',
-        'Reproceso':     r.es_reproceso ? 'SÍ' : ''
-      }));
-      const wsRama = XLSX.utils.json_to_sheet(bruckData);
-      wsRama['!cols'] = [
-        { wch: 10 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 6 }, { wch: 8 },
-        { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 18 }, { wch: 10 },
-        { wch: 14 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 10 }
+      const byM = {};
+      bruckAll.forEach(r => { const k = r.rama || 'Bruckner'; (byM[k] = byM[k] || []).push(r); });
+      const order = ['Bruckner', 'Monforts'];
+      const grupos = order.filter(id => byM[id]).map(id => {
+        const rows = byM[id].slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+        return {
+          machine: id,
+          rows: rows.map(r => ({
+            ...r,
+            _horaReg: r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
+            _repro: r.es_reproceso ? 'SÍ' : '',
+            _turno: r.shift || r.turno || '',
+            _vel: r.velocidad || r.vel,
+            _temp: r.temperatura || r.temp,
+            _rend: r.rendimiento || r.rend,
+            _notas: r.notas || r.observaciones || ''
+          })),
+          totalKg: rows.reduce((s, r) => s + (Number(r.kilos) || 0), 0),
+          totalCQ: 0
+        };
+      });
+      const ramaCols = [
+        { key: '_turno',    label: 'Turno' },
+        { key: 'kilos',     label: 'Kilos',       decimals: 1 },
+        { key: 'metros',    label: 'Metros',      decimals: 1 },
+        { key: 'ancho',     label: 'Ancho',       decimals: 2 },
+        { key: '_vel',      label: 'Velocidad',   decimals: 1 },
+        { key: '_temp',     label: 'Temp.',       decimals: 0 },
+        { key: '_rend',     label: 'Rendim.',     decimals: 2 },
+        { key: 'color',     label: 'Color' },
+        { key: 'tela',      label: 'Tela' },
+        { key: 'lote',      label: 'Lote' },
+        { key: 'proceso',   label: 'Proceso' },
+        { key: 'hEntrada',  label: 'Hr. Ent.' },
+        { key: 'hSalida',   label: 'Hr. Sal.' },
+        { key: '_horaReg',  label: 'Hora reg.' },
+        { key: 'operador',  label: 'Operador' },
+        { key: '_notas',    label: 'Notas' },
+        { key: '_repro',    label: 'Reproceso' }
       ];
+      const built = _buildGroupedSheet(grupos, ramaCols);
+      const wsRama = XLSX.utils.aoa_to_sheet(built.aoa);
+      wsRama['!merges'] = built.merges;
+      wsRama['!cols'] = [
+        { wch: 7 }, { wch: 9 }, { wch: 9 }, { wch: 7 }, { wch: 10 },
+        { wch: 7 }, { wch: 9 }, { wch: 14 }, { wch: 18 }, { wch: 10 },
+        { wch: 14 }, { wch: 9 }, { wch: 9 }, { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 10 }
+      ];
+      _styleGroupedSheet(wsRama, built);
       XLSX.utils.book_append_sheet(wb, wsRama, 'RAMA');
     }
 
     // ---------- Hoja 4: Compactadora ----------
     if (compRows.length) {
-      const compData = compRows.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(r => ({
-        'Máquina':      'Compactadora',
-        'Turno':         r.shift || r.turno || '',
-        'Kilos':         _fmtNum(r.kilos, 1),
-        'Metros':        _fmtNum(r.metros, 1),
-        'Velocidad':     _fmtNum(r.velocidad || r.vel, 1),
-        'Temperatura':   _fmtNum(r.temperatura || r.temp, 0),
-        'Color':         r.color || '',
-        'Tela':          r.tela || '',
-        'Lote':          r.lote || '',
-        'Proceso':       r.proceso || '',
-        'Hr. Ent.':      r.hEntrada || '',
-        'Hr. Sal.':      r.hSalida || '',
-        'Hora reg.':     r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
-        'Operador':      r.operador || '',
-        'Notas':         r.notas || r.observaciones || '',
-        'Reproceso':     r.es_reproceso ? 'SÍ' : ''
+      const rows = compRows.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(r => ({
+        ...r,
+        _horaReg: r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
+        _repro: r.es_reproceso ? 'SÍ' : '',
+        _turno: r.shift || r.turno || '',
+        _vel: r.velocidad || r.vel,
+        _temp: r.temperatura || r.temp,
+        _notas: r.notas || r.observaciones || ''
       }));
-      const wsComp = XLSX.utils.json_to_sheet(compData);
-      wsComp['!cols'] = [
-        { wch: 14 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 },
-        { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 8 },
-        { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 10 }
+      const grupos = [{
+        machine: 'Compactadora',
+        rows,
+        totalKg: rows.reduce((s, r) => s + (Number(r.kilos) || 0), 0),
+        totalCQ: 0
+      }];
+      const compCols = [
+        { key: '_turno',    label: 'Turno' },
+        { key: 'kilos',     label: 'Kilos',       decimals: 1 },
+        { key: 'metros',    label: 'Metros',      decimals: 1 },
+        { key: '_vel',      label: 'Velocidad',   decimals: 1 },
+        { key: '_temp',     label: 'Temp.',       decimals: 0 },
+        { key: 'color',     label: 'Color' },
+        { key: 'tela',      label: 'Tela' },
+        { key: 'lote',      label: 'Lote' },
+        { key: 'proceso',   label: 'Proceso' },
+        { key: 'hEntrada',  label: 'Hr. Ent.' },
+        { key: 'hSalida',   label: 'Hr. Sal.' },
+        { key: '_horaReg',  label: 'Hora reg.' },
+        { key: 'operador',  label: 'Operador' },
+        { key: '_notas',    label: 'Notas' },
+        { key: '_repro',    label: 'Reproceso' }
       ];
+      const built = _buildGroupedSheet(grupos, compCols);
+      const wsComp = XLSX.utils.aoa_to_sheet(built.aoa);
+      wsComp['!merges'] = built.merges;
+      wsComp['!cols'] = [
+        { wch: 7 }, { wch: 9 }, { wch: 9 }, { wch: 10 }, { wch: 7 },
+        { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 14 }, { wch: 9 },
+        { wch: 9 }, { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 10 }
+      ];
+      _styleGroupedSheet(wsComp, built);
       XLSX.utils.book_append_sheet(wb, wsComp, 'Compactadora');
     }
 
