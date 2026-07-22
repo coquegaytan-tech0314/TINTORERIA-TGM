@@ -4694,7 +4694,9 @@ const LS_KEYS = {
   rd:      'tg_tint_ramadown_v2',// tiempos muertos de rama (Bruckner/Monforts)
   telas:   'tg_tint_telas_v1',   // catálogo de telas (composición, ancho, rendimiento, peso)
   cfgRama: 'tg_tint_cfg_rama_v1',// config de la RAMA Bruckner (limites de ancho)
-  estadi:  'tg_tint_estadi_v1'   // Estadística: overrides manuales por día (calidad A/B, prog, aprev, logística)
+  estadi:  'tg_tint_estadi_v1',  // Estadística: overrides manuales por día (calidad A/B, prog, aprev, logística)
+  empacado: 'tg_tint_empacado_v1', // Fase 3 · Empacado: ficha por lote con rollos Primera + rollos-sospechosos
+  revisado: 'tg_tint_revisado_v1'  // Fase 3 · Revisado (Calidad): decisión final sobre rollos sospechosos
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -5231,7 +5233,9 @@ const FB_COLLECTIONS = {
   telas:        'catalogo_telas',
   empleados:    'empleados',         // Fase 1a · Personal / Org chart / identidad
   tareas:       'tareas',             // Fase 2 · Kanban personal
-  avisos:       'avisos'               // Fase 5 · Announcements
+  avisos:       'avisos',              // Fase 5 · Announcements
+  empacado:     'empacado',            // Fase 3 · Fichas de Empacado por lote (paper form #1)
+  revisado:     'revisado'             // Fase 3 · Fichas de Revisado/Calidad por lote (paper form #2)
 };
 // Constantes de máquina RAMA Bruckner (confirmadas por Rogelio, 02/Jul/2026)
 // Se cargan de Firestore config/rama_bruckner si existen; fallback a estos defaults.
@@ -5522,6 +5526,8 @@ let state = {
   down:    load(LS_KEYS.down),
   bruck:   load(LS_KEYS.bruck),
   compact: load(LS_KEYS.compact),   // Compactadora (ruta tubular)
+  empacado: load(LS_KEYS.empacado), // Fase 3 · Empacado (paper form #1)
+  revisado: load(LS_KEYS.revisado), // Fase 3 · Revisado / Calidad (paper form #2)
   history: load(LS_KEYS.history),
   rd:      load(LS_KEYS.rd),
   telas:   load(LS_KEYS.telas),                                         // catálogo de telas
@@ -12718,6 +12724,158 @@ async function subscribeTareas() {
   }
 }
 
+// ============================================================
+// FASE 3 · EMPACADO (paper form #1) + REVISADO (paper form #2)
+// ------------------------------------------------------------
+// Empacado = station río arriba de Calidad. Identifica rollos con
+// posibles defectos y los marca como "sospechosos". No decide C.B.
+// Revisado (Calidad) = station río abajo. Recibe los rollos sospechosos
+// y decide: aprobado (→ Primera) / reparado (→ Primera) / confirmado C.B.
+// C.B. final en Estadística = SUM(revisado.confirmado_cb por lote).
+// ============================================================
+
+let EMPACADO_UNSUB = null;
+let REVISADO_UNSUB = null;
+
+/** Escucha cambios en Firestore · Empacado */
+async function subscribeEmpacado() {
+  // Cache local
+  try {
+    const cached = localStorage.getItem(LS_KEYS.empacado);
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { state.empacado = arr; }
+    }
+  } catch(_){}
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.empacado) || 'empacado';
+    const collRef = FB.collection(FB.db, coll);
+    if (typeof EMPACADO_UNSUB === 'function') { try { EMPACADO_UNSUB(); } catch(_){} }
+    EMPACADO_UNSUB = FB.onSnapshot(collRef, (snap) => {
+      const arr = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (!data.id) data.id = d.id;
+        arr.push(data);
+      });
+      state.empacado = arr;
+      try { save(LS_KEYS.empacado, arr); } catch(_){}
+      // Refrescar Estadística si está abierta (C.B. depende de revisado, no de empacado,
+      // pero el conteo de sospechosos puede afectar chips/tooltips)
+      try { if (typeof _estUpdateChips === 'function') _estUpdateChips(); } catch(_){}
+      try { if (typeof renderEmpacado === 'function') renderEmpacado(); } catch(_){}
+    }, (err) => console.warn('[Emp2] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[Emp2] subscribe error', e);
+  }
+}
+
+/** Escucha cambios en Firestore · Revisado (Calidad) */
+async function subscribeRevisado() {
+  try {
+    const cached = localStorage.getItem(LS_KEYS.revisado);
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { state.revisado = arr; }
+    }
+  } catch(_){}
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.revisado) || 'revisado';
+    const collRef = FB.collection(FB.db, coll);
+    if (typeof REVISADO_UNSUB === 'function') { try { REVISADO_UNSUB(); } catch(_){} }
+    REVISADO_UNSUB = FB.onSnapshot(collRef, (snap) => {
+      const arr = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (!data.id) data.id = d.id;
+        arr.push(data);
+      });
+      state.revisado = arr;
+      try { save(LS_KEYS.revisado, arr); } catch(_){}
+      // Estadística C.B. depende directamente de esto
+      try { if (typeof _estUpdateChips === 'function') _estUpdateChips(); } catch(_){}
+      try { if (typeof renderEstadistica === 'function' && _estCurrentSub === 'dia') renderEstadistica(); } catch(_){}
+      try { if (typeof renderRevisado === 'function') renderRevisado(); } catch(_){}
+    }, (err) => console.warn('[Rev] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[Rev] subscribe error', e);
+  }
+}
+
+/**
+ * Helpers para C.B. total por lote/fecha — la fuente de verdad son las
+ * decisiones de REVISADO (confirmado_cb === true).
+ * Empacado sólo aporta el conteo de sospechosos (para tooltips/analytics).
+ */
+/**
+ * Role gating para Fase 3 — la restricción es a nivel de UI
+ * porque Firestore usa token compartido, no identidad por usuario.
+ * Los managers/admin siempre tienen acceso.
+ */
+function canEditEmpacado() {
+  const u = (typeof EMP_STATE !== 'undefined') ? EMP_STATE.currentUserEmp : null;
+  if (!u) return false;
+  if (u.rol === 'admin' || u.rol === 'manager') return true;
+  const area = String(u.area || '').toLowerCase();
+  return area.includes('empac');
+}
+function canEditRevisado() {
+  const u = (typeof EMP_STATE !== 'undefined') ? EMP_STATE.currentUserEmp : null;
+  if (!u) return false;
+  if (u.rol === 'admin' || u.rol === 'manager') return true;
+  const area = String(u.area || '').toLowerCase();
+  return area.includes('calid') || area.includes('revis');
+}
+
+function cbTotalPorLote(lote, dateISO) {
+  if (!lote) return { total: 0, empacado_flagged: 0, revisado_confirmado: 0, breakdown: [] };
+  const clean = String(lote).trim();
+  const isSameDay = (ts) => {
+    if (!ts || !dateISO) return true;
+    try {
+      const d = new Date(ts);
+      const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      return iso === dateISO;
+    } catch(_){ return false; }
+  };
+  let empacado_flagged = 0;
+  let revisado_confirmado = 0;
+  const breakdown = [];
+  // Empacado: sum de kg de rollos marcados como sospechosos (no es C.B. final, sólo referencia)
+  (state.empacado || []).forEach(f => {
+    if (String(f.lote||'').trim() !== clean) return;
+    if (!isSameDay(f.ts_creacion || f.fecha)) return;
+    (f.rollos_sospechosos || []).forEach(r => {
+      const kg = Number(r.kilos) || 0;
+      empacado_flagged += kg;
+      breakdown.push({ src:'empacado', rollo:r.numero, kg, motivo:r.motivo });
+    });
+  });
+  // Revisado: sum de kg confirmados como Clase B (fuente de verdad)
+  (state.revisado || []).forEach(f => {
+    if (String(f.lote||'').trim() !== clean) return;
+    if (!isSameDay(f.ts_creacion || f.fecha)) return;
+    (f.rollos || []).forEach(r => {
+      if (r.decision !== 'confirmado_cb') return;
+      const kg = Number(r.kilos) || 0;
+      revisado_confirmado += kg;
+      breakdown.push({ src:'revisado', rollo:r.numero, kg, motivo:r.motivo });
+    });
+  });
+  return {
+    total: revisado_confirmado,       // ← fuente de verdad
+    empacado_flagged,                  // ← sólo referencia (tooltip)
+    revisado_confirmado,
+    breakdown
+  };
+}
+
 /** Wire de eventos del módulo Tareas */
 function bindTareas() {
   document.getElementById('tarAddBtn')?.addEventListener('click', () => requireUserThen(() => tarOpenNew()));
@@ -12767,6 +12925,8 @@ function bindTareas() {
   wireCol('tarColHecho');
 
   subscribeTareas();
+  subscribeEmpacado();  // Fase 3 · sync ficha Empacado (paper form #1)
+  subscribeRevisado();  // Fase 3 · sync ficha Revisado/Calidad (paper form #2)
 }
 
 /* ---------------- MI INICIO ---------------- */
