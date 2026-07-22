@@ -4340,6 +4340,76 @@
   <!-- TAB: EMPACADO (Fase 3) · Ficha por lote con rollos Primera -->
   <!-- + Sospechosos. Empacado flags defectos; Calidad decide.    -->
   <!-- ========================================================= -->
+  <!-- ============================================================= -->
+  <!-- FASE 3 · REVISADO / CALIDAD                                   -->
+  <!-- ============================================================= -->
+  <section id="tab-revisado" class="tab-panel hidden">
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h2 class="text-lg font-black text-white flex items-center gap-2">
+            <span>🔍</span> Revisado · Calidad
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">
+            Decide el destino de cada rollo sospechoso: <b class="text-green-300">Aprobado</b>, <b class="text-blue-300">Reparado</b> o <b class="text-red-300">Confirmado C.B.</b> Los C.B. suman al KPI de Clase B en Estadística.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="rvsGateInfo" class="hidden text-[10px] text-amber-300 bg-amber-900/40 border border-amber-700/50 px-2 py-1 rounded-md">🔒 Sólo lectura</span>
+        </div>
+      </div>
+
+      <!-- Filtros · Fecha / Búsqueda -->
+      <div class="flex items-center gap-2 flex-wrap text-xs mb-3">
+        <label class="text-slate-400">Fecha:</label>
+        <input id="rvsFecha" type="date" class="field !py-1.5 !px-2 !text-xs w-36" />
+        <button id="rvsHoyBtn" class="text-[10px] text-teal-300 hover:text-teal-200 px-2 py-1 rounded-md hover:bg-teal-900/30">Hoy</button>
+        <span class="text-slate-600">·</span>
+        <input id="rvsBuscar" type="text" placeholder="Buscar lote, tela, color…" class="field !py-1.5 !px-2 !text-xs flex-1 min-w-[180px]" />
+        <span class="text-slate-600">·</span>
+        <label class="text-slate-400 flex items-center gap-1 cursor-pointer">
+          <input id="rvsSoloPend" type="checkbox" class="accent-teal-500" checked />
+          <span>Sólo pendientes</span>
+        </label>
+        <span id="rvsCount" class="text-[10px] text-slate-500 ml-auto">0 lotes</span>
+      </div>
+
+      <!-- KPI strip del día -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+        <div class="bg-ink-900 border border-ink-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 uppercase">Pendientes</div>
+          <div class="text-lg font-black text-amber-300" id="rvsKpiPend">0</div>
+          <div class="text-[9px] text-slate-500">rollos por revisar</div>
+        </div>
+        <div class="bg-ink-900 border border-ink-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 uppercase">Aprobados</div>
+          <div class="text-lg font-black text-green-300" id="rvsKpiApr">0</div>
+          <div class="text-[9px] text-slate-500" id="rvsKpiAprKg">0 kg</div>
+        </div>
+        <div class="bg-ink-900 border border-ink-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 uppercase">Reparados</div>
+          <div class="text-lg font-black text-blue-300" id="rvsKpiRep">0</div>
+          <div class="text-[9px] text-slate-500" id="rvsKpiRepKg">0 kg</div>
+        </div>
+        <div class="bg-ink-900 border border-ink-800 rounded-lg p-2 text-center">
+          <div class="text-[9px] text-slate-500 uppercase">Clase B</div>
+          <div class="text-lg font-black text-red-300" id="rvsKpiCB">0</div>
+          <div class="text-[9px] text-slate-500" id="rvsKpiCBKg">0 kg</div>
+        </div>
+      </div>
+
+      <!-- Lista de lotes con sospechosos -->
+      <div id="rvsListWrap" class="space-y-3">
+        <div id="rvsEmptyState" class="hidden text-center py-10 text-slate-500">
+          <div class="text-3xl mb-2">✨</div>
+          <div class="text-sm">No hay rollos sospechosos para esta fecha.</div>
+          <div class="text-[11px] mt-1">Cuando Empacado marque rollos con defecto, aparecerán aquí.</div>
+        </div>
+        <div id="rvsList" class="space-y-3"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="tab-empacado" class="tab-panel hidden">
     <div class="card p-4 mb-4">
       <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
@@ -4575,6 +4645,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
       <span class="flex-1">Empacado</span>
       <span id="moreItemBadgeEmp" class="hidden min-w-[20px] h-[20px] px-1.5 rounded-full bg-teal-500 text-white text-[10px] font-black flex items-center justify-center leading-none">0</span>
+    </button>
+    <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-revisado">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span class="flex-1">Revisado</span>
+      <span id="moreItemBadgeRvs" class="hidden min-w-[20px] h-[20px] px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center leading-none">0</span>
     </button>
   </div>
 </nav>
@@ -6486,6 +6561,7 @@ function init() {
   bindEmpleados();
   bindTareas();
   bindEmpacado();  // Fase 3 · ficha de empacado con rollos primera / sospechosos
+  bindRevisado();  // Fase 3 · decisión 3-way sobre rollos sospechosos (Calidad)
   bindInicio();
   // Bind refresh button del panel Duplicados
   const _dupRefBtn = document.getElementById('dupRefreshBtn');
@@ -6708,6 +6784,9 @@ function bindTabs() {
     }
     if (tab === 'tab-empacado') {
       requestAnimationFrame(() => { try { renderEmpacado(); } catch(e){ console.warn('emp switch:', e); } });
+    }
+    if (tab === 'tab-revisado') {
+      requestAnimationFrame(() => { try { renderRevisado(); } catch(e){ console.warn('rvs switch:', e); } });
     }
     if (tab === 'tab-duplicados') {
       requestAnimationFrame(() => { try { renderDuplicados(); } catch(e){ console.warn('dup switch:', e); } });
@@ -13007,6 +13086,7 @@ async function subscribeEmpacado() {
       // pero el conteo de sospechosos puede afectar chips/tooltips)
       try { if (typeof _estUpdateChips === 'function') _estUpdateChips(); } catch(_){}
       try { if (typeof renderEmpacado === 'function') renderEmpacado(); } catch(_){}
+      try { if (typeof renderRevisado === 'function') renderRevisado(); } catch(_){}
     }, (err) => console.warn('[Emp2] onSnapshot error', err));
   } catch (e) {
     console.warn('[Emp2] subscribe error', e);
@@ -13620,6 +13700,491 @@ function bindEmpacado() {
       if (m && !m.classList.contains('hidden')) _empShowModal(false);
     }
   });
+}
+
+/* ================================================================
+   FASE 3 · REVISADO / CALIDAD UI
+   ----------------------------------------------------------------
+   Muestra los rollos_sospechosos de Empacado agrupados por lote.
+   Cada rollo tiene decisión 3-way: aprobado / reparado / confirmado_cb.
+   Los confirmado_cb suman al KPI de Clase B en Estadística.
+   ================================================================ */
+
+const RVS_STATE = {
+  fechaFiltro: '',        // YYYY-MM-DD
+  soloPendientes: true,   // solo lotes con rollos sin decisión
+  // Buffer local de decisiones pendientes de guardar por lote
+  // { [lote]: { [numero]: { decision, notas } } }
+  buffer: {}
+};
+
+const RVS_DECISIONES = ['aprobado', 'reparado', 'confirmado_cb'];
+
+/**
+ * Devuelve la ficha de revisado (Firestore) para un lote+fecha, si existe.
+ */
+function _rvsFichaExistente(lote, fecha) {
+  return (state.revisado || []).find(r =>
+    String(r.lote||'').trim() === String(lote||'').trim() &&
+    (r.fecha||'').slice(0,10) === fecha
+  );
+}
+
+/**
+ * Combina rollos_sospechosos de Empacado con decisiones ya guardadas en Revisado.
+ * Devuelve un array de {numero, kilos, motivo, decision, notas, ficha_id}.
+ */
+function _rvsRollosDeLote(empFicha) {
+  const rev = _rvsFichaExistente(empFicha.lote, empFicha.fecha);
+  const decMap = {};
+  if (rev) {
+    (rev.rollos || []).forEach(r => { decMap[String(r.numero)] = r; });
+  }
+  // Overlay del buffer local (cambios sin guardar)
+  const buf = RVS_STATE.buffer[empFicha.lote] || {};
+  return (empFicha.rollos_sospechosos || []).map(r => {
+    const num = String(r.numero || '');
+    const saved = decMap[num] || {};
+    const buffered = buf[num] || {};
+    return {
+      numero: r.numero,
+      kilos: Number(r.kilos) || 0,
+      motivo: r.motivo || 'Otro',
+      decision: buffered.decision !== undefined ? buffered.decision : (saved.decision || ''),
+      notas: buffered.notas !== undefined ? buffered.notas : (saved.notas || ''),
+      dirty: buffered.decision !== undefined || buffered.notas !== undefined
+    };
+  });
+}
+
+/**
+ * Devuelve las fichas de Empacado con sospechosos para la fecha filtrada,
+ * ordenadas por lote.
+ */
+function _rvsLotesDelDia() {
+  const fecha = RVS_STATE.fechaFiltro || _empFechaHoy();
+  const q = ((document.getElementById('rvsBuscar')||{}).value || '').trim().toLowerCase();
+  return (state.empacado || [])
+    .filter(f => (f.fecha||'').slice(0,10) === fecha)
+    .filter(f => (f.rollos_sospechosos || []).length > 0)
+    .filter(f => {
+      if (!q) return true;
+      return [f.lote, f.tela, f.color, f.pedido].some(v => String(v||'').toLowerCase().includes(q));
+    })
+    .sort((a,b) => String(a.lote||'').localeCompare(String(b.lote||'')));
+}
+
+/**
+ * Render principal del panel Revisado.
+ */
+function renderRevisado() {
+  const fechaInp = document.getElementById('rvsFecha');
+  if (fechaInp && !RVS_STATE.fechaFiltro) {
+    RVS_STATE.fechaFiltro = _empFechaHoy();
+    fechaInp.value = RVS_STATE.fechaFiltro;
+  }
+
+  let lotes = _rvsLotesDelDia();
+
+  // Agregados globales del día (todos los lotes, no filtrados)
+  let kpiPend = 0, kpiApr = 0, kpiRep = 0, kpiCB = 0;
+  let kpiAprKg = 0, kpiRepKg = 0, kpiCBKg = 0;
+
+  lotes.forEach(f => {
+    const rollos = _rvsRollosDeLote(f);
+    rollos.forEach(r => {
+      if (r.decision === 'aprobado') { kpiApr++; kpiAprKg += r.kilos; }
+      else if (r.decision === 'reparado') { kpiRep++; kpiRepKg += r.kilos; }
+      else if (r.decision === 'confirmado_cb') { kpiCB++; kpiCBKg += r.kilos; }
+      else { kpiPend++; }
+    });
+  });
+
+  // Filtro "sólo pendientes": excluye lotes cuyos rollos ya están todos decididos
+  if (RVS_STATE.soloPendientes) {
+    lotes = lotes.filter(f => {
+      const rollos = _rvsRollosDeLote(f);
+      return rollos.some(r => !r.decision);
+    });
+  }
+
+  const listEl = document.getElementById('rvsList');
+  const emptyEl = document.getElementById('rvsEmptyState');
+  const cntEl = document.getElementById('rvsCount');
+
+  if (cntEl) cntEl.textContent = lotes.length + (lotes.length === 1 ? ' lote' : ' lotes');
+
+  if (listEl) {
+    if (lotes.length === 0) {
+      listEl.innerHTML = '';
+      if (emptyEl) emptyEl.classList.remove('hidden');
+    } else {
+      if (emptyEl) emptyEl.classList.add('hidden');
+      listEl.innerHTML = lotes.map(_rvsRenderLoteCard).join('');
+    }
+  }
+
+  // KPIs
+  const setN = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setN('rvsKpiPend', kpiPend);
+  setN('rvsKpiApr', kpiApr);
+  setN('rvsKpiRep', kpiRep);
+  setN('rvsKpiCB', kpiCB);
+  setN('rvsKpiAprKg', kpiAprKg.toFixed(1) + ' kg');
+  setN('rvsKpiRepKg', kpiRepKg.toFixed(1) + ' kg');
+  setN('rvsKpiCBKg', kpiCBKg.toFixed(1) + ' kg');
+
+  // Gating
+  const canEdit = canEditRevisado();
+  const gateInfo = document.getElementById('rvsGateInfo');
+  if (gateInfo) gateInfo.classList.toggle('hidden', canEdit);
+
+  // Badge en ◦ Más → Revisado con # rollos pendientes
+  _rvsUpdateMoreBadge(kpiPend);
+}
+
+/**
+ * Tarjeta por lote con lista de rollos sospechosos y decisión 3-way.
+ */
+function _rvsRenderLoteCard(empFicha) {
+  const rollos = _rvsRollosDeLote(empFicha);
+  const decCount = { aprobado:0, reparado:0, confirmado_cb:0, pend:0 };
+  const decKg = { aprobado:0, reparado:0, confirmado_cb:0, pend:0 };
+  rollos.forEach(r => {
+    const k = r.decision || 'pend';
+    decCount[k]++;
+    decKg[k] += r.kilos;
+  });
+
+  const totalPend = decCount.pend;
+  const dirtyCount = rollos.filter(r => r.dirty).length;
+  const lote = empFicha.lote || '—';
+
+  // Header con métricas + botón guardar (visible sólo si hay cambios pendientes)
+  const headerHtml = `
+    <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+      <div class="min-w-0">
+        <div class="font-black text-white text-base">Lote ${lote}</div>
+        <div class="text-[11px] text-slate-400">${empFicha.tela || '—'} · ${empFicha.color || '—'} · turno ${empFicha.turno || '—'}</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 text-[10px]">
+          ${totalPend > 0 ? `<span class="bg-amber-900/50 border border-amber-700/50 text-amber-200 font-bold px-2 py-0.5 rounded">⏳ ${totalPend} pend</span>` : ''}
+          ${decCount.aprobado > 0 ? `<span class="bg-green-900/50 border border-green-700/50 text-green-200 font-bold px-2 py-0.5 rounded">✓ ${decCount.aprobado} apr</span>` : ''}
+          ${decCount.reparado > 0 ? `<span class="bg-blue-900/50 border border-blue-700/50 text-blue-200 font-bold px-2 py-0.5 rounded">🔧 ${decCount.reparado} rep</span>` : ''}
+          ${decCount.confirmado_cb > 0 ? `<span class="bg-red-900/50 border border-red-700/50 text-red-200 font-bold px-2 py-0.5 rounded">⚠ ${decCount.confirmado_cb} C.B.</span>` : ''}
+        </div>
+        ${dirtyCount > 0
+          ? `<button data-rvs-save="${lote.replace(/"/g,'&quot;')}" class="bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-black px-3 py-1.5 rounded-md shadow">💾 Guardar (${dirtyCount})</button>`
+          : ''}
+      </div>
+    </div>
+  `;
+
+  const rollosHtml = rollos.map((r, i) => _rvsRolloRow(lote, r, i)).join('');
+
+  return `
+    <div class="card p-3" data-rvs-lote="${lote.replace(/"/g,'&quot;')}">
+      ${headerHtml}
+      <div class="space-y-1.5">
+        ${rollosHtml}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Fila de un rollo sospechoso con 3 botones de decisión.
+ */
+function _rvsRolloRow(lote, r, idx) {
+  const num = String(r.numero || '(sin n°)');
+  const kilos = (r.kilos || 0).toFixed(2);
+  const motivo = r.motivo || 'Otro';
+
+  const btn = (dec, icon, label, colorClass) => {
+    const isSel = r.decision === dec;
+    const cls = isSel
+      ? `${colorClass.replace('/20', '/60').replace('/40','')} ring-2 ring-white/40 text-white font-bold`
+      : `${colorClass} hover:brightness-125 text-slate-300`;
+    return `<button data-rvs-dec="${dec}" data-lote="${lote.replace(/"/g,'&quot;')}" data-numero="${num.replace(/"/g,'&quot;')}" class="${cls} text-[10px] font-semibold px-2 py-1 rounded transition flex items-center gap-1">${icon} ${label}</button>`;
+  };
+
+  // Motivo badge color
+  const motivoColors = {
+    'Mancha': 'bg-purple-900/40 border-purple-700/50 text-purple-200',
+    'Hoyo': 'bg-orange-900/40 border-orange-700/50 text-orange-200',
+    'Rayado': 'bg-yellow-900/40 border-yellow-700/50 text-yellow-200',
+    'Tejido': 'bg-pink-900/40 border-pink-700/50 text-pink-200',
+    'Otro': 'bg-slate-800/60 border-slate-600/50 text-slate-300'
+  };
+  const motivoCls = motivoColors[motivo] || motivoColors['Otro'];
+
+  const dirtyDot = r.dirty ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>' : '';
+
+  return `
+    <div class="flex items-center gap-2 bg-ink-900/50 border border-ink-800 rounded-lg p-2 flex-wrap">
+      <div class="flex items-center gap-1.5 min-w-[100px]">
+        ${dirtyDot}
+        <span class="text-white text-sm font-bold">#${num}</span>
+      </div>
+      <span class="text-slate-300 text-xs tabular-nums">${kilos} kg</span>
+      <span class="${motivoCls} border text-[10px] font-bold px-1.5 py-0.5 rounded">${motivo}</span>
+      <div class="flex items-center gap-1 ml-auto flex-wrap">
+        ${btn('aprobado','✓','Aprobado','bg-green-900/40 border border-green-700/40')}
+        ${btn('reparado','🔧','Reparado','bg-blue-900/40 border border-blue-700/40')}
+        ${btn('confirmado_cb','⚠','C.B.','bg-red-900/40 border border-red-700/40')}
+        <input data-rvs-notas="1" data-lote="${lote.replace(/"/g,'&quot;')}" data-numero="${num.replace(/"/g,'&quot;')}" type="text" value="${(r.notas||'').replace(/"/g,'&quot;')}" placeholder="Notas…" class="field !py-1 !px-2 !text-[11px] w-32" />
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Aplica una decisión al buffer local (no guarda a Firestore hasta que el user pulse Guardar).
+ */
+function _rvsSetDecision(lote, numero, decision) {
+  if (!canEditRevisado()) {
+    toast('Sólo Calidad o admin pueden decidir.');
+    return;
+  }
+  RVS_STATE.buffer[lote] = RVS_STATE.buffer[lote] || {};
+  RVS_STATE.buffer[lote][numero] = RVS_STATE.buffer[lote][numero] || {};
+  // Toggle: si ya está seleccionado, deseleccionar
+  const cur = RVS_STATE.buffer[lote][numero].decision;
+  // Buscar valor original en state.revisado
+  const empFicha = (state.empacado||[]).find(f =>
+    String(f.lote||'').trim() === lote &&
+    (f.fecha||'').slice(0,10) === (RVS_STATE.fechaFiltro || _empFechaHoy())
+  );
+  const fecha = empFicha ? empFicha.fecha : (RVS_STATE.fechaFiltro || _empFechaHoy());
+  const rev = _rvsFichaExistente(lote, fecha);
+  const savedRollo = rev ? (rev.rollos||[]).find(r => String(r.numero) === String(numero)) : null;
+  const originalDec = savedRollo ? (savedRollo.decision || '') : '';
+
+  if (cur === decision) {
+    // click en el mismo botón → limpia buffer
+    RVS_STATE.buffer[lote][numero].decision = originalDec;
+  } else {
+    RVS_STATE.buffer[lote][numero].decision = decision;
+  }
+
+  // Si buffer coincide exacto con lo guardado, limpíalo (evita marca dirty falsa)
+  if (RVS_STATE.buffer[lote][numero].decision === originalDec &&
+      (RVS_STATE.buffer[lote][numero].notas === undefined ||
+       RVS_STATE.buffer[lote][numero].notas === (savedRollo ? (savedRollo.notas||'') : ''))) {
+    delete RVS_STATE.buffer[lote][numero];
+    if (Object.keys(RVS_STATE.buffer[lote]).length === 0) delete RVS_STATE.buffer[lote];
+  }
+
+  renderRevisado();
+}
+
+/**
+ * Aplica un cambio de notas al buffer.
+ */
+function _rvsSetNotas(lote, numero, notas) {
+  if (!canEditRevisado()) return;
+  const fecha = RVS_STATE.fechaFiltro || _empFechaHoy();
+  const rev = _rvsFichaExistente(lote, fecha);
+  const savedRollo = rev ? (rev.rollos||[]).find(r => String(r.numero) === String(numero)) : null;
+  const originalNotas = savedRollo ? (savedRollo.notas || '') : '';
+
+  RVS_STATE.buffer[lote] = RVS_STATE.buffer[lote] || {};
+  RVS_STATE.buffer[lote][numero] = RVS_STATE.buffer[lote][numero] || {};
+  RVS_STATE.buffer[lote][numero].notas = notas;
+
+  if (notas === originalNotas &&
+      (RVS_STATE.buffer[lote][numero].decision === undefined ||
+       RVS_STATE.buffer[lote][numero].decision === (savedRollo ? (savedRollo.decision||'') : ''))) {
+    delete RVS_STATE.buffer[lote][numero];
+    if (Object.keys(RVS_STATE.buffer[lote]).length === 0) delete RVS_STATE.buffer[lote];
+  }
+
+  // No re-render completo: sólo actualizar botón Guardar del lote
+  _rvsUpdateSaveBtn(lote);
+}
+
+/**
+ * Actualiza el botón Guardar de un lote sin re-render completo.
+ */
+function _rvsUpdateSaveBtn(lote) {
+  const dirtyCount = (RVS_STATE.buffer[lote] ? Object.keys(RVS_STATE.buffer[lote]).length : 0);
+  const card = document.querySelector(`[data-rvs-lote="${lote.replace(/"/g,'&quot;')}"]`);
+  if (!card) return;
+  let btn = card.querySelector('[data-rvs-save]');
+  const headerBar = card.querySelector('.flex.items-center.gap-2:last-child') || card.querySelector('.flex.items-center.gap-2');
+  if (dirtyCount > 0 && !btn) {
+    // Añadir botón — más simple: re-render completo
+    renderRevisado();
+    return;
+  }
+  if (dirtyCount === 0 && btn) {
+    renderRevisado();
+    return;
+  }
+  if (btn) btn.textContent = `💾 Guardar (${dirtyCount})`;
+}
+
+/**
+ * Guarda las decisiones pendientes de un lote a Firestore.
+ */
+async function rvsGuardarLote(lote) {
+  if (!canEditRevisado()) {
+    toast('Sólo Calidad o admin pueden guardar decisiones.');
+    return;
+  }
+  const fecha = RVS_STATE.fechaFiltro || _empFechaHoy();
+  const empFicha = (state.empacado||[]).find(f =>
+    String(f.lote||'').trim() === String(lote).trim() &&
+    (f.fecha||'').slice(0,10) === fecha
+  );
+  if (!empFicha) { toast('No se encontró la ficha de Empacado.'); return; }
+
+  const rollos = _rvsRollosDeLote(empFicha);
+  const user = window.TG_USER || { name: state.user || 'Invitado', empleado_id: null };
+  const nowISO = new Date().toISOString();
+
+  // Buscar ficha existente en state.revisado (misma lote+fecha)
+  let rev = _rvsFichaExistente(lote, fecha);
+  const isNew = !rev;
+  const id = rev ? rev.id : ('rvs-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,7));
+
+  const doc = {
+    id,
+    lote: String(lote).trim(),
+    fecha,
+    rollos: rollos
+      .filter(r => r.decision) // solo rollos con decisión tomada
+      .map(r => ({
+        numero: String(r.numero || '').trim(),
+        kilos: Number(r.kilos) || 0,
+        motivo: r.motivo || 'Otro',
+        decision: r.decision,
+        notas: String(r.notas || '').trim()
+      })),
+    total_recuperado: rollos.filter(r => r.decision === 'reparado').reduce((s,r) => s + (Number(r.kilos)||0), 0),
+    total_cb: rollos.filter(r => r.decision === 'confirmado_cb').reduce((s,r) => s + (Number(r.kilos)||0), 0),
+    ts_edicion: nowISO,
+    revisor_id: user.empleado_id || null,
+    revisor_nombre: user.name || 'desconocido',
+    auth: FB_AUTH_TOKEN
+  };
+
+  if (isNew) {
+    doc.ts_creacion = nowISO;
+  } else {
+    doc.ts_creacion = rev.ts_creacion || nowISO;
+  }
+
+  // Update state local
+  const idx = (state.revisado || []).findIndex(x => x.id === id);
+  if (idx >= 0) state.revisado[idx] = doc;
+  else { state.revisado = state.revisado || []; state.revisado.push(doc); }
+  save(LS_KEYS.revisado, state.revisado);
+
+  // Sync a Firestore
+  try {
+    const FB = await whenFbReady();
+    if (FB && window.TG_AUTH_TOKEN === FB_AUTH_TOKEN) {
+      fbPendingWrites++;
+      updateCloudUI();
+      await FB.setDoc(FB.doc(FB.db, FB_COLLECTIONS.revisado, id), doc, { merge: true });
+      fbLastError = null;
+    }
+  } catch (e) {
+    fbLastError = e;
+    console.warn('[Rvs] save error', e);
+    toast('Guardado local. Se sincronizará cuando haya red.');
+  } finally {
+    fbPendingWrites = Math.max(0, fbPendingWrites - 1);
+    updateCloudUI();
+  }
+
+  // Bitácora
+  try {
+    if (typeof pushHistorial === 'function') {
+      pushHistorial({
+        ts: nowISO,
+        action: 'Revisado · Guardar decisiones',
+        detail: `Lote ${lote} · ${doc.rollos.length} decisiones · C.B. ${doc.total_cb.toFixed(1)} kg / Reparado ${doc.total_recuperado.toFixed(1)} kg`,
+        user: user.name || 'desconocido'
+      });
+    }
+  } catch(_){}
+
+  // Limpiar buffer del lote
+  delete RVS_STATE.buffer[lote];
+
+  // Refresh Estadística (C.B. cambió)
+  try { if (typeof _estUpdateChips === 'function') _estUpdateChips(); } catch(_){}
+  try { if (typeof renderEstadistica === 'function' &&
+              document.getElementById('tab-estadistica') &&
+              !document.getElementById('tab-estadistica').classList.contains('hidden')) {
+    renderEstadistica();
+  } } catch(_){}
+
+  toast(`Lote ${lote}: ${doc.rollos.length} decisiones guardadas.`);
+  renderRevisado();
+}
+
+/**
+ * Badge en ◦ Más → Revisado con # rollos pendientes.
+ */
+function _rvsUpdateMoreBadge(pendCount) {
+  const badge = document.getElementById('moreItemBadgeRvs');
+  if (!badge) return;
+  if (pendCount > 0) {
+    badge.textContent = pendCount > 99 ? '99+' : pendCount;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+/**
+ * Wire de eventos del módulo Revisado.
+ */
+function bindRevisado() {
+  document.getElementById('rvsHoyBtn')?.addEventListener('click', () => {
+    RVS_STATE.fechaFiltro = _empFechaHoy();
+    const inp = document.getElementById('rvsFecha');
+    if (inp) inp.value = RVS_STATE.fechaFiltro;
+    renderRevisado();
+  });
+  document.getElementById('rvsFecha')?.addEventListener('change', (e) => {
+    RVS_STATE.fechaFiltro = e.target.value;
+    renderRevisado();
+  });
+  document.getElementById('rvsBuscar')?.addEventListener('input', renderRevisado);
+  document.getElementById('rvsSoloPend')?.addEventListener('change', (e) => {
+    RVS_STATE.soloPendientes = e.target.checked;
+    renderRevisado();
+  });
+
+  // Delegación en la lista: click en botones de decisión y guardar
+  const list = document.getElementById('rvsList');
+  if (list) {
+    list.addEventListener('click', (e) => {
+      // Botón decisión 3-way
+      const decBtn = e.target.closest('[data-rvs-dec]');
+      if (decBtn) {
+        requireUserThen(() => _rvsSetDecision(decBtn.dataset.lote, decBtn.dataset.numero, decBtn.dataset.rvsDec));
+        return;
+      }
+      // Botón Guardar de un lote
+      const saveBtn = e.target.closest('[data-rvs-save]');
+      if (saveBtn) {
+        requireUserThen(() => rvsGuardarLote(saveBtn.dataset.rvsSave));
+        return;
+      }
+    });
+    // Input de notas
+    list.addEventListener('input', (e) => {
+      const inp = e.target.closest('[data-rvs-notas]');
+      if (!inp) return;
+      _rvsSetNotas(inp.dataset.lote, inp.dataset.numero, inp.value);
+    });
+  }
 }
 
 /** Wire de eventos del módulo Tareas */
