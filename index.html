@@ -4703,7 +4703,70 @@ const SS_KEYS = {
   skipped: 'tg_tint_user_skipped'   // si el usuario dio "Ahora no"
 };
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch(e){ return []; } };
-const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+// Caps de tamaño para colecciones que crecen sin límite (evita QuotaExceededError)
+// Firestore mantiene todo; localStorage sólo es cache para arranque rápido / offline.
+const LS_CAPS = {
+  'tg_tint_history_v2': 500,      // bitácora · sólo últimas 500 (Firestore tiene todo)
+  'tg_tint_prod_v2':    2000,     // fichas de producción
+  'tg_tint_bruck_v2':   2000,     // fichas Bruckner
+  'tg_tint_compact_v1': 2000,     // fichas Compactadora
+  'tg_tint_down_v2':    1000,     // tiempos muertos
+  'tg_tint_ramadown_v2':1000,     // tiempos muertos rama
+  'tg_tint_empacado_v1':1500,     // fichas empacado
+  'tg_tint_revisado_v1':1500      // fichas revisado
+};
+
+/**
+ * save() con safety net:
+ * 1) Aplica cap por colección para arrays largos (mantiene los más recientes por ts)
+ * 2) Si falla por cuota, purga caches viejos y reintenta una vez
+ * 3) Si sigue fallando, warn silencioso — no interrumpe la operación del dashboard
+ */
+function save(k, v) {
+  try {
+    // Cap arrays antes de serializar
+    let toStore = v;
+    if (Array.isArray(v) && LS_CAPS[k] && v.length > LS_CAPS[k]) {
+      // Ordenar por ts descendente si existe, sino tomar los últimos N por posición
+      const cap = LS_CAPS[k];
+      const withTs = v.filter(x => x && (x.ts || x.ts_creacion || x.fecha));
+      if (withTs.length >= v.length * 0.8) {
+        toStore = [...v].sort((a,b) => {
+          const ta = new Date(a.ts || a.ts_creacion || a.fecha || 0).getTime();
+          const tb = new Date(b.ts || b.ts_creacion || b.fecha || 0).getTime();
+          return tb - ta;
+        }).slice(0, cap);
+      } else {
+        toStore = v.slice(-cap);
+      }
+    }
+    localStorage.setItem(k, JSON.stringify(toStore));
+  } catch(e) {
+    if (e && (e.name === 'QuotaExceededError' || String(e).includes('quota'))) {
+      // Purga caches legacy antes de reintentar
+      try { _purgeLegacyCaches(); } catch(_){}
+      try {
+        const cap = LS_CAPS[k] || 500;
+        const arr = Array.isArray(v) ? v.slice(-cap) : v;
+        localStorage.setItem(k, JSON.stringify(arr));
+      } catch(e2) {
+        console.warn('[save] cuota excedida para', k, '· se omite cache local (Firestore mantiene los datos)');
+      }
+    } else {
+      console.warn('[save] error', k, e);
+    }
+  }
+}
+
+// Purga caches legacy (versiones viejas del esquema) para liberar cuota localStorage
+function _purgeLegacyCaches() {
+  const legacyKeys = [
+    'tg_tint_prod_v1', 'tg_tint_down_v1', 'tg_tint_bruck_v1', 'tg_tint_history_v1',
+    'tg_tint_metas_v1', 'tg_tint_pt_v1', 'tg_tint_ptSheets_v1'
+  ];
+  legacyKeys.forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
+}
 
 /* ====================================================================
    AUTO-IMPORTER · Datos manuales Marzo 2026 (Batches 1-5)
@@ -5189,7 +5252,7 @@ LS_KEYS.ptSheets = 'tg_tint_pt_sheets_v1'; // totales por hoja (footer reconcili
     detail: addP + ' fichas Tintorería + ' + addPT + ' filas PT + ' + addSh + ' hojas',
     user: 'Importación Manual Abril 2026'
   });
-  localStorage.setItem(LS_KEYS.history, JSON.stringify(existingH));
+  save(LS_KEYS.history, existingH);  // usa el helper con cap+safety
   localStorage.setItem(FLAG_KEY, 'done');
 
   console.log('%c=== IMPORTACIÓN ABRIL 2026 COMPLETA (Batch 12) ===', 'color:#10b981;font-weight:bold;font-size:14px;');
@@ -6213,6 +6276,17 @@ function startAutosave() {
    INIT
 --------------------------------------------------------------- */
 function init() {
+  // Purga caches legacy y aplica caps proactivamente para liberar espacio
+  try { _purgeLegacyCaches(); } catch(_){}
+  try {
+    // Aplicar caps a colecciones grandes YA cargadas en memoria
+    ['history','prod','bruck','compact','down','rd'].forEach(k => {
+      if (Array.isArray(state[k]) && LS_KEYS[k] && LS_CAPS[LS_KEYS[k]]) {
+        save(LS_KEYS[k], state[k]);  // el save() con cap trimeará al escribir
+      }
+    });
+  } catch(e){ console.warn('[init] cap warmup', e); }
+
   const now = new Date();
   $('#todayLabel').textContent = now.toLocaleDateString('es-MX', { weekday:'long', day:'2-digit', month:'long' });
 
