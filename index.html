@@ -4049,6 +4049,106 @@
   </section>
 
   <!-- ============================================================= -->
+  <!-- TAB: Estadística · Reporte de Entrega de Producto Terminado   -->
+  <!-- Reemplaza el proceso manual del área de Calidad. Se alimenta   -->
+  <!-- de state.prod + state.bruck + state.compact, y expone celdas   -->
+  <!-- editables (Calidad A/B, Prog, Faltante) sin perder trazabilidad -->
+  <!-- ============================================================= -->
+  <section id="tab-estadistica" class="tab-panel hidden">
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h2 class="text-xl font-black text-white flex items-center gap-2">
+            <span>📊</span> Estadística · Reporte de Entrega de Producto Terminado
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">
+            Reemplazo digital de la hoja de captura del área de <b>Calidad</b>. Auto-alimentado desde producción, editable manualmente.
+            <span class="text-slate-500">Empresa: Tejidos Gaytán de Moroleón S.A. de C.V.</span>
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <input id="estFecha" type="date" class="field text-sm !py-2 !px-3" />
+          <button id="estRefreshBtn" class="btn !py-2 !px-3 text-sm" title="Recargar datos desde producción" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.35); color:#93c5fd">🔄 Recargar</button>
+          <button id="estExportBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Descargar el reporte del día en Excel">📊 Excel</button>
+        </div>
+      </div>
+
+      <!-- Mensaje resumen tipo WhatsApp (el que enviaba Estadística manualmente) -->
+      <div id="estMensajeCard" class="mb-4 p-4 rounded-xl" style="background:linear-gradient(135deg, rgba(6,95,70,0.35), rgba(20,83,45,0.25)); border:1px solid rgba(16,185,129,0.35)">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-[11px] text-emerald-300 uppercase tracking-wider font-bold flex items-center gap-2">
+            <span>💬</span> Mensaje resumen del día <span class="text-slate-500 normal-case font-normal">(listo para enviar al Dueño y Sub-CEO)</span>
+          </div>
+          <button id="estMsgCopyBtn" class="btn text-xs !py-1 !px-2" style="background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7">📋 Copiar</button>
+        </div>
+        <pre id="estMensajeTexto" class="text-emerald-100 font-mono text-sm whitespace-pre-wrap leading-relaxed">—</pre>
+      </div>
+
+      <!-- KPIs del día -->
+      <div id="estKpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+
+      <!-- Tabla estilo hoja de Calidad -->
+      <div class="overflow-x-auto rounded-xl border border-slate-800">
+        <table id="estTable" class="w-full text-[12px]">
+          <thead class="bg-slate-800/60 text-slate-300 text-[11px] uppercase tracking-wider">
+            <tr>
+              <th class="p-2 text-center">#</th>
+              <th class="p-2 text-left">Tela</th>
+              <th class="p-2 text-left">Color</th>
+              <th class="p-2 text-center">Lote</th>
+              <th class="p-2 text-center">N. Ped.</th>
+              <th class="p-2 text-center" title="Línea de producto (Mix, Básico, etc.)">L.</th>
+              <th class="p-2 text-center" title="Turno">Tur.</th>
+              <th class="p-2 text-right" title="Kilos crudo/base">C.B.</th>
+              <th class="p-2 text-right">Rev.</th>
+              <th class="p-2 text-right">Pla.</th>
+              <th class="p-2 text-right">Com.</th>
+              <th class="p-2 text-right">Monforts</th>
+              <th class="p-2 text-right">BRU</th>
+              <th class="p-2 text-right" title="Programado (editable)">Prog</th>
+              <th class="p-2 text-right" title="Aprobado / Entregado (editable)">Aprev.</th>
+              <th class="p-2 text-right" title="Faltante = Prog − Aprev">Faltante</th>
+              <th class="p-2 text-right">%</th>
+            </tr>
+          </thead>
+          <tbody id="estTBody"></tbody>
+          <tfoot id="estTFoot" class="bg-slate-800/40 text-slate-200 font-bold"></tfoot>
+        </table>
+      </div>
+
+      <!-- Bloque Calidad + Logística (footer del reporte de papel) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div class="card !bg-slate-900/40 p-4">
+          <div class="text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-3">Calidad · Clasificación</div>
+          <div class="grid grid-cols-3 gap-2 items-center text-xs">
+            <label class="text-slate-300">Primera Clase A</label>
+            <input id="estCalA" type="number" step="0.01" min="0" class="field text-sm text-right col-span-2" placeholder="kg" />
+            <label class="text-slate-300">Segunda Clase B</label>
+            <input id="estCalB" type="number" step="0.01" min="0" class="field text-sm text-right col-span-2" placeholder="kg" />
+            <div class="text-slate-400 col-span-1 border-t border-slate-700 pt-2">Total producto terminado</div>
+            <div id="estCalTotal" class="text-right col-span-2 border-t border-slate-700 pt-2 text-white font-bold">—</div>
+          </div>
+        </div>
+        <div class="card !bg-slate-900/40 p-4">
+          <div class="text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-3">Logística</div>
+          <div class="grid grid-cols-3 gap-2 items-center text-xs">
+            <label class="text-slate-300">Firma / Iniciales</label>
+            <input id="estLogFirma" type="text" class="field text-sm col-span-2" placeholder="Ej. J.W.M" />
+            <label class="text-slate-300">Ejercicio (año)</label>
+            <input id="estLogEjercicio" type="number" min="2024" max="2030" class="field text-sm col-span-2" value="2026" />
+            <label class="text-slate-300">Notas</label>
+            <textarea id="estLogNotas" rows="2" class="field text-sm col-span-2" placeholder="Observaciones del día…"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-500">
+        💡 <b>Tip:</b> los valores de RAMA (Monforts/BRU) y Compactadora se autocalculan desde las fichas de producción de ese día. Puedes editar cualquier celda directamente si detectas un error — los cambios manuales se guardan localmente para ese lote.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
   <!-- TAB: Duplicados detectados  · Fase QA integridad de datos     -->
   <!-- Agrupa por lote+proceso cualquier grupo con 2+ fichas en los  -->
   <!-- últimos 30 días. Muestra kg inflado estimado.                 -->
@@ -4214,6 +4314,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
       <span>Compactadora</span>
     </button>
+    <button class="tab-btn" data-tab="tab-estadistica" title="Estadística · Reporte de entrega de producto terminado (Calidad + Logística)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+      <span>Estadística</span>
+    </button>
     <button class="tab-btn" data-tab="tab-weekly">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Semanal</span>
@@ -4234,10 +4338,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span>Buscar</span>
     </button>
-    <button class="tab-btn" data-tab="tab-inicio" title="Mi Inicio · tu página personal con tareas y avisos">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>Mi Inicio</span>
-    </button>
     <button class="tab-btn" data-tab="tab-tareas" title="Mis Tareas · Kanban personal (Pendiente / En curso / Hecho)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7"/><path d="M17.5 13.5v7"/></svg>
       <span>Tareas</span>
@@ -4249,6 +4349,19 @@
     <button class="tab-btn" data-tab="tab-duplicados" title="Duplicados detectados · fichas repetidas por lote+proceso en los últimos 30 días">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v6a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V8z"/><line x1="3" y1="8" x2="21" y2="8"/></svg>
       <span>Duplicados</span>
+    </button>
+    <button type="button" class="tab-btn" id="tabMoreBtn" title="Más opciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      <span>Más</span>
+    </button>
+  </div>
+
+  <!-- Popover "Más" -->
+  <div id="tabMorePopover" class="hidden fixed bottom-[70px] right-3 z-50 bg-ink-900 border border-ink-700 rounded-xl shadow-2xl p-2 w-52" style="display:none">
+    <div class="text-[10px] text-slate-500 uppercase tracking-wider px-2 py-1 font-bold">Más opciones</div>
+    <button type="button" class="more-item flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" data-tab="tab-inicio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Mi Inicio</span>
     </button>
   </div>
 </nav>
@@ -4529,7 +4642,8 @@ const LS_KEYS = {
   metas:   'tg_tint_metas_v2',   // metas diarias por máquina (kg)
   rd:      'tg_tint_ramadown_v2',// tiempos muertos de rama (Bruckner/Monforts)
   telas:   'tg_tint_telas_v1',   // catálogo de telas (composición, ancho, rendimiento, peso)
-  cfgRama: 'tg_tint_cfg_rama_v1' // config de la RAMA Bruckner (limites de ancho)
+  cfgRama: 'tg_tint_cfg_rama_v1',// config de la RAMA Bruckner (limites de ancho)
+  estadi:  'tg_tint_estadi_v1'   // Estadística: overrides manuales por día (calidad A/B, prog, aprev, logística)
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -6296,19 +6410,59 @@ function bindTabs() {
     if (tab === 'tab-duplicados') {
       requestAnimationFrame(() => { try { renderDuplicados(); } catch(e){ console.warn('dup switch:', e); } });
     }
+    if (tab === 'tab-estadistica') {
+      requestAnimationFrame(() => { try { renderEstadistica(); } catch(e){ console.warn('estadistica switch:', e); } });
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Popover "Más": toggle al hacer click en el botón
+  const _morePop = document.getElementById('tabMorePopover');
+  const _moreBtn = document.getElementById('tabMoreBtn');
+  const _hideMore = () => { if (_morePop) { _morePop.style.display = 'none'; _morePop.classList.add('hidden'); } };
+  const _showMore = () => { if (_morePop) { _morePop.style.display = 'block'; _morePop.classList.remove('hidden'); } };
+  // Click fuera cierra el popover
+  document.addEventListener('click', (e) => {
+    if (!_morePop || _morePop.style.display === 'none') return;
+    if (_morePop.contains(e.target) || (_moreBtn && _moreBtn.contains(e.target))) return;
+    _hideMore();
+  });
+  // Click en item del popover: cambiar de tab + cerrar
+  if (_morePop) {
+    _morePop.addEventListener('click', (e) => {
+      const item = e.target.closest('.more-item');
+      if (!item) return;
+      const tab = item.dataset.tab;
+      if (!tab) return;
+      _hideMore();
+      // Buscamos un hipotético botón con ese data-tab (por si aún existiera en el dock)
+      let btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+      if (!btn) {
+        // Ningún botón en el dock — creamos un shim liviano para reutilizar switchTo
+        btn = { dataset: { tab } };
+      }
+      switchTo(btn);
+    });
+  }
+
   // Handler principal: click
   nav.addEventListener('click', (e) => {
+    const moreBtn = e.target.closest('#tabMoreBtn');
+    if (moreBtn) {
+      e.stopPropagation();
+      if (_morePop && _morePop.style.display === 'block') _hideMore();
+      else _showMore();
+      return;
+    }
     const btn = e.target.closest('.tab-btn');
-    if (btn) switchTo(btn);
+    if (btn) { _hideMore(); switchTo(btn); }
   });
 
   // Fallback para navegadores móviles que a veces suprimen click (iOS Safari con gestos):
   // usamos pointerup y prevenimos el doble disparo marcando una bandera.
   let lastPointer = 0;
   nav.addEventListener('pointerup', (e) => {
+    if (e.target.closest('#tabMoreBtn')) return; // Manejado por click handler + popover
     const btn = e.target.closest('.tab-btn');
     if (!btn) return;
     // Si el click nativo llega después, el toggle ya fue hecho; evitamos duplicar
@@ -16305,6 +16459,429 @@ function _reconBindEventsOnce() {
   });
 }
 
+
+/* =============================================================
+   ESTADÍSTICA · Reporte de Entrega de Producto Terminado
+   -------------------------------------------------------------
+   Reemplaza el proceso manual del área de Calidad.
+   • Auto-alimenta datos desde state.prod / state.bruck / state.compact
+   • Overrides manuales por (fecha+lote) se guardan en LS_KEYS.estadi
+   • Genera mensaje resumen tipo WhatsApp automáticamente
+   ============================================================= */
+function _estGetOverrides() {
+  try { return JSON.parse(localStorage.getItem(LS_KEYS.estadi) || '{}'); }
+  catch(e) { return {}; }
+}
+function _estSaveOverrides(obj) {
+  try { localStorage.setItem(LS_KEYS.estadi, JSON.stringify(obj)); } catch(e){}
+}
+function _estFechaISO() {
+  const inp = document.getElementById('estFecha');
+  return inp && inp.value ? inp.value : new Date().toISOString().slice(0,10);
+}
+function _estFmt(v, d=1) {
+  const n = Number(v);
+  if (!isFinite(n) || n === 0) return '—';
+  return n.toLocaleString('es-MX', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function _estFmtCap(v, d=1) {
+  // Formato para inputs editables (sin em-dash cuando está vacío)
+  const n = Number(v);
+  return isFinite(n) && n > 0 ? n.toFixed(d) : '';
+}
+function _estIsSameDay(ts, iso) {
+  if (!ts) return false;
+  try {
+    const d = new Date(ts);
+    const isoOf = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    return isoOf === iso;
+  } catch(e) { return false; }
+}
+
+// Construye las filas de la tabla auto-alimentando desde producción del día.
+// Uniqueness: agrupa por LOTE (una fila por lote entregado ese día).
+// Cada fila trae kilos desglosados por proceso/máquina.
+function _estBuildRows(dateISO) {
+  const overrides = _estGetOverrides();
+  const rowsMap = {}; // lote → rowData
+
+  const ensureRow = (lote) => {
+    if (!rowsMap[lote]) {
+      rowsMap[lote] = {
+        lote,
+        tela: '', color: '', pedido: '', linea: '', turno: '',
+        cb: 0,          // kilos crudo/base (tintorería)
+        rev: 0,         // revisión (usaremos empacado/terminado de compact)
+        pla: 0,         // planchado (línea planchado, si aplica)
+        com: 0,         // compactado
+        monforts: 0,    // rama Monforts
+        bru: 0,         // rama Bruckner
+        prog: 0,        // programado (editable)
+        aprev: 0,       // aprobado/entregado (editable)
+        // trazabilidad de ficha para futuras auditorías
+        fichas: []
+      };
+    }
+    return rowsMap[lote];
+  };
+
+  // Tintorería → C.B. (kilos base)
+  (state.prod || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
+    const row = ensureRow(String(r.lote).trim());
+    row.cb += Number(r.kilos) || 0;
+    if (!row.tela)   row.tela = r.tela || r.diseno || '';
+    if (!row.color)  row.color = r.color || '';
+    if (!row.pedido) row.pedido = r.pedido || '';
+    if (!row.turno)  row.turno = r.shift || '';
+    row.fichas.push({ src:'prod', id:r.id, kilos:r.kilos });
+  });
+
+  // RAMA (Bruckner + Monforts) → columnas BRU / Monforts + PLA si proceso es "planchado"
+  (state.bruck || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
+    const row = ensureRow(String(r.lote).trim());
+    const kg = Number(r.kilos) || 0;
+    const rama = (r.rama || 'Bruckner').toLowerCase();
+    const proceso = String(r.proceso || '').toLowerCase();
+    if (rama.includes('monf')) row.monforts += kg;
+    else                        row.bru += kg;
+    if (proceso.includes('planch')) row.pla += kg;
+    if (!row.tela)   row.tela = r.tela || r.diseno || '';
+    if (!row.color)  row.color = r.color || '';
+    if (!row.turno)  row.turno = r.shift || r.turno || '';
+    row.fichas.push({ src:'bruck', id:r.id, kilos:kg, rama:r.rama });
+  });
+
+  // Compactadora → COM (compactado). REV se asigna si el proceso es "empacado" o "revisado".
+  (state.compact || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
+    const row = ensureRow(String(r.lote).trim());
+    const kg = Number(r.kilos) || 0;
+    const proceso = String(r.proceso || '').toLowerCase();
+    if (proceso.includes('empac') || proceso.includes('revis')) row.rev += kg;
+    else row.com += kg;
+    if (!row.tela)   row.tela = r.tela || r.diseno || '';
+    if (!row.color)  row.color = r.color || '';
+    if (!row.turno)  row.turno = r.shift || r.turno || '';
+    row.fichas.push({ src:'compact', id:r.id, kilos:kg });
+  });
+
+  // Aplicar overrides manuales por lote+fecha
+  const arr = Object.values(rowsMap);
+  arr.forEach(row => {
+    const key = `${dateISO}::${row.lote}`;
+    const o = overrides[key];
+    if (o) {
+      // Los overrides sobreescriben los campos indicados
+      ['tela','color','pedido','linea','turno','cb','rev','pla','com','monforts','bru','prog','aprev'].forEach(k => {
+        if (o[k] !== undefined && o[k] !== null && o[k] !== '') row[k] = o[k];
+      });
+    }
+    // Prog default = suma de trabajo real (para no aparecer 100% "faltante")
+    if (!row.prog) row.prog = row.cb || row.monforts + row.bru + row.com;
+    // Aprev default = terminado = monforts + bru + com
+    if (!row.aprev) row.aprev = row.monforts + row.bru + row.com;
+    row.faltante = (Number(row.prog) || 0) - (Number(row.aprev) || 0);
+    row.pct = row.prog > 0 ? (row.aprev / row.prog) : 0;
+  });
+
+  // Ordenar por Lote (numéricamente si es posible)
+  arr.sort((a,b) => {
+    const na = Number(a.lote); const nb = Number(b.lote);
+    if (isFinite(na) && isFinite(nb)) return na - nb;
+    return String(a.lote).localeCompare(String(b.lote));
+  });
+
+  return arr;
+}
+
+// Construye el mensaje resumen (WhatsApp-style) desde totales
+function _estBuildMensaje(dateISO, totals, calidad) {
+  const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const d = new Date(dateISO + 'T12:00:00');
+  const diaSem = dias[d.getDay()];
+  const diaN = d.getDate();
+  const mesN = meses[d.getMonth()];
+
+  // Contar suavizado y termofijado desde state.compact / state.bruck
+  let suavizado = 0, termofijado = 0;
+  (state.compact || []).filter(r => _estIsSameDay(r.ts, dateISO)).forEach(r => {
+    const p = String(r.proceso || '').toLowerCase();
+    if (p.includes('suav')) suavizado += Number(r.kilos) || 0;
+  });
+  (state.bruck || []).filter(r => _estIsSameDay(r.ts, dateISO)).forEach(r => {
+    const p = String(r.proceso || '').toLowerCase();
+    if (p.includes('termof')) termofijado += Number(r.kilos) || 0;
+    if (p.includes('suav'))   suavizado   += Number(r.kilos) || 0;
+  });
+
+  const fmt = (n) => (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let msg = `${diaSem} ${diaN} ${mesN}\n`;
+  msg += `PRODUCCION DE TERMINADO\n`;
+  msg += `TOTAL = ${fmt(totals.terminado)}\n`;
+  msg += `RAMA = ${fmt(totals.rama)}\n`;
+  msg += `COMP. = ${fmt(totals.com)}\n`;
+  msg += `\n`;
+  if (suavizado > 0)   msg += `SUAVIZADO = ${fmt(suavizado)}\n`;
+  if (termofijado > 0) msg += `TERMOFIJADO = ${fmt(termofijado)}\n`;
+  return msg.trim();
+}
+
+let _estBound = false;
+function _estBindOnce() {
+  if (_estBound) return; _estBound = true;
+  document.getElementById('estFecha')?.addEventListener('change', () => renderEstadistica());
+  document.getElementById('estRefreshBtn')?.addEventListener('click', () => renderEstadistica());
+  document.getElementById('estExportBtn')?.addEventListener('click', () => _estExportExcel());
+  document.getElementById('estMsgCopyBtn')?.addEventListener('click', () => {
+    const txt = document.getElementById('estMensajeTexto')?.textContent || '';
+    if (!txt || txt === '—') { showToast('Nada que copiar'); return; }
+    navigator.clipboard.writeText(txt).then(() => showToast('Mensaje copiado ✓'));
+  });
+  // Calidad + logística → guardar en overrides bajo la fecha
+  ['estCalA','estCalB','estLogFirma','estLogEjercicio','estLogNotas'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => _estSaveFooter());
+    document.getElementById(id)?.addEventListener('input',  () => _estUpdateCalTotal());
+  });
+}
+function _estUpdateCalTotal() {
+  const a = Number(document.getElementById('estCalA')?.value) || 0;
+  const b = Number(document.getElementById('estCalB')?.value) || 0;
+  const el = document.getElementById('estCalTotal');
+  if (el) el.textContent = (a + b) > 0 ? _estFmt(a + b, 2) + ' kg' : '—';
+}
+function _estSaveFooter() {
+  const dateISO = _estFechaISO();
+  const overrides = _estGetOverrides();
+  const key = `${dateISO}::_footer`;
+  overrides[key] = {
+    calA: Number(document.getElementById('estCalA')?.value) || 0,
+    calB: Number(document.getElementById('estCalB')?.value) || 0,
+    firma: document.getElementById('estLogFirma')?.value || '',
+    ejercicio: document.getElementById('estLogEjercicio')?.value || '',
+    notas: document.getElementById('estLogNotas')?.value || ''
+  };
+  _estSaveOverrides(overrides);
+  showToast('Guardado ✓');
+}
+function _estLoadFooter(dateISO) {
+  const overrides = _estGetOverrides();
+  const f = overrides[`${dateISO}::_footer`] || {};
+  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  setV('estCalA',        f.calA || '');
+  setV('estCalB',        f.calB || '');
+  setV('estLogFirma',    f.firma || '');
+  setV('estLogEjercicio', f.ejercicio || '2026');
+  setV('estLogNotas',    f.notas || '');
+  _estUpdateCalTotal();
+}
+
+// Guarda edición manual de una celda específica
+function _estSaveCellEdit(dateISO, lote, field, value) {
+  const overrides = _estGetOverrides();
+  const key = `${dateISO}::${lote}`;
+  overrides[key] = overrides[key] || {};
+  const num = ['cb','rev','pla','com','monforts','bru','prog','aprev'].includes(field);
+  overrides[key][field] = num ? (Number(value) || 0) : value;
+  _estSaveOverrides(overrides);
+}
+
+function renderEstadistica() {
+  _estBindOnce();
+  // Default fecha = hoy
+  const inp = document.getElementById('estFecha');
+  if (inp && !inp.value) inp.value = new Date().toISOString().slice(0,10);
+  const dateISO = _estFechaISO();
+
+  // Cargar footer (calidad + logística)
+  _estLoadFooter(dateISO);
+
+  // Construir filas
+  const rows = _estBuildRows(dateISO);
+  const tbody = document.getElementById('estTBody');
+  const tfoot = document.getElementById('estTFoot');
+  if (!tbody || !tfoot) return;
+
+  // Totales
+  const T = { cb:0, rev:0, pla:0, com:0, monforts:0, bru:0, prog:0, aprev:0, faltante:0 };
+  rows.forEach(r => {
+    T.cb += r.cb || 0; T.rev += r.rev || 0; T.pla += r.pla || 0; T.com += r.com || 0;
+    T.monforts += r.monforts || 0; T.bru += r.bru || 0;
+    T.prog += r.prog || 0; T.aprev += r.aprev || 0;
+  });
+  T.faltante = T.prog - T.aprev;
+  T.pct = T.prog > 0 ? (T.aprev / T.prog) : 0;
+  const terminado = T.monforts + T.bru + T.com; // producto terminado real
+  const rama = T.monforts + T.bru;
+
+  // KPIs
+  const kpiHtml = [
+    { label:'Producto Terminado', val: _estFmt(terminado, 2) + ' kg', color:'from-emerald-600/40 to-emerald-500/10 border-emerald-500/40' },
+    { label:'RAMA',                val: _estFmt(rama, 2) + ' kg',     color:'from-sky-600/40 to-sky-500/10 border-sky-500/40' },
+    { label:'Compactadora',        val: _estFmt(T.com, 2) + ' kg',    color:'from-purple-600/40 to-purple-500/10 border-purple-500/40' },
+    { label:'Faltante vs Prog',    val: _estFmt(T.faltante, 2) + ' kg', color: T.faltante > 0 ? 'from-red-600/40 to-red-500/10 border-red-500/40' : 'from-slate-700/40 to-slate-800/10 border-slate-700' }
+  ].map(k => `
+    <div class="rounded-xl p-3 border bg-gradient-to-br ${k.color}">
+      <div class="text-[10px] text-slate-300 uppercase tracking-wider font-bold">${k.label}</div>
+      <div class="text-xl font-black text-white mt-1">${k.val}</div>
+    </div>
+  `).join('');
+  document.getElementById('estKpis').innerHTML = kpiHtml;
+
+  // Mensaje resumen
+  const msg = _estBuildMensaje(dateISO, { terminado, rama, com: T.com }, {});
+  const pre = document.getElementById('estMensajeTexto');
+  if (pre) pre.textContent = msg;
+
+  // Filas
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="17" class="p-6 text-center text-slate-500 text-sm">Sin producción registrada para <b>${dateISO}</b></td></tr>`;
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  const cellNum = (row, field, decimals=1) => {
+    const v = row[field];
+    const display = _estFmt(v, decimals);
+    return `<td class="p-2 text-right"><input class="est-cell w-full text-right bg-transparent border-0 outline-none focus:bg-slate-800/60 rounded px-1" data-lote="${row.lote}" data-field="${field}" data-decimals="${decimals}" type="text" value="${_estFmtCap(v, decimals) || ''}" placeholder="—" /></td>`;
+  };
+  const cellText = (row, field) => {
+    const v = row[field] || '';
+    return `<td class="p-2"><input class="est-cell w-full bg-transparent border-0 outline-none focus:bg-slate-800/60 rounded px-1" data-lote="${row.lote}" data-field="${field}" type="text" value="${String(v).replace(/"/g,'&quot;')}" /></td>`;
+  };
+
+  tbody.innerHTML = rows.map((r, i) => {
+    const pctColor = r.pct >= 0.98 ? 'text-emerald-400' : (r.pct >= 0.9 ? 'text-amber-400' : 'text-red-400');
+    return `
+      <tr class="border-t border-slate-800 hover:bg-slate-800/30">
+        <td class="p-2 text-center text-slate-500">${i+1}</td>
+        ${cellText(r, 'tela')}
+        ${cellText(r, 'color')}
+        <td class="p-2 text-center font-mono text-slate-300">${r.lote}</td>
+        ${cellText(r, 'pedido')}
+        ${cellText(r, 'linea')}
+        ${cellText(r, 'turno')}
+        ${cellNum(r, 'cb', 2)}
+        ${cellNum(r, 'rev', 2)}
+        ${cellNum(r, 'pla', 2)}
+        ${cellNum(r, 'com', 2)}
+        ${cellNum(r, 'monforts', 2)}
+        ${cellNum(r, 'bru', 2)}
+        ${cellNum(r, 'prog', 2)}
+        ${cellNum(r, 'aprev', 2)}
+        <td class="p-2 text-right text-slate-400">${_estFmt(r.faltante, 2)}</td>
+        <td class="p-2 text-right font-bold ${pctColor}">${(r.pct*100).toFixed(1)}%</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Footer con totales
+  tfoot.innerHTML = `
+    <tr class="border-t-2 border-slate-700">
+      <td class="p-2" colspan="7">TOTAL DE PRODUCTO TERMINADO POR MÁQUINA</td>
+      <td class="p-2 text-right">${_estFmt(T.cb, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.rev, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.pla, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.com, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.monforts, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.bru, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.prog, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.aprev, 2)}</td>
+      <td class="p-2 text-right">${_estFmt(T.faltante, 2)}</td>
+      <td class="p-2 text-right">${(T.pct*100).toFixed(1)}%</td>
+    </tr>
+  `;
+
+  // Bind edición de celdas
+  tbody.querySelectorAll('.est-cell').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const lote = e.target.dataset.lote;
+      const field = e.target.dataset.field;
+      const decimals = Number(e.target.dataset.decimals);
+      const raw = e.target.value.trim().replace(/,/g,'');
+      _estSaveCellEdit(dateISO, lote, field, raw);
+      // Re-render para recalcular totales/faltante/%
+      renderEstadistica();
+    });
+  });
+}
+
+// Exportar el reporte a Excel (una sola hoja con la tabla completa + footer)
+function _estExportExcel() {
+  if (typeof XLSX === 'undefined') { showToast('Excel no cargado'); return; }
+  const dateISO = _estFechaISO();
+  const rows = _estBuildRows(dateISO);
+  if (!rows.length) { showToast('Sin datos para exportar'); return; }
+
+  const overrides = _estGetOverrides();
+  const footer = overrides[`${dateISO}::_footer`] || {};
+
+  // Header rows
+  const aoa = [];
+  aoa.push(['Tejidos Gaytán de Moroleón S.A. de C.V.']);
+  aoa.push(['REPORTE DE ENTREGA DE PRODUCTO TERMINADO']);
+  aoa.push([`Fecha: ${dateISO}`, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', `Ejercicio: ${footer.ejercicio || '2026'}`]);
+  aoa.push([]);
+  aoa.push(['#','TELA','COLOR','LOTE','N.PED','L.','TUR','C.B.','REV','PLA','COM','MONFORTS','BRU','PROG','APREV','FALTANTE','%']);
+
+  rows.forEach((r, i) => {
+    aoa.push([
+      i+1, r.tela || '', r.color || '', r.lote || '', r.pedido || '', r.linea || '', r.turno || '',
+      Number(r.cb.toFixed(2)), Number(r.rev.toFixed(2)), Number(r.pla.toFixed(2)),
+      Number(r.com.toFixed(2)), Number(r.monforts.toFixed(2)), Number(r.bru.toFixed(2)),
+      Number(r.prog.toFixed(2)), Number(r.aprev.toFixed(2)), Number(r.faltante.toFixed(2)),
+      Number((r.pct*100).toFixed(1))
+    ]);
+  });
+
+  // Totales
+  const T = rows.reduce((s,r) => ({
+    cb:s.cb+r.cb, rev:s.rev+r.rev, pla:s.pla+r.pla, com:s.com+r.com,
+    monforts:s.monforts+r.monforts, bru:s.bru+r.bru, prog:s.prog+r.prog, aprev:s.aprev+r.aprev
+  }), {cb:0,rev:0,pla:0,com:0,monforts:0,bru:0,prog:0,aprev:0});
+  const faltante = T.prog - T.aprev;
+  const pct = T.prog > 0 ? (T.aprev / T.prog) * 100 : 0;
+
+  aoa.push([]);
+  aoa.push(['TOTAL','','','','','','',
+    Number(T.cb.toFixed(2)), Number(T.rev.toFixed(2)), Number(T.pla.toFixed(2)),
+    Number(T.com.toFixed(2)), Number(T.monforts.toFixed(2)), Number(T.bru.toFixed(2)),
+    Number(T.prog.toFixed(2)), Number(T.aprev.toFixed(2)), Number(faltante.toFixed(2)),
+    Number(pct.toFixed(1))
+  ]);
+
+  aoa.push([]);
+  aoa.push(['CALIDAD', 'Kg', '%']);
+  const calA = Number(footer.calA) || 0;
+  const calB = Number(footer.calB) || 0;
+  const calTotal = calA + calB;
+  aoa.push(['Primera Clase A', Number(calA.toFixed(2)), calTotal > 0 ? Number((calA/calTotal*100).toFixed(2)) : 0]);
+  aoa.push(['Segunda Clase B', Number(calB.toFixed(2)), calTotal > 0 ? Number((calB/calTotal*100).toFixed(2)) : 0]);
+  aoa.push(['TOTAL DE PRODUCTO TERMINADO', Number(calTotal.toFixed(2)), 100]);
+  aoa.push([]);
+  aoa.push(['LOGÍSTICA', footer.firma || '', footer.ejercicio || '2026']);
+  if (footer.notas) aoa.push(['Notas:', footer.notas]);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [
+    { wch: 4 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 6 }, { wch: 6 },
+    { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 11 }, { wch: 9 },
+    { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 7 }
+  ];
+  // Estilos: títulos en bold
+  const titleStyle = { font: { bold: true, sz: 13, color: { rgb: '1E40AF' } }, alignment: { horizontal: 'center' } };
+  const hdrStyle   = { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '1E40AF' } }, alignment: { horizontal: 'center' } };
+  ['A1','A2'].forEach(a => { if (ws[a]) ws[a].s = titleStyle; });
+  // Header row (row 5, índice 4)
+  for (let c = 0; c < 17; c++) {
+    const addr = XLSX.utils.encode_cell({ r: 4, c });
+    if (ws[addr]) ws[addr].s = hdrStyle;
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estadística');
+  XLSX.writeFile(wb, `estadistica_reporte_${dateISO}.xlsx`, { compression: true, bookType: 'xlsx' });
+  showToast('Excel descargado ✓');
+}
 
 init();
 </script>
