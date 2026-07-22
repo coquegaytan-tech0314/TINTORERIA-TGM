@@ -1281,6 +1281,7 @@
           <p class="text-xs text-slate-400" id="reportHeatmapSub">Click en un día para verlo · <span class="text-sky-400">■</span> Tintorería · <span class="text-emerald-400">■</span> Rama · <span class="text-purple-400">■</span> Ambos</p>
         </div>
         <div class="flex items-center gap-2">
+          <button type="button" id="reportDownloadDayBtn" class="btn btn-primary text-xs" title="Descargar Excel con tablas por máquina del día seleccionado (Tintorería, RAMA, Compactadora)">📊 Descargar Excel del día</button>
           <button type="button" id="heatPrev" class="btn btn-ghost text-xs" title="Mes anterior">‹</button>
           <span id="heatMonthLbl" class="text-sm font-bold text-white">—</span>
           <button type="button" id="heatNext" class="btn btn-ghost text-xs" title="Mes siguiente">›</button>
@@ -6080,6 +6081,9 @@ function init() {
   // Bind refresh button del panel Duplicados
   const _dupRefBtn = document.getElementById('dupRefreshBtn');
   if (_dupRefBtn) _dupRefBtn.addEventListener('click', () => renderDuplicados());
+  // Bind botón "Descargar Excel del día" en Reportes
+  const _dlDayBtn = document.getElementById('reportDownloadDayBtn');
+  if (_dlDayBtn) _dlDayBtn.addEventListener('click', () => exportDayReport());
   bindResumenTerminado();
   bindReporteSemanal();
   bindPT();
@@ -10781,6 +10785,226 @@ function exportToExcel(){
   } catch (err) {
     console.error('Export Excel error:', err);
     toast('Error al exportar a Excel: ' + (err && err.message || err), true);
+  }
+}
+
+/* ===============================================================
+   EXPORT DEL DÍA (botón arriba del calendario en Reportes)
+   ---------------------------------------------------------------
+   Genera un .xlsx con las tablas del día seleccionado, tal como
+   aparecen debajo del calendario en el dashboard:
+     - Hoja "Resumen"      : KPIs de Tintorería / RAMA / Compactadora
+     - Hoja "Tintorería"   : fichas de state.prod agrupadas por máquina
+     - Hoja "RAMA"         : fichas Bruckner + Monforts (state.bruck)
+     - Hoja "Compactadora" : fichas de state.compact
+=============================================================== */
+
+function _fmtNum(v, decimals) {
+  const n = Number(v);
+  if (!isFinite(n)) return '';
+  return decimals != null ? Number(n.toFixed(decimals)) : n;
+}
+
+function _fmtDia(dateISO) {
+  try {
+    return new Date(dateISO + 'T12:00:00').toLocaleDateString('es-MX', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+    });
+  } catch(e) { return dateISO; }
+}
+
+function exportDayReport() {
+  if (typeof XLSX === 'undefined') {
+    toast('No se pudo cargar el módulo Excel. Revisa tu conexión.', true);
+    return;
+  }
+  const dateISO = (document.getElementById('reportDate') || {}).value || todayISO();
+  if (!dateISO) { toast('Selecciona una fecha primero', true); return; }
+
+  const prodRows  = (state.prod || []).filter(r => r.fecha === dateISO);
+  const bruckAll  = (state.bruck || []).filter(r => r.fecha === dateISO);
+  const compRows  = (state.compact || []).filter(r => r.fecha === dateISO);
+
+  if (!prodRows.length && !bruckAll.length && !compRows.length) {
+    toast('No hay fichas para el día ' + dateISO, true);
+    return;
+  }
+
+  try {
+    const wb = XLSX.utils.book_new();
+    wb.Props = {
+      Title: 'Tintorería TGM — Reporte del día',
+      Subject: 'Producción del ' + dateISO,
+      Author: 'Tintorería TGM',
+      CreatedDate: new Date()
+    };
+
+    // ---------- Hoja 1: Resumen ----------
+    const prodKg  = prodRows.reduce((s, r) => s + (Number(r.kilos) || 0), 0);
+    const prodCQ  = prodRows.reduce((s, r) => s + ((Number(r.kilos)||0) * (Number(r.apq)||0)), 0);
+    const bruckR  = bruckAll.filter(r => (r.rama || 'Bruckner') === 'Bruckner');
+    const monfR   = bruckAll.filter(r => (r.rama || 'Bruckner') === 'Monforts');
+    const bruckKg = bruckR.reduce((s, r) => s + (Number(r.kilos) || 0), 0);
+    const bruckM  = bruckR.reduce((s, r) => s + (Number(r.metros) || 0), 0);
+    const monfKg  = monfR.reduce((s, r) => s + (Number(r.kilos) || 0), 0);
+    const monfM   = monfR.reduce((s, r) => s + (Number(r.metros) || 0), 0);
+    const compKg  = compRows.reduce((s, r) => s + (Number(r.kilos) || 0), 0);
+    const compM   = compRows.reduce((s, r) => s + (Number(r.metros) || 0), 0);
+
+    // Desglose por proceso para RAMA + Compactadora
+    const desglose = (rows, key) => {
+      const by = {};
+      rows.forEach(r => {
+        const p = String(r[key] || 'Otro').trim();
+        by[p] = (by[p] || 0) + (Number(r.kilos) || 0);
+      });
+      return by;
+    };
+    const bruckByProc = desglose(bruckR, 'proceso');
+    const monfByProc  = desglose(monfR, 'proceso');
+    const compByProc  = desglose(compRows, 'proceso');
+
+    const resumen = [
+      ['Empresa', 'Tejidos Gaytán de Moroleón S.A. de C.V.'],
+      ['Área', 'Tintorería TGM'],
+      ['Fecha reporte', _fmtDia(dateISO)],
+      ['Exportado', new Date().toLocaleString('es-MX')],
+      ['', ''],
+      ['== Tintorería (Máquinas de teñido) ==', ''],
+      ['Fichas', prodRows.length],
+      ['Kilos totales', _fmtNum(prodKg, 1)],
+      ['Costo químico estimado (MXN)', _fmtNum(prodCQ, 0)],
+      ['', ''],
+      ['== RAMA · Bruckner ==', ''],
+      ['Fichas', bruckR.length],
+      ['Kilos', _fmtNum(bruckKg, 1)],
+      ['Metros', _fmtNum(bruckM, 1)]
+    ];
+    Object.keys(bruckByProc).forEach(p => resumen.push(['  • ' + p, _fmtNum(bruckByProc[p], 1) + ' kg']));
+    resumen.push(['', '']);
+    resumen.push(['== RAMA · Monforts ==', '']);
+    resumen.push(['Fichas', monfR.length]);
+    resumen.push(['Kilos', _fmtNum(monfKg, 1)]);
+    resumen.push(['Metros', _fmtNum(monfM, 1)]);
+    Object.keys(monfByProc).forEach(p => resumen.push(['  • ' + p, _fmtNum(monfByProc[p], 1) + ' kg']));
+    resumen.push(['', '']);
+    resumen.push(['== Compactadora (Ruta tubular) ==', '']);
+    resumen.push(['Fichas', compRows.length]);
+    resumen.push(['Kilos', _fmtNum(compKg, 1)]);
+    resumen.push(['Metros', _fmtNum(compM, 1)]);
+    Object.keys(compByProc).forEach(p => resumen.push(['  • ' + p, _fmtNum(compByProc[p], 1) + ' kg']));
+
+    const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+    wsResumen['!cols'] = [{ wch: 42 }, { wch: 38 }];
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+    // ---------- Hoja 2: Tintorería (por máquina) ----------
+    if (prodRows.length) {
+      const order = MACHINES.map(m => m.id);
+      const rowsOrdenados = prodRows.slice().sort((a, b) => {
+        const oa = order.indexOf(a.machine); const ob = order.indexOf(b.machine);
+        if (oa !== ob) return (oa < 0 ? 999 : oa) - (ob < 0 ? 999 : ob);
+        return (a.ts || 0) - (b.ts || 0);
+      });
+      const tintData = rowsOrdenados.map(r => ({
+        'Máquina':      r.machine || '',
+        'Turno':         r.shift || '',
+        'Kilos':         _fmtNum(r.kilos, 1),
+        'Color':         r.color || '',
+        'Diseño':        r.diseno || '',
+        'Tela':          r.tela || '',
+        'Lote':          r.lote || '',
+        'Pedido':        r.pedido || '',
+        'Proceso':       r.proceso || '',
+        'Hr. Ent.':      r.hEntrada || '',
+        'Hr. Sal.':      r.hSalida || '',
+        'Hora reg.':     r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
+        'Químico/kg':    _fmtNum(r.apq, 2),
+        'Costo Quím.':   _fmtNum((Number(r.apq)||0) * (Number(r.kilos)||0), 0),
+        'Baños':         r.banos || 1,
+        'Operador':      r.operador || '',
+        'Notas':         r.notas || '',
+        'Estado':        r.estado || 'cerrada',
+        'Reproceso':     r.es_reproceso ? 'SÍ' : ''
+      }));
+      const wsTint = XLSX.utils.json_to_sheet(tintData);
+      wsTint['!cols'] = [
+        { wch: 10 }, { wch: 6 }, { wch: 8 }, { wch: 16 }, { wch: 14 }, { wch: 18 },
+        { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 8 }, { wch: 18 },
+        { wch: 10 }, { wch: 10 }, { wch: 6 }, { wch: 14 }, { wch: 20 }, { wch: 10 }, { wch: 10 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsTint, 'Tintorería');
+    }
+
+    // ---------- Hoja 3: RAMA (Bruckner + Monforts) ----------
+    if (bruckAll.length) {
+      const bruckData = bruckAll.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(r => ({
+        'Máquina':      r.rama || 'Bruckner',
+        'Turno':         r.shift || r.turno || '',
+        'Kilos':         _fmtNum(r.kilos, 1),
+        'Metros':        _fmtNum(r.metros, 1),
+        'Ancho':         _fmtNum(r.ancho, 2),
+        'Velocidad':     _fmtNum(r.velocidad || r.vel, 1),
+        'Temperatura':   _fmtNum(r.temperatura || r.temp, 0),
+        'Rendimiento':   _fmtNum(r.rendimiento || r.rend, 2),
+        'Color':         r.color || '',
+        'Tela':          r.tela || '',
+        'Lote':          r.lote || '',
+        'Proceso':       r.proceso || '',
+        'Hr. Ent.':      r.hEntrada || '',
+        'Hr. Sal.':      r.hSalida || '',
+        'Hora reg.':     r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
+        'Operador':      r.operador || '',
+        'Notas':         r.notas || r.observaciones || '',
+        'Reproceso':     r.es_reproceso ? 'SÍ' : ''
+      }));
+      const wsRama = XLSX.utils.json_to_sheet(bruckData);
+      wsRama['!cols'] = [
+        { wch: 10 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 6 }, { wch: 8 },
+        { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 18 }, { wch: 10 },
+        { wch: 14 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 10 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsRama, 'RAMA');
+    }
+
+    // ---------- Hoja 4: Compactadora ----------
+    if (compRows.length) {
+      const compData = compRows.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(r => ({
+        'Máquina':      'Compactadora',
+        'Turno':         r.shift || r.turno || '',
+        'Kilos':         _fmtNum(r.kilos, 1),
+        'Metros':        _fmtNum(r.metros, 1),
+        'Velocidad':     _fmtNum(r.velocidad || r.vel, 1),
+        'Temperatura':   _fmtNum(r.temperatura || r.temp, 0),
+        'Color':         r.color || '',
+        'Tela':          r.tela || '',
+        'Lote':          r.lote || '',
+        'Proceso':       r.proceso || '',
+        'Hr. Ent.':      r.hEntrada || '',
+        'Hr. Sal.':      r.hSalida || '',
+        'Hora reg.':     r.ts ? new Date(r.ts).toLocaleString('es-MX') : '',
+        'Operador':      r.operador || '',
+        'Notas':         r.notas || r.observaciones || '',
+        'Reproceso':     r.es_reproceso ? 'SÍ' : ''
+      }));
+      const wsComp = XLSX.utils.json_to_sheet(compData);
+      wsComp['!cols'] = [
+        { wch: 14 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 },
+        { wch: 16 }, { wch: 18 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 8 },
+        { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 10 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsComp, 'Compactadora');
+    }
+
+    const fname = `tintoreria_tgm_dia_${dateISO}.xlsx`;
+    XLSX.writeFile(wb, fname, { compression: true, bookType: 'xlsx' });
+
+    const totFichas = prodRows.length + bruckAll.length + compRows.length;
+    try { logChange({ module: 'Export', action: 'Excel del día', detail: `${dateISO} · ${totFichas} fichas` }); } catch(e){}
+    toast(`Excel del ${dateISO} descargado · ${totFichas} fichas ✓`);
+  } catch (err) {
+    console.error('Export día error:', err);
+    toast('Error al exportar el día: ' + (err && err.message || err), true);
   }
 }
 
