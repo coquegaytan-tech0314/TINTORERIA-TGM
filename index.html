@@ -17445,6 +17445,177 @@ function _catCompatBadge(k) {
   }
 }
 
+// =====================================================================
+// AUTOCORRECT TELAS · Option B
+// ---------------------------------------------------------------------
+// Objetivo: evitar typos + telas fantasma sin bloquear al taller.
+//
+//   - telaNormalize(s)  : normaliza (minúsculas, sin acentos, colapsa espacios)
+//   - telaLookup(name)  : match EXACTO (por nombre normalizado) → devuelve la tela del catálogo
+//   - suggestTelas(q,n) : top-N sugerencias fuzzy ordenadas por score (prefijo > substring > distancia)
+//   - isKnownTela(name) : true si existe en el catálogo (para gating de saves)
+//   - canAltaTelaRapida(): admin/manager/supervisor pueden dar de alta al vuelo
+//   - altaTelaRapida(input): crea tela con flag sinVerificar=true en state.telas + LS + cloud
+// =====================================================================
+
+function telaNormalize(s) {
+  if (s == null) return '';
+  return String(s)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quita acentos
+    .replace(/[^a-z0-9\s]/g, ' ')                       // limpia puntuación
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Match exacto (por nombre normalizado). Devuelve la fila del catálogo o null.
+function telaLookup(name) {
+  const q = telaNormalize(name);
+  if (!q) return null;
+  const rows = Array.isArray(state.telas) ? state.telas : [];
+  return rows.find(t => telaNormalize(t.nombre) === q) || null;
+}
+
+function isKnownTela(name) { return !!telaLookup(name); }
+
+// Distancia Levenshtein compacta (para ranking fino de sugerencias)
+function _telaLev(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const m = a.length, n = b.length;
+  let prev = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a.charCodeAt(i-1) === b.charCodeAt(j-1) ? 0 : 1;
+      cur[j] = Math.min(
+        cur[j-1] + 1,
+        prev[j]  + 1,
+        prev[j-1] + cost
+      );
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+// Devuelve top-N sugerencias del catálogo ordenadas por relevancia.
+// Score más bajo = mejor match.
+//   0.0  → match exacto
+//   0.1  → empieza con la query
+//   0.2  → contiene la query
+//   0.3+ → fuzzy (Levenshtein normalizado)
+function suggestTelas(query, limit) {
+  const n = limit || 6;
+  const q = telaNormalize(query);
+  const rows = Array.isArray(state.telas) ? state.telas : [];
+  if (!q) return [];
+
+  const scored = [];
+  for (const t of rows) {
+    const name = telaNormalize(t.nombre);
+    if (!name) continue;
+    let score;
+    if (name === q)          score = 0.0;
+    else if (name.startsWith(q)) score = 0.1;
+    else if (name.includes(q))   score = 0.2;
+    else {
+      // Levenshtein normalizado por longitud del más largo
+      const d = _telaLev(name, q);
+      const maxLen = Math.max(name.length, q.length);
+      const norm = d / maxLen;
+      // Filtra ruido: sugerencias con >55% diferencia se descartan
+      if (norm > 0.55) continue;
+      score = 0.3 + norm;
+    }
+    scored.push({ tela: t, score });
+  }
+  scored.sort((a, b) => a.score - b.score || a.tela.nombre.localeCompare(b.tela.nombre));
+  return scored.slice(0, n).map(x => x.tela);
+}
+
+// ¿El usuario actual puede dar de alta una tela al vuelo?
+// admin | manager | supervisor → sí. Operador normal → no (debe pedir alta a admin).
+function canAltaTelaRapida() {
+  try {
+    // Reusa la lógica de rol de Empleados (Commit #1 Fase 3)
+    if (typeof _empIsAdmin === 'function' && _empIsAdmin()) return true;
+    const emp = (typeof EMP_STATE === 'object' && EMP_STATE) ? EMP_STATE.currentUserEmp : null;
+    const rol = (emp && emp.rol) ? String(emp.rol).toLowerCase() : '';
+    return /admin|manager|supervis|jefe|encargad|coord/.test(rol);
+  } catch(e) { return false; }
+}
+
+// Alta rápida de tela al vuelo. Marca sinVerificar=true para que admin la revise después.
+//   input = { nombre, ruta: 'rama'|'tubular', rendimiento?, composicion?, anchoUtil? }
+// Devuelve la tela creada o null si falla.
+function altaTelaRapida(input) {
+  const nombre = String(input && input.nombre || '').trim();
+  if (!nombre) return null;
+  // Doble-check: si ya existe, devuelve la existente
+  const existente = telaLookup(nombre);
+  if (existente) return existente;
+
+  const now = new Date().toISOString();
+  const id  = 'tela-' + nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
+  const isTub = (input.ruta === 'tubular');
+  const anchoDefault = isTub ? 0.9 : 1.6;  // heurística: tubular ~0.9m, RAMA ~1.6m
+  const rec = {
+    id,
+    nombre: nombre,
+    composicion: (input.composicion || '—').trim() || '—',
+    anchoTotal: input.anchoUtil ?? anchoDefault,
+    anchoUtil:  input.anchoUtil ?? anchoDefault,
+    rendimiento: (input.rendimiento != null && input.rendimiento !== '') ? Number(input.rendimiento) : null,
+    pesoGm2: null,
+    malla: null,
+    columnasCm: null,
+    estabilidad: null,
+    compatibilidadRama: isTub ? 'no' : _catCompatRama(anchoDefault),
+    esTubular: isTub,                    // úsado por isTubularTela() como override
+    sinVerificar: true,                  // úsado por Catálogo para mostrar badge ámbar
+    altaRapida: true,
+    altaRapidaPor: (window.TG_USER && (window.TG_USER.nombre || window.TG_USER.email)) || '—',
+    actualizadoEn: now.slice(0,10),
+    actualizadoPor: (window.TG_USER && (window.TG_USER.nombre || window.TG_USER.email)) || '—',
+    createdAt: now
+  };
+
+  // Push a memoria + LS + cloud
+  if (!Array.isArray(state.telas)) state.telas = [];
+  state.telas.push(rec);
+  try { localStorage.setItem(LS_KEYS.telas, JSON.stringify(state.telas)); } catch(e){}
+  try { if (typeof TG_AUTH_TOKEN !== 'undefined' && TG_AUTH_TOKEN) saveToCloud('telas', rec); } catch(e){}
+
+  // Refresca Catálogo si está abierto
+  try { if (typeof renderCatalogoTelas === 'function') renderCatalogoTelas(); } catch(_){}
+
+  return rec;
+}
+
+// Cuántas telas sin verificar hay (para badge en Catálogo)
+function countTelasSinVerificar() {
+  const rows = Array.isArray(state.telas) ? state.telas : [];
+  return rows.filter(t => t && t.sinVerificar === true).length;
+}
+
+// Solicitud de alta (para operadores sin permiso). Guarda en Firestore/telas_solicitudes.
+function solicitarAltaTela(nombre, ruta) {
+  const now = new Date().toISOString();
+  const req = {
+    id: 'req-tela-' + Date.now().toString(36),
+    nombre: String(nombre || '').trim(),
+    ruta: (ruta === 'tubular') ? 'tubular' : 'rama',
+    solicitante: (window.TG_USER && (window.TG_USER.nombre || window.TG_USER.email)) || '—',
+    ts: now,
+    estado: 'pendiente'
+  };
+  try { if (typeof TG_AUTH_TOKEN !== 'undefined' && TG_AUTH_TOKEN) saveToCloud('telas_solicitudes', req); } catch(e){}
+  return req;
+}
+
 // —— Sembrar catálogo si está vacío ——
 function _catSeedIfEmpty() {
   if (!Array.isArray(state.telas)) state.telas = [];
