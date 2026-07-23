@@ -3729,6 +3729,7 @@
         <select id="cat_filterComp" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
           <option value="">Composición: todas</option>
         </select>
+        <button id="cat_filterSinVerificar" class="btn btn-secondary !py-2 !px-3 text-xs relative" title="Sólo telas sin verificar">⚠ Sin verificar <span id="cat_sinVerBadge" class="ml-1 px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-300 text-[10px] font-bold hidden">0</span></button>
         <button id="cat_resetFilters" class="btn btn-secondary !py-2 !px-3 text-xs" title="Limpiar filtros">↺ Reset</button>
       </div>
     </div>
@@ -5910,7 +5911,7 @@ let state = {
     try { return JSON.parse(localStorage.getItem(LS_KEYS.cfgRama)) || RAMA_DEFAULTS; }
     catch(e){ return RAMA_DEFAULTS; }
   })(),
-  telasFilter: { q:'', compat:'', composicion:'', sortBy:'nombre', sortDir:'asc' }, // filtros UI del catálogo
+  telasFilter: { q:'', compat:'', composicion:'', sinVerificar:false, sortBy:'nombre', sortDir:'asc' }, // filtros UI del catálogo
   pt:       JSON.parse(localStorage.getItem(LS_KEYS.pt) || '[]'),
   ptSheets: JSON.parse(localStorage.getItem(LS_KEYS.ptSheets) || '[]'),
   ptFilters: { from:'', to:'', diseno:'', lote:'', turno:'', flagsOnly:false },
@@ -18162,6 +18163,7 @@ function _catApplyFilter(rows) {
   }
   if (f.compat)     out = out.filter(r => r.compatibilidadRama === f.compat);
   if (f.composicion) out = out.filter(r => (r.composicion||'') === f.composicion);
+  if (f.sinVerificar) out = out.filter(r => r.sinVerificar === true);
   const sb = f.sortBy || 'nombre';
   const dir = (f.sortDir === 'desc') ? -1 : 1;
   out.sort((a,b) => {
@@ -18206,6 +18208,21 @@ function renderCatalogoTelas() {
   // Versión info
   const vInfo = document.getElementById('cat_versionInfo');
   if (vInfo) vInfo.textContent = `${rows.length} telas · v. 2026-05-25 (Rogelio)`;
+
+  // Badge de conteo 'Sin verificar' en el botón del filtro
+  const sinVerCount = rows.filter(r => r.sinVerificar === true).length;
+  const sinVerBadge = document.getElementById('cat_sinVerBadge');
+  const sinVerBtn = document.getElementById('cat_filterSinVerificar');
+  if (sinVerBadge) {
+    if (sinVerCount > 0) { sinVerBadge.textContent = sinVerCount; sinVerBadge.classList.remove('hidden'); }
+    else { sinVerBadge.classList.add('hidden'); }
+  }
+  if (sinVerBtn) {
+    const isActive = !!(state.telasFilter && state.telasFilter.sinVerificar);
+    sinVerBtn.classList.toggle('!bg-amber-500/20', isActive);
+    sinVerBtn.classList.toggle('!text-amber-200', isActive);
+    sinVerBtn.classList.toggle('!border-amber-500/40', isActive);
+  }
 
   // Composición dropdown (poblar único)
   const compSel = document.getElementById('cat_filterComp');
@@ -18274,7 +18291,7 @@ function renderCatalogoTelas() {
 
   tbody.innerHTML = filtered.map(t => `
     <tr class="hover:bg-ink-800/60 cursor-pointer transition-colors" data-cat-row="${esc(t.id)}">
-      <td class="px-3 py-2 font-semibold text-white whitespace-nowrap">${esc(t.nombre)}</td>
+      <td class="px-3 py-2 font-semibold text-white whitespace-nowrap">${esc(t.nombre)}${t.sinVerificar ? ' <span class="ml-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold align-middle" title="Alta rápida pendiente de verificación">⚠ SIN VERIF</span>' : ''}</td>
       <td class="px-3 py-2 text-slate-300 text-[12px]">${esc(t.composicion)}</td>
       <td class="px-3 py-2 text-right text-slate-200 tabular-nums">${fmt(t.anchoUtil,2)} <span class="text-slate-500 text-[10px]">m</span></td>
       <td class="px-3 py-2 text-right text-slate-200 tabular-nums">${fmt(t.rendimiento,2)}</td>
@@ -18311,7 +18328,19 @@ function _catShowDetail(id) {
       compatMsg = `✅ Ancho útil dentro del rango operativo TGM (${cfg.anchoMin.toFixed(2)}–${cfg.anchoMaxOperativo.toFixed(2)} m).`;
   }
 
+  const sinVerBanner = t.sinVerificar ? `
+    <div class="mb-3 p-3 rounded border" style="background:rgba(251,191,36,0.10); border-color:rgba(251,191,36,0.35)">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex-1 min-w-[180px]">
+          <div class="text-[11px] font-black text-amber-300 uppercase tracking-wider">⚠ Sin verificar</div>
+          <div class="text-[12px] text-amber-100/90">Alta rápida creada por ${esc(t.altaRapidaPor||'—')} el ${esc((t.altaRapidaEn||'').slice(0,10))}. Revisa datos y aprueba.</div>
+        </div>
+        ${(typeof canAltaTelaRapida==='function' && canAltaTelaRapida()) ? `<button class="btn btn-primary !py-1.5 !px-3 text-xs" data-cat-aprobar="${esc(t.id)}">✓ Aprobar tela</button>` : ''}
+      </div>
+    </div>` : '';
+
   body.innerHTML = `
+    ${sinVerBanner}
     <div class="mb-4">
       <div class="text-xs text-slate-500 uppercase tracking-wider">Tela</div>
       <h3 class="text-2xl font-black text-white leading-tight">${esc(t.nombre)}</h3>
@@ -18369,6 +18398,29 @@ function _catShowDetail(id) {
 function _catHideDetail() {
   const modal = document.getElementById('catDetailModal');
   if (modal) modal.classList.add('hidden');
+}
+
+// —— Aprobar tela sin verificar (admin/manager/supervisor) ——
+function _catAprobarTela(id) {
+  if (typeof canAltaTelaRapida === 'function' && !canAltaTelaRapida()) {
+    return toast('Sólo admin/gerencia puede aprobar telas', true);
+  }
+  const idx = (state.telas||[]).findIndex(r => r.id === id);
+  if (idx === -1) return toast('Tela no encontrada', true);
+  const t = state.telas[idx];
+  if (!t.sinVerificar) { toast('Ya estaba verificada'); return; }
+  const who = (window.TG_USER && (window.TG_USER.nombre || window.TG_USER.email)) || 'admin';
+  t.sinVerificar = false;
+  t.verificadoPor = who;
+  t.verificadoEn  = new Date().toISOString();
+  t.actualizadoEn = new Date().toISOString();
+  t.actualizadoPor = who;
+  try { localStorage.setItem(LS_KEYS.telas, JSON.stringify(state.telas)); } catch(_){}
+  try { if (typeof saveToCloud === 'function') saveToCloud('telas', t); } catch(_){}
+  try { if (typeof pushHistorial === 'function') pushHistorial({ tipo:'tela_aprobada', tela:t.nombre, por:who }); } catch(_){}
+  toast('✓ Tela aprobada: ' + t.nombre);
+  _catHideDetail();
+  try { renderCatalogoTelas(); } catch(_){}
 }
 
 // —— CSV export ——
@@ -18433,9 +18485,15 @@ function _catBindEventsOnce() {
     state.telasFilter.composicion = filtComp.value;
     renderCatalogoTelas();
   });
+  const filtSinVer = document.getElementById('cat_filterSinVerificar');
+  if (filtSinVer) filtSinVer.addEventListener('click', () => {
+    state.telasFilter = state.telasFilter || {};
+    state.telasFilter.sinVerificar = !state.telasFilter.sinVerificar;
+    renderCatalogoTelas();
+  });
   const reset = document.getElementById('cat_resetFilters');
   if (reset) reset.addEventListener('click', () => {
-    state.telasFilter = { q:'', compat:'', composicion:'', sortBy:'nombre', sortDir:'asc' };
+    state.telasFilter = { q:'', compat:'', composicion:'', sinVerificar:false, sortBy:'nombre', sortDir:'asc' };
     if (search) search.value = '';
     if (clearBtn) clearBtn.classList.add('hidden');
     if (filtCompat) filtCompat.value = '';
@@ -18475,6 +18533,14 @@ function _catBindEventsOnce() {
   if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) _catHideDetail(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) _catHideDetail();
+  });
+  // Delegado · botón Aprobar tela dentro del modal de detalle
+  const detailBody = document.getElementById('catDetailBody');
+  if (detailBody) detailBody.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-cat-aprobar]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-cat-aprobar');
+    _catAprobarTela(id);
   });
 
   // CSV export
