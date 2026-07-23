@@ -7018,6 +7018,8 @@ function saveProd(andNew) {
   if (!kilos || kilos <= 0)   return toast('Captura los kilos', true);
   if (!$('#f_hEntrada').value || !$('#f_hSalida').value)
     return toast('Captura horas de entrada y salida', true);
+  // Autocorrect telas · bloquea si la tela no está en el catálogo
+  if (typeof assertTelaOk === 'function' && !assertTelaOk($('#f_tela'), { required: false })) return;
 
   const mins = durationMinutes($('#f_hEntrada').value, $('#f_hSalida').value);
 
@@ -9966,6 +9968,9 @@ function saveEditedFicha() {
     if (!hEntrada || !hSalida) return toast('Captura horas entrada y salida', true);
   }
 
+  // Autocorrect telas · bloquea si la tela no está en el catálogo
+  if (typeof assertTelaOk === 'function' && !assertTelaOk($('#ef_tela'), { required: false })) return;
+
   const machine = $('#ef_machine').value;
   const proceso = $('#ef_proceso').value.trim();
   f.machine  = machine;
@@ -10159,6 +10164,8 @@ function bindBrucknerForm() {
   $('#brSave').addEventListener('click', () => requireUserThen(() => {
     const k = parseFloat($('#br_kilos').value) || 0;
     if (!k) return toast('Captura los kilos', true);
+    // Autocorrect telas · bloquea si la tela no está en el catálogo
+    if (typeof assertTelaOk === 'function' && !assertTelaOk($('#br_tela'), { required: true })) return;
     const cFor = parseFloat($('#br_costoFormula')?.value) || 0;
     const cCol = parseFloat($('#br_costoColor')?.value) || 0;
     const cQui = parseFloat($('#br_costoQuim')?.value) || 0;
@@ -10648,6 +10655,8 @@ function openBruckEditModal(rec) {
   setV('be_turno', rec.turno || '');
   setV('be_lote', rec.lote || '');
   setV('be_tela', rec.tela || '');
+  // Autocorrect telas · attach dropdown al input del modal si no está attached
+  try { const _bt = document.getElementById('be_tela'); if (_bt && !_bt._telaAcAttached && typeof attachTelaAutocomplete === 'function') attachTelaAutocomplete(_bt); } catch(_){}
   setV('be_color', rec.color || '');
   setV('be_operador', rec.operador || '');
   setV('be_kilos', rec.kilos);
@@ -10686,6 +10695,8 @@ function saveBruckEdit() {
   const getN = (id) => { const v = getV(id); if (v === '' || v === undefined || v === null) return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
   const k = getN('be_kilos');
   if (k === null || k <= 0) return toast('Captura los kilos (mayor a 0)', true);
+  // Autocorrect telas · bloquea si la tela no está en el catálogo
+  if (typeof assertTelaOk === 'function' && !assertTelaOk(document.getElementById('be_tela'), { required: false })) return;
   const updated = {
     ...old,
     fecha:        getV('be_fecha') || old.fecha,
@@ -16949,6 +16960,8 @@ function _cmpUpdateCostoUI() {
 }
 
 function saveCompact() {
+  // Autocorrect telas · bloquea si la tela no está en el catálogo
+  if (typeof assertTelaOk === 'function' && !assertTelaOk(document.getElementById('cmp_tela'), { required: true })) return;
   const fecha  = document.getElementById('cmp_fecha').value || _cmpNowStr();
   const turno  = document.getElementById('cmp_turno').value || '1°';
   const oper   = document.getElementById('cmp_operador').value.trim();
@@ -18041,6 +18054,47 @@ function openSolicitudTelaModal(prefillNombre) {
 
   modal.classList.remove('hidden');
   setTimeout(() => document.getElementById('solTelaNombre').focus(), 50);
+}
+
+// =====================================================================
+// Guard · usar en cada save handler antes de escribir la ficha
+// ---------------------------------------------------------------------
+// Devuelve true si la tela está OK (o vacía — no obligatoria en algunos flujos).
+// Si NO está en el catálogo, abre el modal correcto según rol y devuelve false.
+// =====================================================================
+function assertTelaOk(inputEl, opts) {
+  const options = opts || {};
+  const required = options.required !== false;   // por default es obligatoria
+  const v = inputEl ? (inputEl.value || '').trim() : '';
+  if (!v) {
+    if (required) {
+      toast('Captura el nombre de la tela', true);
+      if (inputEl) { try { inputEl.focus(); } catch(_){} }
+      return false;
+    }
+    return true;
+  }
+  if (isKnownTela(v)) return true;
+
+  // No está en el catálogo → abre el modal correspondiente
+  toast('Tela no reconocida · corrige o da de alta', true);
+  try { inputEl.focus(); } catch(_){}
+  const canAlta = canAltaTelaRapida();
+  setTimeout(() => {
+    if (canAlta) {
+      openAltaTelaModal(v, (created) => {
+        if (created && inputEl) {
+          inputEl.value = created.nombre;
+          inputEl.classList.remove('tela-warn', 'tela-error');
+          inputEl.classList.add('tela-ok');
+          inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    } else {
+      openSolicitudTelaModal(v);
+    }
+  }, 50);
+  return false;
 }
 
 // =====================================================================
