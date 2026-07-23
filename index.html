@@ -118,6 +118,81 @@
   }
   .field::placeholder { color: #64748b; }
 
+  /* ==================== TELA AUTOCOMPLETE ==================== */
+  .tela-ac-wrap { position: relative; }
+  .tela-ac-panel {
+    position: absolute;
+    left: 0; right: 0; top: 100%;
+    z-index: 1000;
+    margin-top: 4px;
+    background: #0b1220;
+    border: 1px solid #253149;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .tela-ac-panel.hidden { display: none; }
+  .tela-ac-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: background .1s;
+  }
+  .tela-ac-item:hover, .tela-ac-item.active { background: #1e293b; }
+  .tela-ac-item .ac-name { font-weight: 600; }
+  .tela-ac-item .ac-meta { font-size: 0.72rem; color: #64748b; }
+  .tela-ac-item .ac-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .tela-ac-item .ac-badge.rama    { background: rgba(56,189,248,0.15); color: #7dd3fc; }
+  .tela-ac-item .ac-badge.tubular { background: rgba(251,191,36,0.15); color: #fcd34d; }
+  .tela-ac-item .ac-badge.sin     { background: rgba(251,113,133,0.15); color: #fda4af; }
+  .tela-ac-header {
+    padding: 6px 10px 4px;
+    font-size: 0.65rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+  .tela-ac-empty {
+    padding: 10px 12px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .tela-ac-empty .ac-alta-btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 6px 12px;
+    background: rgba(56,189,248,0.15);
+    color: #7dd3fc;
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .tela-ac-empty .ac-alta-btn:hover { background: rgba(56,189,248,0.25); }
+  .tela-ac-empty .ac-alta-btn.solicitar { background: rgba(251,191,36,0.15); color: #fcd34d; border-color: rgba(251,191,36,0.3); }
+  .tela-ac-empty .ac-alta-btn.solicitar:hover { background: rgba(251,191,36,0.25); }
+  /* Estado visual del input segun match */
+  .field.tela-ok      { border-color: #10b981; }
+  .field.tela-warn    { border-color: #f59e0b; }
+  .field.tela-error   { border-color: #ef4444; }
+
   label.lbl {
     display: block;
     font-size: 0.95rem;
@@ -6562,6 +6637,7 @@ function init() {
   bindTareas();
   bindEmpacado();  // Fase 3 · ficha de empacado con rollos primera / sospechosos
   bindRevisado();  // Fase 3 · decisión 3-way sobre rollos sospechosos (Calidad)
+  bindTelaAutocomplete();  // Autocorrect telas · attach a los 4 inputs de tela
   bindInicio();
   // Bind refresh button del panel Duplicados
   const _dupRefBtn = document.getElementById('dupRefreshBtn');
@@ -17614,6 +17690,378 @@ function solicitarAltaTela(nombre, ruta) {
   };
   try { if (typeof TG_AUTH_TOKEN !== 'undefined' && TG_AUTH_TOKEN) saveToCloud('telas_solicitudes', req); } catch(e){}
   return req;
+}
+
+// =====================================================================
+// TELA AUTOCOMPLETE UI
+// ---------------------------------------------------------------------
+// attachTelaAutocomplete(inputEl, { onPick, allowFreeText })
+//   · Envuelve el input en un div .tela-ac-wrap y añade un panel dropdown
+//   · Cada tecla: recalcula sugerencias con suggestTelas() y las muestra
+//   · Match exacto → borde verde + panel cerrado
+//   · Match parcial → borde ámbar + panel abierto con top-6
+//   · Sin matches → borde rojo + panel con "Alta rápida" / "Solicitar alta"
+//   · Teclas ↑↓ navegan, Enter selecciona, Esc cierra
+// =====================================================================
+
+function attachTelaAutocomplete(input, opts) {
+  if (!input || input._telaAcAttached) return;
+  input._telaAcAttached = true;
+  const options = opts || {};
+
+  // Envuelve el input
+  const parent = input.parentElement;
+  const wrap = document.createElement('div');
+  wrap.className = 'tela-ac-wrap';
+  parent.insertBefore(wrap, input);
+  wrap.appendChild(input);
+
+  // Panel
+  const panel = document.createElement('div');
+  panel.className = 'tela-ac-panel hidden';
+  wrap.appendChild(panel);
+
+  let currentIdx = -1;
+  let currentItems = [];
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function updateBorder() {
+    input.classList.remove('tela-ok', 'tela-warn', 'tela-error');
+    const v = (input.value || '').trim();
+    if (!v) return;
+    if (isKnownTela(v))      input.classList.add('tela-ok');
+    else if (currentItems.length > 0) input.classList.add('tela-warn');
+    else                              input.classList.add('tela-error');
+  }
+
+  function renderPanel(items, query) {
+    currentItems = items;
+    currentIdx = -1;
+    if (!query || !query.trim()) {
+      panel.classList.add('hidden');
+      return;
+    }
+    // Match exacto → no mostrar panel
+    if (isKnownTela(query) && items.length > 0 && telaNormalize(items[0].nombre) === telaNormalize(query)) {
+      panel.classList.add('hidden');
+      return;
+    }
+    if (items.length === 0) {
+      const canAlta = canAltaTelaRapida();
+      panel.innerHTML = `
+        <div class="tela-ac-empty">
+          <div>No hay coincidencias en el catálogo</div>
+          <div class="text-[0.7rem] text-slate-500 mt-1">“${esc(query)}” no existe como tela registrada</div>
+          ${canAlta
+            ? `<a class="ac-alta-btn" data-ac-action="alta">+ Dar de alta esta tela</a>`
+            : `<a class="ac-alta-btn solicitar" data-ac-action="solicitar">Solicitar alta al admin</a>`}
+        </div>`;
+    } else {
+      const rows = items.map((t, i) => {
+        const isTub = typeof isTubularTela === 'function' && isTubularTela(t.nombre);
+        const rutaBadge = isTub
+          ? '<span class="ac-badge tubular">Compactadora</span>'
+          : '<span class="ac-badge rama">RAMA</span>';
+        const sinVer = t.sinVerificar ? '<span class="ac-badge sin" title="Sin verificar">●</span>' : '';
+        const rend = (t.rendimiento != null) ? `${t.rendimiento} m/kg` : '';
+        const ancho = (t.anchoUtil != null) ? `${t.anchoUtil}m` : '';
+        const meta = [ancho, rend].filter(Boolean).join(' · ');
+        return `
+          <div class="tela-ac-item" data-ac-idx="${i}">
+            <div style="flex:1;min-width:0;">
+              <div class="ac-name">${esc(t.nombre)} ${sinVer}</div>
+              ${meta ? `<div class="ac-meta">${esc(meta)}</div>` : ''}
+            </div>
+            ${rutaBadge}
+          </div>`;
+      }).join('');
+      const canAlta = canAltaTelaRapida();
+      const exactMatch = items.some(t => telaNormalize(t.nombre) === telaNormalize(query));
+      const altaFooter = exactMatch ? '' : `
+        <div class="tela-ac-header" style="border-top:1px solid #253149;margin-top:4px;padding-top:8px;">¿Ninguna es la tuya?</div>
+        <div class="tela-ac-empty" style="padding-top:0;">
+          ${canAlta
+            ? `<a class="ac-alta-btn" data-ac-action="alta">+ Dar de alta “${esc(query)}”</a>`
+            : `<a class="ac-alta-btn solicitar" data-ac-action="solicitar">Solicitar alta al admin</a>`}
+        </div>`;
+      panel.innerHTML = `<div class="tela-ac-header">Coincidencias del catálogo</div>${rows}${altaFooter}`;
+    }
+    panel.classList.remove('hidden');
+  }
+
+  function pick(tela) {
+    input.value = tela.nombre;
+    panel.classList.add('hidden');
+    input.classList.remove('tela-warn', 'tela-error');
+    input.classList.add('tela-ok');
+    if (typeof options.onPick === 'function') { try { options.onPick(tela); } catch(_){} }
+    // Dispatch para que otros listeners reaccionen (ej. cálculos de rendimiento)
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function refresh() {
+    const q = input.value || '';
+    const items = suggestTelas(q, 6);
+    renderPanel(items, q);
+    updateBorder();
+  }
+
+  input.addEventListener('input', refresh);
+  input.addEventListener('focus', refresh);
+  input.addEventListener('blur',  () => {
+    // Cierra con delay para permitir click en item
+    setTimeout(() => { panel.classList.add('hidden'); updateBorder(); }, 150);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (panel.classList.contains('hidden')) return;
+    const items = panel.querySelectorAll('.tela-ac-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      currentIdx = Math.min(currentIdx + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === currentIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      currentIdx = Math.max(currentIdx - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === currentIdx));
+    } else if (e.key === 'Enter') {
+      if (currentIdx >= 0 && currentItems[currentIdx]) {
+        e.preventDefault();
+        pick(currentItems[currentIdx]);
+      }
+    } else if (e.key === 'Escape') {
+      panel.classList.add('hidden');
+    }
+  });
+
+  panel.addEventListener('mousedown', (e) => {
+    e.preventDefault();  // evita blur antes del click
+    const item = e.target.closest('.tela-ac-item');
+    if (item) {
+      const idx = parseInt(item.dataset.acIdx, 10);
+      if (currentItems[idx]) pick(currentItems[idx]);
+      return;
+    }
+    const action = e.target.closest('[data-ac-action]');
+    if (action) {
+      const act = action.dataset.acAction;
+      const q = input.value.trim();
+      if (act === 'alta') {
+        openAltaTelaModal(q, (created) => { if (created) pick(created); });
+      } else if (act === 'solicitar') {
+        openSolicitudTelaModal(q);
+      }
+    }
+  });
+
+  // Estado inicial
+  updateBorder();
+}
+
+// =====================================================================
+// MODAL · Alta rápida de tela (para admin/manager/supervisor)
+// =====================================================================
+
+function openAltaTelaModal(prefillNombre, cb) {
+  // Si el usuario no tiene permiso, redirige a solicitud
+  if (!canAltaTelaRapida()) {
+    openSolicitudTelaModal(prefillNombre);
+    return;
+  }
+
+  // Reusa el modal si existe
+  let modal = document.getElementById('altaTelaModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'altaTelaModal';
+    modal.className = 'fixed inset-0 z-[9999] hidden flex items-center justify-center';
+    modal.style.background = 'rgba(0,0,0,0.7)';
+    modal.innerHTML = `
+      <div class="bg-ink-900 border border-ink-700 rounded-2xl w-full max-w-md mx-4 p-5 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-white">➕ Alta rápida de tela</h3>
+          <button data-alta-close class="text-slate-400 hover:text-white text-xl">×</button>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <label class="lbl text-xs">Nombre de la tela *</label>
+            <input id="altaTelaNombre" type="text" class="field !py-2 !text-sm" placeholder="Ej: MAYKI ULTRA PLUS" />
+          </div>
+          <div>
+            <label class="lbl text-xs">Ruta productiva *</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 p-3 border border-ink-700 rounded-lg cursor-pointer hover:bg-ink-800">
+                <input type="radio" name="altaTelaRuta" value="rama" checked class="accent-sky-500">
+                <div>
+                  <div class="text-sm font-semibold text-white">🏳️ RAMA</div>
+                  <div class="text-[10px] text-slate-500">Bruckner · tela abierta</div>
+                </div>
+              </label>
+              <label class="flex items-center gap-2 p-3 border border-ink-700 rounded-lg cursor-pointer hover:bg-ink-800">
+                <input type="radio" name="altaTelaRuta" value="tubular" class="accent-amber-500">
+                <div>
+                  <div class="text-sm font-semibold text-white">🧵 Compactadora</div>
+                  <div class="text-[10px] text-slate-500">Tubular · tela angosta</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="lbl text-xs">Rendimiento (m/kg)</label>
+              <input id="altaTelaRend" type="number" step="0.1" class="field !py-2 !text-sm" placeholder="Opcional" />
+            </div>
+            <div>
+              <label class="lbl text-xs">Ancho útil (m)</label>
+              <input id="altaTelaAncho" type="number" step="0.01" class="field !py-2 !text-sm" placeholder="Opcional" />
+            </div>
+          </div>
+          <div>
+            <label class="lbl text-xs">Composición</label>
+            <input id="altaTelaComp" type="text" class="field !py-2 !text-sm" placeholder="Ej: Poliéster 100% (opcional)" />
+          </div>
+          <div class="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+            ⚠ La tela se guardará como <b>Sin verificar</b>. Admin puede completar los datos después desde Catálogo.
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button data-alta-close class="flex-1 px-3 py-2 rounded-lg bg-ink-800 text-slate-300 hover:bg-ink-700 text-sm">Cancelar</button>
+            <button data-alta-submit class="flex-1 px-3 py-2 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-400 text-sm">Dar de alta</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.closest('[data-alta-close]')) {
+        modal.classList.add('hidden');
+      }
+    });
+  }
+
+  // Prefill + reset
+  document.getElementById('altaTelaNombre').value = (prefillNombre || '').toUpperCase();
+  document.getElementById('altaTelaRend').value  = '';
+  document.getElementById('altaTelaAncho').value = '';
+  document.getElementById('altaTelaComp').value  = '';
+  const rutaRadios = modal.querySelectorAll('input[name="altaTelaRuta"]');
+  rutaRadios.forEach(r => r.checked = (r.value === 'rama'));
+
+  const submitBtn = modal.querySelector('[data-alta-submit]');
+  submitBtn.onclick = () => {
+    const nombre = document.getElementById('altaTelaNombre').value.trim();
+    if (!nombre) { toast('Captura el nombre de la tela', true); return; }
+    if (isKnownTela(nombre)) {
+      toast('Esa tela ya existe en el catálogo', true);
+      modal.classList.add('hidden');
+      if (typeof cb === 'function') cb(telaLookup(nombre));
+      return;
+    }
+    const ruta = (modal.querySelector('input[name="altaTelaRuta"]:checked') || {}).value || 'rama';
+    const rendimiento = document.getElementById('altaTelaRend').value;
+    const anchoUtil   = document.getElementById('altaTelaAncho').value;
+    const composicion = document.getElementById('altaTelaComp').value;
+    const created = altaTelaRapida({
+      nombre, ruta,
+      rendimiento: rendimiento ? Number(rendimiento) : null,
+      anchoUtil:   anchoUtil ? Number(anchoUtil) : null,
+      composicion: composicion || null
+    });
+    if (created) {
+      toast(`Tela “${created.nombre}” dada de alta · sin verificar`);
+      modal.classList.add('hidden');
+      if (typeof cb === 'function') cb(created);
+    } else {
+      toast('Error al dar de alta', true);
+    }
+  };
+
+  modal.classList.remove('hidden');
+  setTimeout(() => document.getElementById('altaTelaNombre').focus(), 50);
+}
+
+// =====================================================================
+// MODAL · Solicitud de alta (para operadores sin permiso)
+// =====================================================================
+
+function openSolicitudTelaModal(prefillNombre) {
+  let modal = document.getElementById('solTelaModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'solTelaModal';
+    modal.className = 'fixed inset-0 z-[9999] hidden flex items-center justify-center';
+    modal.style.background = 'rgba(0,0,0,0.7)';
+    modal.innerHTML = `
+      <div class="bg-ink-900 border border-ink-700 rounded-2xl w-full max-w-md mx-4 p-5 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-white">✉️ Solicitar alta de tela</h3>
+          <button data-sol-close class="text-slate-400 hover:text-white text-xl">×</button>
+        </div>
+        <div class="space-y-3">
+          <div class="text-[12px] text-slate-400 bg-ink-800 border border-ink-700 rounded-lg p-3">
+            Esta tela no existe en el catálogo. Se enviará una solicitud al admin para darla de alta.
+            <br><br><b>No podrás guardar la ficha</b> hasta que la tela esté aprobada.
+          </div>
+          <div>
+            <label class="lbl text-xs">Nombre de la tela</label>
+            <input id="solTelaNombre" type="text" class="field !py-2 !text-sm" />
+          </div>
+          <div>
+            <label class="lbl text-xs">¿A qué máquina va?</label>
+            <select id="solTelaRuta" class="field !py-2 !text-sm">
+              <option value="rama">RAMA (Bruckner)</option>
+              <option value="tubular">Compactadora</option>
+              <option value="desconocido">No estoy seguro</option>
+            </select>
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button data-sol-close class="flex-1 px-3 py-2 rounded-lg bg-ink-800 text-slate-300 hover:bg-ink-700 text-sm">Cancelar</button>
+            <button data-sol-submit class="flex-1 px-3 py-2 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-400 text-sm">Enviar solicitud</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.closest('[data-sol-close]')) {
+        modal.classList.add('hidden');
+      }
+    });
+  }
+
+  document.getElementById('solTelaNombre').value = (prefillNombre || '').toUpperCase();
+  document.getElementById('solTelaRuta').value   = 'rama';
+
+  const submitBtn = modal.querySelector('[data-sol-submit]');
+  submitBtn.onclick = () => {
+    const nombre = document.getElementById('solTelaNombre').value.trim();
+    if (!nombre) { toast('Captura el nombre', true); return; }
+    const ruta = document.getElementById('solTelaRuta').value;
+    solicitarAltaTela(nombre, ruta);
+    toast('Solicitud enviada al admin');
+    modal.classList.add('hidden');
+  };
+
+  modal.classList.remove('hidden');
+  setTimeout(() => document.getElementById('solTelaNombre').focus(), 50);
+}
+
+// =====================================================================
+// bindTelaAutocomplete · wire a los 4 inputs de tela del sistema
+// =====================================================================
+function bindTelaAutocomplete() {
+  // Asegura que el catálogo esté cargado (sino, no hay contra qué comparar)
+  try { if (typeof _catSeedIfEmpty === 'function') _catSeedIfEmpty(); } catch(_){}
+
+  const inputs = [
+    'f_tela',    // Overflow / Tintorería (form de arriba)
+    'br_tela',   // Bruckner (RAMA)
+    'cmp_tela',  // Compactadora (Tubular)
+    'ef_tela',   // Modal de edición de ficha
+  ];
+  for (const id of inputs) {
+    const el = document.getElementById(id);
+    if (el && !el._telaAcAttached) {
+      try { attachTelaAutocomplete(el); } catch(e){ console.warn('AC attach', id, e); }
+    }
+  }
 }
 
 // —— Sembrar catálogo si está vacío ——
