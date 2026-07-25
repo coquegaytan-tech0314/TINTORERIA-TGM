@@ -23,6 +23,9 @@
 <!-- Chart.js para gráficas -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<!-- xlsx-populate: usado sólo para desencriptar archivos Excel protegidos con contraseña
+     (los reportes de ESTADÍSTICA vienen encriptados). Bundle ~800KB, se carga sólo cuando se necesita. -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-populate@1.21.0/browser/xlsx-populate.min.js"></script>
 
 <!-- ============================================================
      FIREBASE - sincronización entre dispositivos
@@ -4201,6 +4204,7 @@
         <div class="flex gap-2">
           <input id="estFecha" type="date" class="field text-sm !py-2 !px-3" />
           <button id="estRefreshBtn" class="btn !py-2 !px-3 text-sm" title="Recargar datos desde producción" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.35); color:#93c5fd">🔄 Recargar</button>
+          <button id="estImportBtn" class="btn !py-2 !px-3 text-sm" title="Importar reporte(s) de Estadística desde Excel (uno o varios meses)" style="background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe">📥 Importar</button>
           <button id="estExportBtn" class="btn btn-primary !py-2 !px-3 text-sm" title="Descargar el reporte del día en Excel">📊 Excel</button>
         </div>
       </div>
@@ -4279,6 +4283,53 @@
       </div>
     </div>
     </div><!-- /#estSubDia -->
+
+    <!-- ============================================================
+         MODAL: Importar reportes de Estadística (Escenario A · backfill histórico)
+         Acepta 1+ archivos .xlsx del reporte diario de Producto Terminado.
+         Los reportes vienen encriptados con contraseña; el usuario la ingresa una vez.
+         Cada hoja numérica dentro del archivo = un día.
+         Cada fila detectada se guarda como override manual en LS_KEYS.estadi
+         con clave `${dateISO}::${lote}`. Así reutilizamos el pipeline de _estBuildRows
+         que ya aplica overrides sobre autopoblado. Además guardamos meta en
+         `${dateISO}::_import` para chip "importado" y lista de lotes en
+         `${dateISO}::_lotes` para renderizar filas de días SIN producción en state.
+         ============================================================ -->
+    <div id="estImportModal" class="fixed inset-0 z-[999] hidden items-center justify-center" style="background:rgba(0,0,0,0.75); backdrop-filter:blur(4px)">
+      <div class="card p-5 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" style="background:rgba(15,23,42,0.98); border:1px solid rgba(168,85,247,0.4)">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-black text-white flex items-center gap-2"><span>📥</span> Importar reportes de Estadística</h3>
+          <button id="estImportClose" class="btn text-xs !py-1 !px-2" style="background:rgba(148,163,184,0.15); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1">✕ Cerrar</button>
+        </div>
+        <div class="text-[12px] text-slate-400 mb-4 leading-relaxed">
+          Sube uno o más archivos <b>REPORTE-DIARIO-DE-PRODUCTO-TERMINADO.xlsx</b>. Cada archivo puede tener
+          muchas hojas (una por día). Los archivos <b>protegidos con contraseña</b> se abren automáticamente si
+          ingresas la clave abajo. Los datos importados aparecerán en el tab Estadística · Día al abrir la fecha correspondiente.
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-1">Archivos Excel</label>
+            <input type="file" id="estImportFiles" accept=".xlsx" multiple class="text-[11px] text-slate-300 w-full" />
+            <div class="text-[10px] text-slate-500 mt-1">Puedes seleccionar varios meses a la vez (Ctrl/Cmd + click).</div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-1">Contraseña (si aplica)</label>
+            <input type="password" id="estImportPass" placeholder="Contraseña de los archivos…" class="field text-sm w-full" autocomplete="off" />
+            <div class="text-[10px] text-slate-500 mt-1">Se usa sólo para desencriptar en tu navegador. No se guarda.</div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mb-3">
+          <button id="estImportParseBtn" class="btn btn-primary text-xs !py-2 !px-3">🔍 Leer y previsualizar</button>
+          <button id="estImportSaveBtn" class="btn text-xs !py-2 !px-3 hidden" style="background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7">✅ Guardar todo</button>
+          <div id="estImportProgress" class="text-[11px] text-slate-400 self-center"></div>
+        </div>
+
+        <div id="estImportPreview" class="text-[11px]"></div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ============================================================= -->
@@ -18939,6 +18990,17 @@ function _estBuildRows(dateISO) {
     row.fichas.push({ src:'empacado', id:f.id, kilos:total });
   });
 
+  // Aplicar filas provenientes SOLO del import (días históricos sin producción en state)
+  // Se detectan porque el override tiene todos los metadatos (tela/color/pedido) que normalmente
+  // vendrían de state.prod/bruck/compact. Miramos la lista `_lotes` para saber qué crear.
+  const importedLotes = overrides[`${dateISO}::_lotes`];
+  if (Array.isArray(importedLotes)) {
+    importedLotes.forEach(lote => {
+      if (!rowsMap[lote]) ensureRow(lote);
+      rowsMap[lote]._imported = true;
+    });
+  }
+
   // Aplicar overrides manuales por lote+fecha
   const arr = Object.values(rowsMap);
   arr.forEach(row => {
@@ -19001,12 +19063,472 @@ function _estBuildMensaje(dateISO, totals, calidad) {
   return msg.trim();
 }
 
+/* =============================================================
+   IMPORT DE REPORTES DE ESTADÍSTICA · Escenario A (backfill histórico)
+   -------------------------------------------------------------
+   Los archivos vienen de la carpeta "REPORTE-DIARIO-DE-PRODUCTO-TERMINADO"
+   con este layout por hoja (una hoja = un día):
+     Fila 1: razón social
+     Fila 2: título
+     Fila 3: fecha (Date o texto "viernes, 24 de julio de 2026")
+     Fila 4: headers  [N, TELA, COLOR, LOTE, N/PED, L, TUR, C.B., REV, PLA, COM,
+                       monfons(=Monforts), BRU, PROG, A/REV, FALTANTE, %]
+     Filas 5..N: datos (N numérico en col A)
+     Fila TOTAL: primera columna A vacía + col B contiene "TOTAL DE PRODUCTO TERMINADO POR MAQUINA"
+     Luego bloque CALIDAD con "PRIMERA (CLASE A)" y "SEGUNDA (CLASE B)"
+     Luego bloque LOGISTICA con "LOGISTICA ... 2026" y firma
+   Los archivos pueden estar encriptados con contraseña; usamos xlsx-populate
+   (soporta Agile Encryption) para desencriptar en el browser cuando aplica.
+   ============================================================= */
+
+const _EST_MESES = { enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5, julio:6, agosto:7, septiembre:8, octubre:9, noviembre:10, diciembre:11 };
+
+// Convierte cualquier valor de la celda de fecha a ISO YYYY-MM-DD.
+// Soporta: Date object (openpyxl-serializado), número serial Excel, texto en español.
+function _estImportParseDate(v, sheetName, fileNameHint) {
+  if (v == null || v === '') return null;
+  // Date o Date-like
+  if (v instanceof Date && !isNaN(v)) {
+    return v.getFullYear() + '-' + String(v.getMonth()+1).padStart(2,'0') + '-' + String(v.getDate()).padStart(2,'0');
+  }
+  // Serial Excel (número)
+  if (typeof v === 'number' && v > 20000 && v < 80000) {
+    // Serial de Excel: 1 = 1900-01-01 (con bug de 1900 como bisiesto)
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    const d = new Date(epoch.getTime() + v * 86400000);
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+  }
+  // Texto "viernes, 24 de julio de 2026"
+  const s = String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const m = s.match(/(\d{1,2})\s+de\s+([a-z]+)\s+de\s+(\d{4})/);
+  if (m) {
+    const day = parseInt(m[1],10);
+    const mon = _EST_MESES[m[2]];
+    const yr  = parseInt(m[3],10);
+    if (day && mon != null && yr) {
+      return yr + '-' + String(mon+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    }
+  }
+  // Fallback: usa el nombre de la hoja como día y trata de inferir mes del nombre del archivo
+  const dayN = parseInt(sheetName, 10);
+  if (dayN && dayN >= 1 && dayN <= 31 && fileNameHint) {
+    const fn = fileNameHint.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    // Detectar mes en nombre de archivo (JULIO/JUNIO/JUNO/etc.)
+    const monMap = { enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5, juno:5, julio:6, agosto:7, septiembre:8, octubre:9, noviembre:10, diciembre:11 };
+    for (const [name, idx] of Object.entries(monMap)) {
+      if (fn.includes(name)) {
+        // buscar año en el archivo (4 dígitos)
+        const yr = (fn.match(/20\d{2}/) || ['2026'])[0];
+        return parseInt(yr,10) + '-' + String(idx+1).padStart(2,'0') + '-' + String(dayN).padStart(2,'0');
+      }
+    }
+  }
+  return null;
+}
+
+// Convierte una celda a número o null (soporta strings con comas / vacíos)
+function _estImportNum(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  const s = String(v).replace(/,/g,'').trim();
+  if (!s) return null;
+  const n = Number(s);
+  return isFinite(n) ? n : null;
+}
+
+// Convierte una hoja (matriz 2D de valores) al schema del import.
+// Devuelve { fecha, rows, footer } o null si no reconoce la hoja.
+function _estImportParseSheet(matrix, sheetName, fileNameHint) {
+  if (!matrix || matrix.length < 5) return null;
+
+  // 1) Buscar fila de headers: contiene TELA + LOTE + C.B. (o CB)
+  let hdrRow = -1;
+  const norm = (v) => String(v||'').toUpperCase().replace(/[.\s]/g,'').trim();
+  for (let r = 0; r < Math.min(matrix.length, 20); r++) {
+    const rowStr = (matrix[r]||[]).map(norm).join('|');
+    if (rowStr.includes('TELA') && rowStr.includes('LOTE') && (rowStr.includes('CB') || rowStr.includes('C.B'))) {
+      hdrRow = r;
+      break;
+    }
+  }
+  if (hdrRow < 0) return null; // no es una hoja de reporte válida
+
+  // 2) Fecha: buscar en las filas antes del header
+  let fecha = null;
+  for (let r = 0; r < hdrRow; r++) {
+    for (let c = 0; c < Math.min((matrix[r]||[]).length, 5); c++) {
+      const cand = _estImportParseDate(matrix[r][c], sheetName, fileNameHint);
+      if (cand) { fecha = cand; break; }
+    }
+    if (fecha) break;
+  }
+  if (!fecha) fecha = _estImportParseDate(null, sheetName, fileNameHint);
+  if (!fecha) return null;
+
+  // 3) Mapear índices de columna por header conocido
+  // Layout esperado (col 0..16): N, TELA, COLOR, LOTE, N/PED, L, TUR, CB, REV, PLA, COM, monforts, BRU, PROG, A/REV, FALTANTE, %
+  const hdr = (matrix[hdrRow]||[]).map(norm);
+  const findCol = (...names) => {
+    for (let i = 0; i < hdr.length; i++) {
+      if (names.some(n => hdr[i] === n || hdr[i].startsWith(n))) return i;
+    }
+    return -1;
+  };
+  const col = {
+    n:        findCol('N'),
+    tela:     findCol('TELA'),
+    color:    findCol('COLOR'),
+    lote:     findCol('LOTE'),
+    pedido:   findCol('N/PED', 'NPED', 'PED'),
+    linea:    findCol('L'),
+    turno:    findCol('TUR'),
+    cb:       findCol('CB', 'C.B'),
+    rev:      findCol('REV'),
+    pla:      findCol('PLA'),
+    com:      findCol('COM'),
+    monforts: findCol('MONFORTS', 'MONFONS', 'MONF'),
+    bru:      findCol('BRU'),
+    prog:     findCol('PROG'),
+    aprev:    findCol('A/REV', 'AREV', 'APREV'),
+    faltante: findCol('FALTANTE'),
+    pct:      findCol('%')
+  };
+  if (col.tela < 0 || col.lote < 0) return null;
+
+  // 4) Iterar filas de datos hasta encontrar la fila TOTAL (col A vacía + col B = TOTAL...)
+  const rows = [];
+  let totalsRow = null;
+  for (let r = hdrRow + 1; r < matrix.length; r++) {
+    const row = matrix[r] || [];
+    const colBstr = norm(row[1]);
+    // Fila de totales: primera columna vacía o "TOTAL", segunda contiene TOTAL/TERMINADO
+    if (colBstr.startsWith('TOTAL') && colBstr.includes('TERMINADO')) {
+      totalsRow = row;
+      break;
+    }
+    const lote = String(row[col.lote] || '').trim();
+    const tela = String(row[col.tela] || '').trim();
+    if (!lote || !tela) continue; // salta filas vacías
+    rows.push({
+      tela:     tela,
+      color:    String(row[col.color] || '').trim(),
+      lote:     lote,
+      pedido:   row[col.pedido] != null ? String(row[col.pedido]).trim() : '',
+      linea:    row[col.linea] != null ? String(row[col.linea]).trim() : '',
+      turno:    row[col.turno] != null ? String(row[col.turno]).trim() : '',
+      cb:       _estImportNum(row[col.cb])       ?? 0,
+      rev:      _estImportNum(row[col.rev])      ?? 0,
+      pla:      _estImportNum(row[col.pla])      ?? 0,
+      com:      _estImportNum(row[col.com])      ?? 0,
+      monforts: _estImportNum(row[col.monforts]) ?? 0,
+      bru:      _estImportNum(row[col.bru])      ?? 0,
+      prog:     _estImportNum(row[col.prog])     ?? 0,
+      aprev:    _estImportNum(row[col.aprev])    ?? 0
+    });
+  }
+
+  // 5) Buscar bloque CALIDAD (PRIMERA CLASE A / SEGUNDA CLASE B) después del total
+  let calA = null, calB = null, firma = '', ejercicio = fecha.slice(0,4);
+  for (let r = hdrRow + 1; r < matrix.length; r++) {
+    const row = matrix[r] || [];
+    const s = (row[1] || '').toString().toUpperCase();
+    if (s.includes('PRIMERA') && s.includes('CLASE A')) calA = _estImportNum(row[2]);
+    if (s.includes('SEGUNDA') && s.includes('CLASE B')) calB = _estImportNum(row[2]);
+    if (s.includes('LOGISTICA')) {
+      // Extraer firma: "< LOGISTICA J.W.M 2026" → firma "J.W.M", ejercicio 2026
+      const m = s.match(/LOGISTICA\s+(.+?)\s+(\d{4})/);
+      if (m) { firma = m[1].trim(); ejercicio = m[2]; }
+    }
+  }
+
+  return {
+    fecha,
+    rows,
+    footer: { calA, calB, firma, ejercicio }
+  };
+}
+
+// Estado en memoria mientras el usuario previsualiza (antes de Guardar)
+let _estImportStaged = []; // array de { fileName, sheetName, fecha, rows, footer, status }
+
+// Lee un File como ArrayBuffer
+function _estImportReadFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = e => reject(e);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Convierte un workbook de xlsx-populate a { sheetName → matrix2D }
+function _estImportXpopToMatrices(workbook) {
+  const out = {};
+  workbook.sheets().forEach(sheet => {
+    const name = sheet.name();
+    const range = sheet.usedRange();
+    if (!range) { out[name] = []; return; }
+    out[name] = range.value(); // matriz 2D
+  });
+  return out;
+}
+
+// Convierte un workbook de SheetJS a { sheetName → matrix2D }
+function _estImportSjsToMatrices(workbook) {
+  const out = {};
+  workbook.SheetNames.forEach(name => {
+    const ws = workbook.Sheets[name];
+    out[name] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  });
+  return out;
+}
+
+// Abre un archivo (con o sin contraseña). Devuelve { sheetName → matrix2D }
+async function _estImportOpenFile(file, password) {
+  const buf = await _estImportReadFile(file);
+  // Estrategia 1: intentar con SheetJS (rápido, sin cifrado)
+  try {
+    const wb = XLSX.read(buf, { type: 'array' });
+    if (wb && wb.SheetNames && wb.SheetNames.length) {
+      return _estImportSjsToMatrices(wb);
+    }
+  } catch(e) { /* fallará si está encriptado */ }
+
+  // Estrategia 2: xlsx-populate con contraseña
+  if (typeof XlsxPopulate === 'undefined') {
+    throw new Error('El archivo está protegido con contraseña y la librería de desencriptado no cargó.');
+  }
+  const wb = await XlsxPopulate.fromDataAsync(buf, { password: password || '' });
+  return _estImportXpopToMatrices(wb);
+}
+
+// Procesa uno o más archivos y llena _estImportStaged
+async function _estImportProcessFiles(files, password) {
+  _estImportStaged = [];
+  const progressEl = document.getElementById('estImportProgress');
+  let processed = 0, sheetsFound = 0, sheetsSkipped = 0, filesFailed = 0;
+
+  for (const file of files) {
+    processed++;
+    if (progressEl) progressEl.textContent = `Leyendo ${processed}/${files.length}: ${file.name}…`;
+    let matrices;
+    try {
+      matrices = await _estImportOpenFile(file, password);
+    } catch(e) {
+      filesFailed++;
+      _estImportStaged.push({ fileName: file.name, sheetName: '—', fecha: null, rows: [], footer: {}, status: 'error', error: e.message || String(e) });
+      continue;
+    }
+    // Cada hoja intenta parsearse
+    for (const [sheetName, matrix] of Object.entries(matrices)) {
+      const parsed = _estImportParseSheet(matrix, sheetName, file.name);
+      if (!parsed) { sheetsSkipped++; continue; }
+      sheetsFound++;
+      _estImportStaged.push({
+        fileName: file.name,
+        sheetName,
+        fecha: parsed.fecha,
+        rows: parsed.rows,
+        footer: parsed.footer,
+        status: 'ok'
+      });
+    }
+  }
+
+  if (progressEl) {
+    progressEl.textContent = `${_estImportStaged.filter(x=>x.status==='ok').length} día(s) leídos · ${sheetsSkipped} hoja(s) ignoradas · ${filesFailed} archivo(s) fallidos`;
+  }
+  _estImportRenderPreview();
+}
+
+// Pinta la previsualización de los días detectados en el modal
+function _estImportRenderPreview() {
+  const box = document.getElementById('estImportPreview');
+  const saveBtn = document.getElementById('estImportSaveBtn');
+  if (!box) return;
+  const ok = _estImportStaged.filter(s => s.status === 'ok');
+  const errs = _estImportStaged.filter(s => s.status === 'error');
+  if (!_estImportStaged.length) { box.innerHTML = ''; if (saveBtn) saveBtn.classList.add('hidden'); return; }
+
+  const fmt = (n) => (n == null || n === '') ? '—' : Number(n).toLocaleString('es-MX', { minimumFractionDigits:1, maximumFractionDigits:1 });
+  let html = '';
+  if (errs.length) {
+    html += `<div class="mb-3 p-3 rounded" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.35)">`;
+    html += `<div class="text-red-300 font-bold text-[12px] mb-1">⚠️ Archivos con error (${errs.length})</div>`;
+    errs.forEach(e => {
+      html += `<div class="text-[11px] text-red-200">• <b>${e.fileName}</b>: ${e.error}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<div class="mb-2 text-[12px] text-slate-300 font-bold">${ok.length} día(s) listos para importar</div>`;
+  html += `<div class="overflow-x-auto rounded border border-slate-800"><table class="w-full text-[11px]">`;
+  html += `<thead class="bg-slate-800/60 text-slate-300 uppercase text-[10px]"><tr>`;
+  html += `<th class="p-2 text-left">Archivo</th><th class="p-2 text-center">Hoja</th><th class="p-2 text-center">Fecha</th><th class="p-2 text-right">Filas</th><th class="p-2 text-right">Terminado (kg)</th><th class="p-2 text-right">Clase A</th><th class="p-2 text-right">Clase B</th>`;
+  html += `</tr></thead><tbody>`;
+  ok.forEach(s => {
+    const totalRev = s.rows.reduce((a,r) => a + (Number(r.rev)||0), 0);
+    const totalBru = s.rows.reduce((a,r) => a + (Number(r.bru)||0), 0);
+    const totalMon = s.rows.reduce((a,r) => a + (Number(r.monforts)||0), 0);
+    const totalCom = s.rows.reduce((a,r) => a + (Number(r.com)||0), 0);
+    const totalTerm = totalRev + totalBru + totalMon + totalCom;
+    html += `<tr class="border-t border-slate-800">`;
+    html += `<td class="p-2 text-slate-400">${s.fileName}</td>`;
+    html += `<td class="p-2 text-center">${s.sheetName}</td>`;
+    html += `<td class="p-2 text-center text-white font-mono">${s.fecha || '—'}</td>`;
+    html += `<td class="p-2 text-right">${s.rows.length}</td>`;
+    html += `<td class="p-2 text-right text-emerald-300">${fmt(totalTerm)}</td>`;
+    html += `<td class="p-2 text-right">${fmt(s.footer.calA)}</td>`;
+    html += `<td class="p-2 text-right">${fmt(s.footer.calB)}</td>`;
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>`;
+  html += `<div class="mt-2 text-[10px] text-slate-500">Los datos importados se guardan como overrides por fecha+lote. Puedes editarlos después en el tab Estadística · Día o volver a importar para reemplazarlos.</div>`;
+  box.innerHTML = html;
+  if (saveBtn && ok.length) saveBtn.classList.remove('hidden');
+}
+
+// Guarda todos los días staged como overrides + meta
+async function _estImportSaveStaged() {
+  const ok = _estImportStaged.filter(s => s.status === 'ok');
+  if (!ok.length) { showToast('No hay datos para guardar', 'error'); return; }
+
+  const overrides = _estGetOverrides();
+  const nowIso = new Date().toISOString();
+  const user = (typeof TG_USER !== 'undefined' && TG_USER && (TG_USER.nombre || TG_USER.email)) || 'desconocido';
+  let totalRowsSaved = 0, datesSaved = 0;
+
+  ok.forEach(s => {
+    const lotesSet = new Set();
+    s.rows.forEach(r => {
+      const key = `${s.fecha}::${r.lote}`;
+      overrides[key] = {
+        tela: r.tela, color: r.color, pedido: r.pedido, linea: r.linea, turno: r.turno,
+        cb: r.cb, rev: r.rev, pla: r.pla, com: r.com,
+        monforts: r.monforts, bru: r.bru, prog: r.prog, aprev: r.aprev
+      };
+      lotesSet.add(r.lote);
+      totalRowsSaved++;
+    });
+    // Lista de lotes → permite _estBuildRows crear filas para días sin producción en state
+    overrides[`${s.fecha}::_lotes`] = Array.from(lotesSet);
+    // Footer (calidad + logistica)
+    overrides[`${s.fecha}::_footer`] = {
+      calA: s.footer.calA || 0,
+      calB: s.footer.calB || 0,
+      firma: s.footer.firma || '',
+      ejercicio: s.footer.ejercicio || s.fecha.slice(0,4),
+      notas: ''
+    };
+    // Metadata del import
+    overrides[`${s.fecha}::_import`] = {
+      importadoPor: user,
+      importadoEn: nowIso,
+      fuente: s.fileName,
+      hoja: s.sheetName,
+      filas: s.rows.length
+    };
+    datesSaved++;
+  });
+
+  _estSaveOverrides(overrides);
+
+  // Bitácora
+  try {
+    if (typeof pushHistorial === 'function') {
+      pushHistorial({
+        modulo: 'ESTADISTICA',
+        accion: 'import',
+        detalle: `Importados ${datesSaved} día(s), ${totalRowsSaved} filas`
+      });
+    }
+  } catch(e){}
+
+  // Mirror a Firestore (best-effort, no bloquea)
+  try {
+    if (typeof saveToCloud === 'function') {
+      ok.forEach(s => {
+        saveToCloud('estadistica_imports', {
+          id: `${s.fecha}`,
+          fecha: s.fecha,
+          fuente: s.fileName,
+          hoja: s.sheetName,
+          importadoPor: user,
+          importadoEn: nowIso,
+          filas: s.rows,
+          footer: s.footer
+        });
+      });
+    }
+  } catch(e) { console.warn('[EstImport] Firestore mirror falla:', e); }
+
+  showToast(`✅ Importados ${datesSaved} día(s) · ${totalRowsSaved} filas`);
+  _estImportStaged = [];
+  document.getElementById('estImportPreview').innerHTML = '';
+  document.getElementById('estImportSaveBtn').classList.add('hidden');
+  document.getElementById('estImportProgress').textContent = '';
+  _estImportCloseModal();
+
+  // Si estamos viendo una fecha que se importó, refrescar
+  try {
+    const cur = _estFechaISO();
+    if (ok.some(s => s.fecha === cur)) renderEstadistica();
+  } catch(e){}
+}
+
+function _estImportOpenModal() {
+  const m = document.getElementById('estImportModal');
+  if (!m) return;
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+  // Reset
+  const inp = document.getElementById('estImportFiles');
+  if (inp) inp.value = '';
+  document.getElementById('estImportPass').value = '';
+  document.getElementById('estImportPreview').innerHTML = '';
+  document.getElementById('estImportSaveBtn').classList.add('hidden');
+  document.getElementById('estImportProgress').textContent = '';
+  _estImportStaged = [];
+}
+function _estImportCloseModal() {
+  const m = document.getElementById('estImportModal');
+  if (!m) return;
+  m.classList.add('hidden');
+  m.classList.remove('flex');
+}
+
 let _estBound = false;
 function _estBindOnce() {
   if (_estBound) return; _estBound = true;
   document.getElementById('estFecha')?.addEventListener('change', () => renderEstadistica());
   document.getElementById('estRefreshBtn')?.addEventListener('click', () => renderEstadistica());
   document.getElementById('estExportBtn')?.addEventListener('click', () => _estExportExcel());
+
+  // Import de reportes históricos
+  document.getElementById('estImportBtn')?.addEventListener('click', () => _estImportOpenModal());
+  document.getElementById('estImportClose')?.addEventListener('click', () => _estImportCloseModal());
+  document.getElementById('estImportParseBtn')?.addEventListener('click', async () => {
+    const files = document.getElementById('estImportFiles')?.files;
+    if (!files || !files.length) { showToast('Selecciona al menos un archivo Excel', 'error'); return; }
+    const pass = document.getElementById('estImportPass')?.value || '';
+    const btn = document.getElementById('estImportParseBtn');
+    btn.disabled = true;
+    try {
+      await _estImportProcessFiles(Array.from(files), pass);
+    } catch(e) {
+      showToast('Error leyendo archivos: ' + (e.message || e), 'error');
+      console.error('[EstImport]', e);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  document.getElementById('estImportSaveBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('estImportSaveBtn');
+    btn.disabled = true;
+    try { await _estImportSaveStaged(); }
+    catch(e) { showToast('Error guardando: ' + (e.message || e), 'error'); console.error('[EstImport save]', e); }
+    finally { btn.disabled = false; }
+  });
   document.getElementById('estMsgCopyBtn')?.addEventListener('click', () => {
     const txt = document.getElementById('estMensajeTexto')?.textContent || '';
     if (!txt || txt === '—') { showToast('Nada que copiar'); return; }
@@ -19188,6 +19710,28 @@ function renderEstadistica() {
 
   // Cargar footer (calidad + logística)
   _estLoadFooter(dateISO);
+
+  // Chip "importado" si esa fecha tiene metadata de import
+  try {
+    const ov = _estGetOverrides();
+    const meta = ov[`${dateISO}::_import`];
+    let chip = document.getElementById('estImportedChip');
+    if (meta) {
+      if (!chip) {
+        chip = document.createElement('span');
+        chip.id = 'estImportedChip';
+        chip.className = 'inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ml-2';
+        chip.style.cssText = 'background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; vertical-align:middle;';
+        const inp = document.getElementById('estFecha');
+        if (inp && inp.parentNode) inp.parentNode.insertBefore(chip, inp.nextSibling);
+      }
+      const dt = meta.importadoEn ? new Date(meta.importadoEn).toLocaleDateString('es-MX') : '';
+      chip.innerHTML = `📥 Importado · ${meta.filas || 0} filas${dt ? ' · ' + dt : ''}`;
+      chip.title = `Fuente: ${meta.fuente || '?'} · Hoja: ${meta.hoja || '?'} · Por: ${meta.importadoPor || '?'}`;
+    } else if (chip) {
+      chip.remove();
+    }
+  } catch(e) { /* no fatal */ }
 
   // Construir filas
   const rows = _estBuildRows(dateISO);
