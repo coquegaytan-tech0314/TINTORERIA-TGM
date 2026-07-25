@@ -19497,6 +19497,83 @@ function _estImportCloseModal() {
   m.classList.remove('flex');
 }
 
+/* =============================================================
+   BACKFILL AUTOMÁTICO DE ESTADÍSTICA 2026 (Enero → Julio)
+   -------------------------------------------------------------
+   Carga el archivo data/estadistica-backfill-2026.json una sola
+   vez por dispositivo (marcado por versión en LocalStorage).
+   El archivo se generó offline decodificando los 7 reportes
+   mensuales encriptados. Cada día se guarda como override en
+   LS_KEYS.estadi, respetando los overrides manuales existentes:
+   si un lote ya tiene override en el device, NO se sobrescribe.
+   ============================================================= */
+const _EST_BACKFILL_VERSION = 1;
+const _EST_BACKFILL_LS_KEY = 'tg_tint_estadi_backfill_v';
+const _EST_BACKFILL_URL = 'data/estadistica-backfill-2026.json';
+
+async function _estAutoBackfillOnce() {
+  try {
+    const applied = Number(localStorage.getItem(_EST_BACKFILL_LS_KEY) || '0');
+    if (applied >= _EST_BACKFILL_VERSION) return; // ya aplicado en este device
+
+    const res = await fetch(_EST_BACKFILL_URL, { cache: 'no-cache' });
+    if (!res.ok) { console.warn('[EstBackfill] fetch falla:', res.status); return; }
+    const payload = await res.json();
+    if (!payload || !payload.overrides) { console.warn('[EstBackfill] payload inválido'); return; }
+
+    const current = _estGetOverrides();
+    const backfill = payload.overrides;
+    let added = 0, skipped = 0;
+
+    Object.keys(backfill).forEach(key => {
+      // Respetar overrides manuales del usuario si ya existen para ese lote/día
+      if (key.endsWith('::_import')) {
+        // meta del import solo se agrega si no había import previo
+        if (current[key]) { skipped++; return; }
+      } else if (key.endsWith('::_footer') || key.endsWith('::_lotes')) {
+        // footer y lista de lotes: agregar sólo si vacío
+        if (current[key]) { skipped++; return; }
+      } else {
+        // fila de lote individual: agregar sólo si no existe
+        if (current[key]) { skipped++; return; }
+      }
+      current[key] = backfill[key];
+      added++;
+    });
+
+    _estSaveOverrides(current);
+    localStorage.setItem(_EST_BACKFILL_LS_KEY, String(_EST_BACKFILL_VERSION));
+
+    if (added > 0) {
+      const stats = payload.stats || {};
+      console.log(`[EstBackfill] ✅ ${added} entradas cargadas (${skipped} respetadas). ${stats.days || '?'} días · ${stats.rows || '?'} filas.`);
+      try {
+        if (typeof showToast === 'function') {
+          showToast(`📥 Backfill Estadística: ${stats.days || 0} días de 2026 cargados`);
+        }
+      } catch(e){}
+      // Si el usuario está viendo el tab Estadística, refrescar
+      try {
+        if (typeof _estCurrentSub !== 'undefined' && _estCurrentSub === 'dia' &&
+            typeof renderEstadistica === 'function') {
+          renderEstadistica();
+        }
+      } catch(e){}
+    }
+  } catch(e) {
+    console.warn('[EstBackfill] error:', e);
+  }
+}
+
+// Dispara backfill después de que el DOM está listo (o inmediatamente si ya lo está)
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(_estAutoBackfillOnce, 500));
+  } else {
+    setTimeout(_estAutoBackfillOnce, 500);
+  }
+}
+
 let _estBound = false;
 function _estBindOnce() {
   if (_estBound) return; _estBound = true;
