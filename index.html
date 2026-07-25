@@ -4232,7 +4232,7 @@
               <th class="p-2 text-center" title="Línea de producto (Mix, Básico, etc.)">L.</th>
               <th class="p-2 text-center" title="Turno">Tur.</th>
               <th class="p-2 text-right" title="Clase B · kilos defectuosos reportados por Calidad (entrada manual)">C.B.</th>
-              <th class="p-2 text-right">Rev.</th>
+              <th class="p-2 text-right" title="Rev./Terminado · kilos de la Ficha de Empacado (primera + sospechosos). Si no hay ficha, cae a lecturas legacy de Compactadora con proceso 'empacado'.">Rev.</th>
               <th class="p-2 text-right">Pla.</th>
               <th class="p-2 text-right">Com.</th>
               <th class="p-2 text-right">Monforts</th>
@@ -13676,6 +13676,14 @@ async function empSave() {
   toast(isNew ? 'Ficha creada.' : 'Ficha actualizada.');
   _empShowModal(false);
   renderEmpacado();
+  // Auto-refresh Estadística si está visible — la columna Rev depende de Empacado
+  try {
+    if (typeof renderEstadistica === 'function' &&
+        document.getElementById('tab-estadistica') &&
+        !document.getElementById('tab-estadistica').classList.contains('hidden')) {
+      renderEstadistica();
+    }
+  } catch(_){}
 }
 
 /**
@@ -13718,6 +13726,14 @@ async function empDelete() {
   toast('Ficha eliminada.');
   _empShowModal(false);
   renderEmpacado();
+  // Auto-refresh Estadística si está visible — la columna Rev depende de Empacado
+  try {
+    if (typeof renderEstadistica === 'function' &&
+        document.getElementById('tab-estadistica') &&
+        !document.getElementById('tab-estadistica').classList.contains('hidden')) {
+      renderEstadistica();
+    }
+  } catch(_){}
 }
 
 /**
@@ -18881,17 +18897,46 @@ function _estBuildRows(dateISO) {
     row.fichas.push({ src:'bruck', id:r.id, kilos:kg, rama:r.rama });
   });
 
-  // Compactadora → COM (compactado). REV se asigna si el proceso es "empacado" o "revisado".
+  // Compactadora → COM (compactado). REV se asigna si el proceso es "empacado" o "revisado" (legacy).
   (state.compact || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
     const row = ensureRow(String(r.lote).trim());
     const kg = Number(r.kilos) || 0;
     const proceso = String(r.proceso || '').toLowerCase();
-    if (proceso.includes('empac') || proceso.includes('revis')) row.rev += kg;
-    else row.com += kg;
+    if (proceso.includes('empac') || proceso.includes('revis')) {
+      row.rev += kg;
+      row._revSrc = row._revSrc || 'compact-legacy';
+    } else {
+      row.com += kg;
+    }
     if (!row.tela)   row.tela = r.tela || r.diseno || '';
     if (!row.color)  row.color = r.color || '';
     if (!row.turno)  row.turno = r.shift || r.turno || '';
     row.fichas.push({ src:'compact', id:r.id, kilos:kg });
+  });
+
+  // Empacado (Fase 3) → REV = primera + sospechosos (kilos_totales de la ficha)
+  //    Cuando existe una ficha de Empacado para el lote+fecha, sobrescribe la lectura legacy
+  //    de Compactadora (proceso empac/revis) porque ésta es la fuente autoritativa de Terminado.
+  //    También autopobla defecto de C.B. sumando kilos de rollos_sospechosos marcados como C.B.
+  //    (los operadores marcan motivo; sólo cuentan aquí como C.B. si Calidad los confirmó
+  //    en Revisado — véase state.revisado).
+  (state.empacado || []).filter(f => _estIsSameDay(f.fecha, dateISO) && f.lote).forEach(f => {
+    const row = ensureRow(String(f.lote).trim());
+    const primera = Array.isArray(f.rollos_primera)
+      ? f.rollos_primera.reduce((s,r) => s + (Number(r.kilos)||0), 0) : 0;
+    const sosp = Array.isArray(f.rollos_sospechosos)
+      ? f.rollos_sospechosos.reduce((s,r) => s + (Number(r.kilos)||0), 0) : 0;
+    const total = Number(f.kilos_totales) || (primera + sosp);
+    // Empacado gana: sobrescribe Rev legacy si estaba viniendo de Compactadora
+    row.rev = total;
+    row._revSrc = 'empacado';
+    row._empacadoPrimera = primera;
+    row._empacadoSosp = sosp;
+    if (!row.tela)   row.tela = f.tela || '';
+    if (!row.color)  row.color = f.color || '';
+    if (!row.pedido) row.pedido = f.pedido || '';
+    if (!row.turno)  row.turno = f.turno || '';
+    row.fichas.push({ src:'empacado', id:f.id, kilos:total });
   });
 
   // Aplicar overrides manuales por lote+fecha
@@ -19191,7 +19236,16 @@ function renderEstadistica() {
   const cellNum = (row, field, decimals=1) => {
     const v = row[field];
     const display = _estFmt(v, decimals);
-    return `<td class="p-2 text-right"><input class="est-cell w-full text-right bg-transparent border-0 outline-none focus:bg-slate-800/60 rounded px-1" data-lote="${row.lote}" data-field="${field}" data-decimals="${decimals}" type="text" value="${_estFmtCap(v, decimals) || ''}" placeholder="—" /></td>`;
+    // Badge origen para columna Rev: verde si viene de Empacado, gris si es legacy Compactadora
+    let srcBadge = '';
+    if (field === 'rev' && row._revSrc === 'empacado') {
+      const p = Number(row._empacadoPrimera||0).toFixed(1);
+      const s = Number(row._empacadoSosp||0).toFixed(1);
+      srcBadge = `<span class="inline-block ml-1 px-1 rounded text-[9px] font-bold align-middle" style="background:rgba(16,185,129,0.20); color:#6ee7b7; border:1px solid rgba(16,185,129,0.35)" title="Origen: Ficha de Empacado · Primera ${p} kg + Sospechosos ${s} kg">EMP</span>`;
+    } else if (field === 'rev' && row._revSrc === 'compact-legacy') {
+      srcBadge = `<span class="inline-block ml-1 px-1 rounded text-[9px] font-bold align-middle" style="background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid rgba(148,163,184,0.30)" title="Origen: Compactadora legacy (proceso 'empacado' o 'revisado')">CMP</span>`;
+    }
+    return `<td class="p-2 text-right whitespace-nowrap"><input class="est-cell text-right bg-transparent border-0 outline-none focus:bg-slate-800/60 rounded px-1" style="width:calc(100% - 32px)" data-lote="${row.lote}" data-field="${field}" data-decimals="${decimals}" type="text" value="${_estFmtCap(v, decimals) || ''}" placeholder="—" />${srcBadge}</td>`;
   };
   const cellText = (row, field) => {
     const v = row[field] || '';
