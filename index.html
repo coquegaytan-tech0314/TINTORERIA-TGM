@@ -5234,12 +5234,33 @@
               <div id="estStatusCountdownSub" class="text-[11px] text-slate-400 mt-0.5">—</div>
             </div>
           </div>
-          <div class="text-right">
-            <div class="text-[11px] text-slate-400 uppercase tracking-wider font-bold">Promedio (30 d)</div>
-            <div id="estStatusAvg" class="text-sm font-bold text-slate-200">—</div>
-            <div class="text-[10px] text-slate-500 mt-0.5">típicamente cierra</div>
+          <div class="flex items-end gap-4">
+            <div class="text-right">
+              <div class="text-[11px] text-slate-400 uppercase tracking-wider font-bold">Promedio (30 d)</div>
+              <div id="estStatusAvg" class="text-sm font-bold text-slate-200">—</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">típicamente cierra</div>
+            </div>
           </div>
         </div>
+
+        <!-- Modo de agrupación: por día de producción (6-6, turno-aware) o por fecha de captura (legacy) -->
+        <div class="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span class="text-slate-400 uppercase tracking-wider font-bold">Agrupar por:</span>
+          <div id="estDayModeChips" class="inline-flex rounded-lg overflow-hidden" style="border:1px solid rgba(96,165,250,0.4)">
+            <button type="button" data-mode="prod" class="est-daymode-btn px-3 py-1 transition"
+                    style="background:rgba(59,130,246,0.35); color:#dbeafe; font-weight:800"
+                    title="Día de producción turno-aware: cada registro va al turno que lo produjo, no al reloj">
+              🏭 Día de producción (6–6h)
+            </button>
+            <button type="button" data-mode="capt" class="est-daymode-btn px-3 py-1 transition"
+                    style="background:transparent; color:#94a3b8"
+                    title="Fecha de captura cruda: el timestamp del día en que se guardó el registro">
+              📅 Fecha de captura
+            </button>
+          </div>
+          <span id="estDayModeHint" class="text-slate-500 text-[10px] italic">Los registros se atribuyen al turno del operador, aunque se hayan capturado tarde.</span>
+        </div>
+
         <div id="estStatusTurnos" class="grid grid-cols-1 md:grid-cols-3 gap-2">
           <!-- Rellenado dinámicamente: T1° / T2° / T3° -->
         </div>
@@ -8729,9 +8750,24 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 9;
+  const CURRENT_VERSION = 10;
 
   const CHANGELOG = [
+    {
+      v: 10,
+      date: '2026-08-12',
+      icon: '🏭',
+      title: 'Estadística · Modo turno-aware (arregla el problema de fecha)',
+      summary: 'Nuevo interruptor arriba del panel: “Día de producción (6–6h)” vs “Fecha de captura”. El primero es turno-aware: si Turno 3° termina de empacar a las 6:30 AM del día siguiente, esos kilos se atribuyen al Turno 3° del día anterior (no aparecen como Turno 1° del día de hoy). Ahora las cifras de Estadística van a coincidir con el reporte físico que hace todos los días.',
+      bullets: [
+        'Interruptor visible arriba de las tarjetas de turno: elige “Día de producción (6–6h)” (recomendado) o “Fecha de captura”.',
+        'Día de producción es turno-aware: prioriza el turno que el operador seleccionó en el formulario, no el reloj.',
+        'Ejemplo: un empacado capturado a las 6:30 AM con Turno 3° se atribuye al día anterior; si dice Turno 1° se atribuye a hoy.',
+        'Los registros sin turno seleccionado se clasifican por wall-clock (antes de 6 AM → día anterior).',
+        'La preferencia se guarda por usuario en el navegador. Por default queda en “Día de producción”.',
+        'El drill-down y la descarga Excel respetan el modo elegido.'
+      ]
+    },
     {
       v: 9,
       date: '2026-08-08',
@@ -23071,6 +23107,79 @@ function _estClassifyTurno(ts) {
   if (h >= 14 && h < 22) return '2°';
   return '3°'; // 22–06
 }
+
+/* =============================================================
+ * Normalización turno-aware para atribución a día de producción.
+ *
+ * Un mismo timestamp puede pertenecer a diferentes turnos según
+ * quién lo capturó. Ejemplo: si Turno 3° termina de empacar a las
+ * 06:30 AM del día siguiente, el reloj dice "Turno 1° del día de
+ * hoy" pero lógicamente pertenece al Turno 3° del día de ayer.
+ *
+ * Reglas (r.turno seleccionado por el operador tiene prioridad):
+ *   T1° capturado a cualquier hora → fecha_produccion = date(ts si h≥6, sino ayer)
+ *   T2° capturado a cualquier hora → fecha_produccion = date(ts si h≥6, sino ayer)
+ *   T3° capturado antes de las 14h  → fecha_produccion = date(ts) - 1 día
+ *   T3° capturado 14h–06h siguiente → fecha_produccion = date(ts) si h>=22, sino date(ts)-1
+ *
+ * Si no hay r.turno o es "", clasificamos por wall-clock:
+ *   antes de 6 AM → pertenece al día anterior (turno 3°)
+ * ============================================================= */
+function _normTurno(v) {
+  if (v == null) return '';
+  const s = String(v).trim().replace(/[^\d]/g, ''); // "1°" → "1", "T1" → "1"
+  if (s === '1' || s === '2' || s === '3') return s + '°';
+  return '';
+}
+function _prodDayForRecord(r) {
+  // Retorna 'YYYY-MM-DD' del día de producción al que pertenece este registro.
+  if (!r || !r.ts) return null;
+  const d = new Date(r.ts);
+  const h = d.getHours();
+  const turno = _normTurno(r.turno);
+  const pd = new Date(d.getFullYear(), d.getMonth(), d.getDate()); // medianoche local
+
+  // Regla turno-aware: si es T3° y se capturó después de 6 AM del día siguiente
+  // (osea entre 06–14 del día de hoy → pertenece al día de producción de ayer)
+  if (turno === '3°' && h < 14) {
+    pd.setDate(pd.getDate() - 1);
+    return pd.toISOString().slice(0,10);
+  }
+  // Regla general: si es antes de las 6 AM → día anterior
+  if (h < 6) {
+    pd.setDate(pd.getDate() - 1);
+    return pd.toISOString().slice(0,10);
+  }
+  return pd.toISOString().slice(0,10);
+}
+function _prodTurnoForRecord(r) {
+  // Retorna '1°' / '2°' / '3°' priorizando el turno seleccionado por el operador.
+  if (!r) return '?';
+  const t = _normTurno(r.turno);
+  if (t) return t;
+  // Fallback: clasificar por wall-clock
+  if (r.ts) return _estClassifyTurno(new Date(r.ts));
+  return '?';
+}
+
+/* Modo de agrupación activo (persistido en localStorage) */
+function _estDayMode() {
+  try { return localStorage.getItem('tgm_est_daymode') || 'prod'; } catch(e) { return 'prod'; }
+}
+function _estSetDayMode(mode) {
+  try { localStorage.setItem('tgm_est_daymode', mode); } catch(e) {}
+}
+
+/* Filtra registros por día de producción (turno-aware). Un registro
+ * pertenece al día cuya fecha_produccion == dateISO, según _prodDayForRecord. */
+function _estRecordsByProdDay(dateISO) {
+  const filt = (arr) => (arr || []).filter(r => r && r.ts && _prodDayForRecord(r) === dateISO);
+  const prod    = filt(state.prod);
+  const bruck   = filt(state.bruck);
+  const compact = filt(state.compact);
+  return { prod, bruck, compact, all: [...prod, ...bruck, ...compact] };
+}
+
 function _estRecordsInWindow(dateISO) {
   const { start, end } = _estGetDayWindow(dateISO);
   const sMs = start.getTime(), eMs = end.getTime();
@@ -23130,13 +23239,17 @@ function _estRenderStatusPanel(dateISO) {
   const isFuture = nowMs <  startMs;
   const isToday  = !isPast && !isFuture;
 
-  const { all } = _estRecordsInWindow(dateISO);
+  // Router: modo de agrupación (Día de producción turno-aware vs Fecha de captura)
+  const dayMode = _estDayMode(); // 'prod' | 'capt'
+  const { all } = (dayMode === 'prod')
+    ? _estRecordsByProdDay(dateISO)  // Nuevo: turno-aware
+    : _estRecordsInWindow(dateISO);  // Legacy: ventana 6–6 por wall-clock
 
-  // Clasificar por turno
+  // Clasificar por turno (respetando modo)
   const turnoData = { '1°': [], '2°': [], '3°': [] };
   all.forEach(r => {
-    const t = _estClassifyTurno(new Date(r.ts));
-    turnoData[t].push(r);
+    const t = (dayMode === 'prod') ? _prodTurnoForRecord(r) : _estClassifyTurno(new Date(r.ts));
+    if (turnoData[t]) turnoData[t].push(r);
   });
 
   // Badge + countdown texto
@@ -23275,6 +23388,60 @@ function _estRenderStatusPanel(dateISO) {
   if (state._estOpenTurno && turnoData[state._estOpenTurno]) {
     _estRenderTurnoDetail(state._estOpenTurno, turnoData[state._estOpenTurno], dateISO);
   }
+
+  // Sincronizar los chips del modo de agrupación con el modo actual
+  _estSyncDayModeChips();
+}
+
+/* Sincroniza estilo activo/inactivo de los chips "Día de producción / Fecha de captura" */
+function _estSyncDayModeChips() {
+  const cur = _estDayMode(); // 'prod' | 'capt'
+  const chips = document.querySelectorAll('#estDayModeChips .est-daymode-btn');
+  chips.forEach(btn => {
+    const isActive = btn.dataset.mode === cur;
+    if (isActive) {
+      btn.style.background = 'rgba(59,130,246,0.35)';
+      btn.style.color = '#dbeafe';
+      btn.style.fontWeight = '800';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = '#94a3b8';
+      btn.style.fontWeight = '500';
+    }
+  });
+  const hint = document.getElementById('estDayModeHint');
+  if (hint) {
+    hint.textContent = (cur === 'prod')
+      ? 'Los registros se atribuyen al turno del operador, aunque se hayan capturado tarde.'
+      : 'Los registros se agrupan por su timestamp crudo (sin ajuste turno-aware).';
+  }
+}
+
+/* Bind idempotente para los chips del modo (se llama en renderEstadistica) */
+function _estBindDayModeChips() {
+  const chips = document.querySelectorAll('#estDayModeChips .est-daymode-btn');
+  chips.forEach(btn => {
+    if (btn._bound) return;
+    btn._bound = true;
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      if (!mode) return;
+      _estSetDayMode(mode);
+      _estSyncDayModeChips();
+      // Re-renderizar el panel con el nuevo modo
+      const dateISO = (state.estDateISO || (state.estDate && state.estDate.toISOString().slice(0,10)) || new Date().toISOString().slice(0,10));
+      // Cerrar drill-down si estaba abierto (los datos cambian de conjunto)
+      state._estOpenTurno = null;
+      const box = document.getElementById('estTurnoDetail');
+      if (box) box.classList.add('hidden');
+      _estRenderStatusPanel(dateISO);
+      if (typeof toast === 'function') {
+        toast(mode === 'prod'
+          ? '🏭 Modo: Día de producción (turno-aware)'
+          : '📅 Modo: Fecha de captura (raw)');
+      }
+    });
+  });
 }
 
 /* Drill-down: mostrar/ocultar detalle de un turno */
@@ -23560,6 +23727,8 @@ function renderEstadistica() {
 
   // Panel de Estado del Día (countdown + turnos)
   try { _estRenderStatusPanel(dateISO); } catch(e) { console.warn('estStatusPanel error:', e); }
+  // Chips del modo de agrupación (Día de producción / Fecha de captura)
+  try { _estBindDayModeChips(); _estSyncDayModeChips(); } catch(e) { console.warn('estDayMode chips error:', e); }
 
   // Cargar footer (calidad + logística)
   _estLoadFooter(dateISO);
