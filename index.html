@@ -5546,6 +5546,200 @@
   <!-- + Sospechosos. Empacado flags defectos; Calidad decide.    -->
   <!-- ========================================================= -->
   <!-- ============================================================= -->
+  <!-- FASE 4 · TEJEDURÍA · Rollos Crudo (kilos)                     -->
+  <!-- Registra kilos de tela cruda que salen de tejeduría, ANTES    -->
+  <!-- de teñido. Suma automática de rollos por máquina/tela.        -->
+  <!-- Phase 1: entrada manual · Phase 2 añadirá lectura de báscula. -->
+  <!-- ============================================================= -->
+  <section id="tab-tejeduria" class="tab-panel hidden">
+    <div class="card p-4 mb-4">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h2 class="text-lg font-black text-white flex items-center gap-2">
+            <span>🧶</span> Tejeduría · Rollos Crudo
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">
+            Registro digital de rollos que salen de tejeduría. Reemplaza la hoja de papel — <b>la suma es automática</b>.
+            <span class="text-slate-500">Fase 2 conectará la báscula DWI-110 para auto-captura de peso.</span>
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="tejGateInfo" class="hidden text-[10px] text-amber-300 bg-amber-900/40 border border-amber-700/50 px-2 py-1 rounded-md">🔒 Sólo lectura</span>
+          <button id="tejNewRolloBtn" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path d="M12 5v14M5 12h14"/></svg>
+            Registrar rollo
+          </button>
+        </div>
+      </div>
+
+      <!-- Session header: operator + shift + date -->
+      <div id="tejSessionBar" class="flex items-center gap-2 flex-wrap text-xs mb-3 p-2.5 rounded-lg bg-ink-900/60 border border-ink-800">
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 uppercase tracking-wider text-[9px]">Sesión:</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <label class="text-slate-400 text-[10px]">Turno</label>
+          <select id="tejTurno" class="field !py-1 !px-2 !text-xs w-20 font-bold">
+            <option value="1°">1°</option>
+            <option value="2°">2°</option>
+            <option value="3°">3°</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1">
+          <label class="text-slate-400 text-[10px]">Operador</label>
+          <input id="tejOperador" list="tejOperadoresList" class="field !py-1 !px-2 !text-xs w-40 font-bold" placeholder="Selecciona…" />
+          <datalist id="tejOperadoresList"></datalist>
+        </div>
+        <div class="flex items-center gap-1">
+          <label class="text-slate-400 text-[10px]">Fecha</label>
+          <input id="tejFecha" type="date" class="field !py-1 !px-2 !text-xs w-32" />
+          <button id="tejHoyBtn" class="text-[10px] text-teal-300 hover:text-teal-200 px-2 py-0.5 rounded-md hover:bg-teal-900/30">Hoy</button>
+        </div>
+        <span id="tejSessionCount" class="text-[10px] text-slate-500 ml-auto"></span>
+      </div>
+
+      <!-- Live totals strip -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+        <div class="rounded-lg bg-teal-900/30 border border-teal-700/40 p-2.5">
+          <div class="text-[9px] text-teal-300 uppercase tracking-wider font-bold">Kilos hoy</div>
+          <div class="text-2xl font-black text-teal-200 mt-0.5" style="font-variant-numeric: tabular-nums;"><span id="tejKgHoy">0.00</span> <span class="text-xs text-teal-400">kg</span></div>
+        </div>
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-2.5">
+          <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Rollos hoy</div>
+          <div class="text-2xl font-black text-white mt-0.5" style="font-variant-numeric: tabular-nums;"><span id="tejRolloCountHoy">0</span></div>
+        </div>
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-2.5">
+          <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Máquinas activas</div>
+          <div class="text-2xl font-black text-white mt-0.5" style="font-variant-numeric: tabular-nums;"><span id="tejMaqCountHoy">0</span></div>
+        </div>
+        <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-2.5">
+          <div class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Prom / rollo</div>
+          <div class="text-2xl font-black text-white mt-0.5" style="font-variant-numeric: tabular-nums;"><span id="tejPromHoy">0.00</span> <span class="text-xs text-slate-400">kg</span></div>
+        </div>
+      </div>
+
+      <!-- Filters + search -->
+      <div class="flex items-center gap-2 flex-wrap text-xs mb-2">
+        <input id="tejBuscar" type="text" placeholder="Buscar operador, máquina, tela, lote…" class="field !py-1.5 !px-2 !text-xs flex-1 min-w-[220px]" />
+        <select id="tejFiltroTurno" class="field !py-1.5 !px-2 !text-xs w-28">
+          <option value="">Todos turnos</option>
+          <option value="1°">Turno 1°</option>
+          <option value="2°">Turno 2°</option>
+          <option value="3°">Turno 3°</option>
+        </select>
+        <span id="tejFiltroCount" class="text-[10px] text-slate-500">—</span>
+      </div>
+
+      <!-- List grouped by operator -->
+      <div id="tejListWrap" class="space-y-3">
+        <div id="tejEmptyState" class="hidden text-center py-10 text-slate-500">
+          <div class="text-3xl mb-2">🧶</div>
+          <div class="text-sm">No hay rollos registrados para esta fecha.</div>
+          <div class="text-[11px] mt-1">Presiona <b>Registrar rollo</b> para empezar.</div>
+        </div>
+        <div id="tejList" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- ============ MODAL: Registrar / Editar rollo Tejeduría ============ -->
+    <div id="tejModal" class="hidden fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" style="display:none">
+      <div class="bg-ink-950 border border-ink-700 rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-800 sticky top-0 bg-ink-950 z-10 rounded-t-2xl">
+          <div>
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+              <span>🧶</span> <span id="tejModalTitle">Registrar rollo · Tejeduría</span>
+            </h3>
+            <div id="tejModalMeta" class="text-[10px] text-slate-500 mt-0.5"></div>
+          </div>
+          <button id="tejModalClose" class="text-slate-400 hover:text-white text-2xl leading-none px-2">×</button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4 space-y-4">
+          <!-- Row 1: Machine + Tela -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Máquina *</label>
+              <input id="tejfMaquina" list="tejMaqList" class="field !py-2 !text-sm font-bold" placeholder="Ej: C-91 · 88 · A-63" autocomplete="off" />
+              <datalist id="tejMaqList"></datalist>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Tela *</label>
+              <input id="tejfTela" list="tejTelaList" class="field !py-2 !text-sm font-bold" placeholder="Ej: Piqué Plus" autocomplete="off" />
+              <datalist id="tejTelaList"></datalist>
+            </div>
+          </div>
+
+          <!-- Row 2: Lote (optional Phase 1) -->
+          <div>
+            <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Lote <span class="text-slate-600 normal-case">(opcional en Fase 1)</span></label>
+            <input id="tejfLote" class="field !py-2 !text-sm" placeholder="Ej: 26-2458 (se propagará hasta Teñido si se llena)" />
+          </div>
+
+          <!-- Rolls section -->
+          <div class="rounded-lg bg-ink-900/60 border border-ink-800 p-3">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Peso de rollos (kg)</label>
+              <span class="text-[9px] text-slate-500">ENTER para agregar el siguiente</span>
+            </div>
+
+            <!-- Individual roll list -->
+            <div id="tejfRollos" class="space-y-1.5 mb-2"></div>
+
+            <!-- Add-roll row -->
+            <div class="flex items-center gap-2">
+              <input id="tejfNewRollo" type="number" step="0.01" min="0" max="50"
+                inputmode="decimal"
+                class="field !py-2 !text-lg font-black text-center flex-1"
+                style="font-variant-numeric: tabular-nums;"
+                placeholder="0.00" />
+              <span class="text-sm text-slate-400 font-bold">kg</span>
+              <button id="tejfAddRollo" class="bg-teal-600 hover:bg-teal-500 text-white text-sm font-bold px-4 py-2 rounded-lg">
+                Agregar
+              </button>
+            </div>
+
+            <!-- Live sum display -->
+            <div class="mt-3 pt-3 border-t border-ink-800 flex items-center justify-between">
+              <div>
+                <div class="text-[9px] text-slate-500 uppercase tracking-wider">Total actual</div>
+                <div class="text-[10px] text-slate-400"><span id="tejfCount">0</span> rollos · promedio <span id="tejfProm">0.00</span> kg</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[9px] text-teal-400 uppercase tracking-wider font-bold">SUMA</div>
+                <div class="text-3xl font-black text-teal-300" style="font-variant-numeric: tabular-nums;"><span id="tejfSuma">0.00</span> <span class="text-base text-teal-500">kg</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scale connect (Phase 2 placeholder — visible but disabled) -->
+          <div class="rounded-lg bg-purple-950/30 border border-purple-800/40 p-2.5">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <div class="text-[10px] text-purple-300 uppercase tracking-wider font-bold">🔌 Báscula DWI-110</div>
+                <div class="text-[10px] text-slate-400">Fase 2 · Conecta báscula por USB-Serial para auto-llenar el peso</div>
+              </div>
+              <button id="tejfScaleBtn" class="bg-purple-800/50 hover:bg-purple-700/60 disabled:opacity-40 disabled:cursor-not-allowed text-purple-200 text-[10px] font-bold px-3 py-1.5 rounded-md" disabled>
+                Próximamente
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between px-4 py-3 border-t border-ink-800 sticky bottom-0 bg-ink-950 rounded-b-2xl">
+          <button id="tejModalDelete" class="hidden text-red-400 hover:text-red-300 text-xs font-bold px-3 py-2 rounded-lg hover:bg-red-950/40">Eliminar</button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button id="tejModalCancel" class="text-slate-400 hover:text-white text-xs font-bold px-3 py-2 rounded-lg">Cancelar</button>
+            <button id="tejModalSave" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-md">Guardar rollo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
   <!-- FASE 3 · REVISADO / CALIDAD                                   -->
   <!-- ============================================================= -->
   <section id="tab-revisado" class="tab-panel hidden">
@@ -5800,6 +5994,10 @@
     <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
       <span>Compactadora</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-tejeduria" title="Tejeduría · Registro de rollos crudo (kilos) — antes de teñido">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M4 12c3.5-3 12.5-3 16 0"/><path d="M4 12c3.5 3 12.5 3 16 0"/><path d="M12 3v18"/></svg>
+      <span>Tejeduría</span>
     </button>
     <button class="tab-btn" data-tab="tab-estadistica" title="Estadística · Reporte de entrega de producto terminado (Calidad + Logística)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
@@ -6138,7 +6336,8 @@ const LS_KEYS = {
   cfgRama: 'tg_tint_cfg_rama_v1',// config de la RAMA Bruckner (limites de ancho)
   estadi:  'tg_tint_estadi_v1',  // Estadística: overrides manuales por día (calidad A/B, prog, aprev, logística)
   empacado: 'tg_tint_empacado_v1', // Fase 3 · Empacado: ficha por lote con rollos Primera + rollos-sospechosos
-  revisado: 'tg_tint_revisado_v1'  // Fase 3 · Revisado (Calidad): decisión final sobre rollos sospechosos
+  revisado: 'tg_tint_revisado_v1', // Fase 3 · Revisado (Calidad): decisión final sobre rollos sospechosos
+  tejeduria: 'tg_tint_tejeduria_v1' // Fase 4 · Tejeduría: rollos crudo (kg) por operador/máquina/tela, antes de teñido
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -6156,7 +6355,8 @@ const LS_CAPS = {
   'tg_tint_down_v2':    1000,     // tiempos muertos
   'tg_tint_ramadown_v2':1000,     // tiempos muertos rama
   'tg_tint_empacado_v1':1500,     // fichas empacado
-  'tg_tint_revisado_v1':1500      // fichas revisado
+  'tg_tint_revisado_v1':1500,     // fichas revisado
+  'tg_tint_tejeduria_v1':2500     // rollos crudo tejeduría
 };
 
 /**
@@ -6740,7 +6940,8 @@ const FB_COLLECTIONS = {
   tareas:       'tareas',             // Fase 2 · Kanban personal
   avisos:       'avisos',              // Fase 5 · Announcements
   empacado:     'empacado',            // Fase 3 · Fichas de Empacado por lote (paper form #1)
-  revisado:     'revisado'             // Fase 3 · Fichas de Revisado/Calidad por lote (paper form #2)
+  revisado:     'revisado',            // Fase 3 · Fichas de Revisado/Calidad por lote (paper form #2)
+  tejeduria:    'tejeduria_rollos'     // Fase 4 · Rollos crudo de tejeduría (kg)
 };
 // Constantes de máquina RAMA Bruckner (confirmadas por Rogelio, 02/Jul/2026)
 // Se cargan de Firestore config/rama_bruckner si existen; fallback a estos defaults.
@@ -7033,6 +7234,7 @@ let state = {
   compact: load(LS_KEYS.compact),   // Compactadora (ruta tubular)
   empacado: load(LS_KEYS.empacado), // Fase 3 · Empacado (paper form #1)
   revisado: load(LS_KEYS.revisado), // Fase 3 · Revisado / Calidad (paper form #2)
+  tejeduria: load(LS_KEYS.tejeduria), // Fase 4 · Tejeduría · rollos crudo (kg)
   history: load(LS_KEYS.history),
   rd:      load(LS_KEYS.rd),
   telas:   load(LS_KEYS.telas),                                         // catálogo de telas
@@ -7982,6 +8184,9 @@ function bindTabs() {
     if (tab === 'tab-compact') {
       requestAnimationFrame(() => { try { _cmpBindEventsOnce(); renderCompact(); _cmpUpdateCostoUI(); } catch(e){ console.warn('cmp switch:', e); } });
     }
+    if (tab === 'tab-tejeduria') {
+      requestAnimationFrame(() => { try { _tejBindEventsOnce(); renderTejeduria(); } catch(e){ console.warn('tej switch:', e); } });
+    }
     if (tab === 'tab-inicio') {
       requestAnimationFrame(() => { try { renderInicio(); } catch(e){ console.warn('inicio switch:', e); } });
     }
@@ -8750,9 +8955,25 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 10;
+  const CURRENT_VERSION = 11;
 
   const CHANGELOG = [
+    {
+      v: 11,
+      date: '2026-08-12',
+      icon: '🧶',
+      title: 'Tejeduría · Rollos Crudo (Fase 4 · entrada manual)',
+      summary: 'Nueva pestaña para registrar el peso de los rollos que salen de tejeduría, ANTES del teñido. La suma es automática — se elimina la fuente de error de las sumas hechas a mano en papel. Próxima fase: conectaremos la báscula DWI-110 por USB para que el peso se auto-llene desde el indicador.',
+      bullets: [
+        'Nueva pestaña “🧶 Tejeduría” con barra de sesión (turno + operador + fecha) que se recuerda entre rollos.',
+        'Cada rollo se guarda por operador · máquina · tela con lista de pesos individuales y suma automática.',
+        'Preload de operadores del reporte en papel (Zenia, Zonia, Trinidad, Carlos, Miguel, Joel, Adriana, Olga, Isidro, Hortensia, María, Marisol, Lupe Z, Aleme, Lupe B, MTTO).',
+        'Preload de telas comunes (Piqué Plus, Barcelona 290, Millenium, Argenta, Dubay, Universo, Naily Plus, Metrópoli, etc.).',
+        'Atribución turno-aware: usa el mismo helper del v10 para asignar el día de producción correcto (6–6 h).',
+        'Sync a Firestore en tiempo real (colección tejeduria_rollos) · misma seguridad que el resto del dashboard.',
+        'Placeholder para báscula DWI-110: la Fase 2 leerá el peso por USB-Serial y lo auto-llenará tras 3 s de estabilidad.'
+      ]
+    },
     {
       v: 10,
       date: '2026-08-12',
@@ -17700,6 +17921,7 @@ function bindTareas() {
   subscribeTareas();
   subscribeEmpacado();  // Fase 3 · sync ficha Empacado (paper form #1)
   subscribeRevisado();  // Fase 3 · sync ficha Revisado/Calidad (paper form #2)
+  subscribeTejeduria(); // Fase 4 · sync rollos crudo Tejeduría (kg)
 }
 
 /* ---------------- MI INICIO ---------------- */
@@ -20867,6 +21089,555 @@ function cmpReverseApply() {
   try { if (typeof renderReporteSemanal === 'function') renderReporteSemanal(); } catch(e){}
   try { if (typeof renderReport === 'function') renderReport(); } catch(e){}
 }
+
+
+/* ================================================================= */
+/* TEJEDURÍA · Rollos Crudo — Fase 4 · Phase 1 (manual entry)        */
+/* Suma automática de rollos. Firestore-sync. Preserva atribución    */
+/* por turno (mismo helper que Estadística v10).                     */
+/* Phase 2 (deferred): lectura de báscula DWI-110 vía Web Serial API.*/
+/* ================================================================= */
+
+// Preloaded operators (paper form, IMG_6937). Sorted alphabetically for the datalist.
+const TEJ_OPERADORES_SEED = [
+  'Adriana Calderón',
+  'Aleme Álvarez',
+  'Hortensia García',
+  'Isidro Pizano',
+  'J Carlos López',
+  'Joel Cruz',
+  'Lupe Bautista',
+  'Lupe Zamora',
+  'Ma. Trinidad Nieto',
+  'María Ortiz',
+  'Marisol Luna',
+  'Miguel Cornejo',
+  'Norma Alicia',
+  'Olga Zamora',
+  'Zenia Díaz',
+  'Zonia Onofre',
+  'MTTO'
+];
+
+// Preloaded telas (paper form + common circular-knit telas seen in TGM catalog).
+const TEJ_TELAS_SEED = [
+  'Piqué Plus','Piqué Marcelo','Piqué Atlante','Piqué Aviat','Piqué 2P Boa','Piqué 2P Cabra',
+  'Barcelona 290','Cardigan Multiplicado','Kilo Argenta','Inter Hermes','Inter Deo','Troya',
+  'Millenium','Argenta','Dubay','Intec','Beta','Universo','Ricardo','Helanda','Micro Helanda',
+  'Herculs','Naily Plus','Naily Supra','Naily Boro','Adriana','Amsterdam','Olympia','Metrópoli',
+  'Centenario'
+];
+
+let _tejBinded = false;
+let _tejEditingId = null;
+let _tejCurrentRollos = []; // array of numbers (kg) in the modal
+let TEJEDURIA_UNSUB = null;
+
+/** Compute production day (6→6h) — same rule as v10 Estadística helper. */
+function _tejProdDayForRecord(r) {
+  try {
+    const d = new Date(r.ts || Date.now());
+    const h = d.getHours();
+    const turno = (r.turno || '').trim();
+    // T3° captured before 14h → previous prod day (they came from prior night)
+    if ((turno === '3°' || turno === 'T3') && h < 14) {
+      d.setDate(d.getDate() - 1);
+    } else if (h < 6) {
+      d.setDate(d.getDate() - 1);
+    }
+    return d.toISOString().slice(0,10);
+  } catch(_) { return (r.fechaProd || r.fecha || ''); }
+}
+
+/** Sum of rolls array with 2-decimal precision. */
+function _tejSum(arr) {
+  const s = (arr || []).reduce((a,b) => a + (Number(b)||0), 0);
+  return Math.round(s * 100) / 100;
+}
+
+function _tejFmtKg(n) {
+  const v = Number(n) || 0;
+  return v.toFixed(2);
+}
+
+function _tejFmtDateISO(d) {
+  if (!d) return '';
+  const dt = (d instanceof Date) ? d : new Date(d);
+  const y = dt.getFullYear(), m = String(dt.getMonth()+1).padStart(2,'0'), dd = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+/** Detect turno from wall-clock if operator forgot to set it. */
+function _tejGuessTurnoFromClock() {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 14) return '1°';
+  if (h >= 14 && h < 22) return '2°';
+  return '3°';
+}
+
+function _tejGetSessionCtx() {
+  const turno = document.getElementById('tejTurno')?.value || _tejGuessTurnoFromClock();
+  const operador = (document.getElementById('tejOperador')?.value || '').trim();
+  const fecha = document.getElementById('tejFecha')?.value || _tejFmtDateISO(new Date());
+  return { turno, operador, fecha };
+}
+
+function _tejPopulateDatalists() {
+  // Operators = seed + any distinct new ones in data
+  const dataOps = Array.from(new Set((state.tejeduria||[]).map(r => (r.operador||'').trim()).filter(Boolean)));
+  const merged = Array.from(new Set([...TEJ_OPERADORES_SEED, ...dataOps])).sort((a,b)=>a.localeCompare(b,'es'));
+  const opList = document.getElementById('tejOperadoresList');
+  if (opList) opList.innerHTML = merged.map(o => `<option value="${o}"></option>`).join('');
+
+  // Máquinas — from data only (no seed; grows organically)
+  const dataMaq = Array.from(new Set((state.tejeduria||[]).map(r => (r.maquina||'').trim()).filter(Boolean)))
+    .sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+  const maqList = document.getElementById('tejMaqList');
+  if (maqList) maqList.innerHTML = dataMaq.map(m => `<option value="${m}"></option>`).join('');
+
+  // Telas — seed + data
+  const dataTelas = Array.from(new Set((state.tejeduria||[]).map(r => (r.tela||'').trim()).filter(Boolean)));
+  const mergedT = Array.from(new Set([...TEJ_TELAS_SEED, ...dataTelas])).sort((a,b)=>a.localeCompare(b,'es'));
+  const telaList = document.getElementById('tejTelaList');
+  if (telaList) telaList.innerHTML = mergedT.map(t => `<option value="${t}"></option>`).join('');
+}
+
+function _tejRecordsForDate(dateISO) {
+  return (state.tejeduria||[]).filter(r => (r.fechaProd || r.fecha) === dateISO);
+}
+
+function _tejUpdateTotalsStrip(dateISO) {
+  const recs = _tejRecordsForDate(dateISO);
+  const totalKg = recs.reduce((a,r) => a + (Number(r.total)||0), 0);
+  const totalRollos = recs.reduce((a,r) => a + (Array.isArray(r.rollos) ? r.rollos.length : (Number(r.count)||0)), 0);
+  const uniqueMaq = new Set(recs.map(r => r.maquina).filter(Boolean));
+  const prom = totalRollos > 0 ? totalKg / totalRollos : 0;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('tejKgHoy', _tejFmtKg(totalKg));
+  set('tejRolloCountHoy', String(totalRollos));
+  set('tejMaqCountHoy', String(uniqueMaq.size));
+  set('tejPromHoy', _tejFmtKg(prom));
+}
+
+function renderTejeduria() {
+  const wrap = document.getElementById('tejList');
+  const empty = document.getElementById('tejEmptyState');
+  if (!wrap) return;
+
+  _tejPopulateDatalists();
+
+  // Default fecha = today if empty
+  const fechaEl = document.getElementById('tejFecha');
+  if (fechaEl && !fechaEl.value) fechaEl.value = _tejFmtDateISO(new Date());
+
+  // Default turno by clock, if not set (respect user choice on repeat renders)
+  const turnoEl = document.getElementById('tejTurno');
+  if (turnoEl && !turnoEl.dataset.userSet) {
+    turnoEl.value = _tejGuessTurnoFromClock();
+  }
+
+  const fecha = fechaEl?.value || _tejFmtDateISO(new Date());
+  const filtroTurno = document.getElementById('tejFiltroTurno')?.value || '';
+  const q = ((document.getElementById('tejBuscar')?.value)||'').trim().toLowerCase();
+
+  _tejUpdateTotalsStrip(fecha);
+
+  let recs = _tejRecordsForDate(fecha);
+  if (filtroTurno) recs = recs.filter(r => (r.turno||'') === filtroTurno);
+  if (q) {
+    recs = recs.filter(r =>
+      ((r.operador||'').toLowerCase().includes(q)) ||
+      ((r.maquina||'').toLowerCase().includes(q)) ||
+      ((r.tela||'').toLowerCase().includes(q)) ||
+      ((r.lote||'').toLowerCase().includes(q))
+    );
+  }
+
+  document.getElementById('tejFiltroCount').textContent = `${recs.length} registro${recs.length===1?'':'s'}`;
+  const sessionCountEl = document.getElementById('tejSessionCount');
+  if (sessionCountEl) {
+    const ctx = _tejGetSessionCtx();
+    if (ctx.operador) {
+      const my = recs.filter(r => (r.operador||'') === ctx.operador && (r.turno||'') === ctx.turno);
+      const myKg = my.reduce((a,r) => a + (Number(r.total)||0), 0);
+      sessionCountEl.innerHTML = `Tu turno: <b class="text-teal-300">${my.length}</b> rollos · <b class="text-teal-300">${_tejFmtKg(myKg)} kg</b>`;
+    } else {
+      sessionCountEl.textContent = 'Selecciona tu nombre para ver tu turno';
+    }
+  }
+
+  if (recs.length === 0) {
+    empty?.classList.remove('hidden');
+    wrap.innerHTML = '';
+    return;
+  }
+  empty?.classList.add('hidden');
+
+  // Group by operador → turno for readability
+  const groups = {};
+  recs.forEach(r => {
+    const key = `${r.operador||'(sin operador)'}__${r.turno||'?'}`;
+    if (!groups[key]) groups[key] = { operador: r.operador||'(sin operador)', turno: r.turno||'?', rows: [] };
+    groups[key].rows.push(r);
+  });
+
+  const sortedGroups = Object.values(groups).sort((a,b) => {
+    if (a.turno !== b.turno) return (a.turno||'').localeCompare(b.turno||'');
+    return (a.operador||'').localeCompare(b.operador||'','es');
+  });
+
+  wrap.innerHTML = sortedGroups.map(g => {
+    const gKg = g.rows.reduce((a,r)=>a+(Number(r.total)||0),0);
+    const gCount = g.rows.reduce((a,r)=>a+(Array.isArray(r.rollos)?r.rollos.length:0),0);
+    const rowsHtml = g.rows
+      .sort((a,b) => (a.maquina||'').localeCompare(b.maquina||'','es',{numeric:true}))
+      .map(r => {
+        const rollos = Array.isArray(r.rollos) ? r.rollos : [];
+        const rolloTxt = rollos.map(v => _tejFmtKg(v)).join(' + ');
+        const src = r.captureSource === 'scale'
+          ? '<span class="text-[9px] text-purple-300 bg-purple-950/50 px-1.5 py-0.5 rounded ml-1" title="Peso capturado desde báscula">🔌</span>'
+          : '';
+        return `
+          <div class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-ink-900/60 cursor-pointer border-l-2 border-ink-800 hover:border-teal-500" data-tej-edit="${r.id}">
+            <div class="text-xs font-bold text-white w-16 truncate" title="Máquina">${r.maquina||'—'}</div>
+            <div class="text-xs text-slate-300 flex-1 truncate" title="Tela">${r.tela||'—'}${r.lote ? ` <span class="text-[9px] text-slate-500">· ${r.lote}</span>` : ''}</div>
+            <div class="text-[10px] text-slate-500 tabular-nums w-24 truncate text-right" title="${rolloTxt}">${rolloTxt||'—'}</div>
+            <div class="text-sm font-black text-teal-300 tabular-nums w-20 text-right">${_tejFmtKg(r.total||0)} <span class="text-[9px] text-teal-500">kg</span></div>
+            <div class="text-[9px] text-slate-500 w-10 text-right">${rollos.length}r${src}</div>
+          </div>`;
+      }).join('');
+    return `
+      <div class="rounded-lg bg-ink-900/40 border border-ink-800 overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-2 bg-ink-900/80 border-b border-ink-800">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-teal-300 bg-teal-900/40 px-2 py-0.5 rounded">Turno ${g.turno}</span>
+            <span class="text-sm font-bold text-white">${g.operador}</span>
+          </div>
+          <div class="flex items-center gap-3 text-[10px]">
+            <span class="text-slate-400">${gCount} rollos</span>
+            <span class="text-teal-300 font-black tabular-nums">${_tejFmtKg(gKg)} kg</span>
+          </div>
+        </div>
+        <div class="p-1">${rowsHtml}</div>
+      </div>`;
+  }).join('');
+
+  // Wire edit clicks
+  wrap.querySelectorAll('[data-tej-edit]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-tej-edit');
+      _tejOpenModal(id);
+    });
+  });
+}
+
+/* ---------------- Modal (registrar/editar rollo) ---------------- */
+
+function _tejUpdateModalSum() {
+  const suma = _tejSum(_tejCurrentRollos);
+  const count = _tejCurrentRollos.length;
+  const prom = count > 0 ? (suma/count) : 0;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('tejfSuma', _tejFmtKg(suma));
+  set('tejfCount', String(count));
+  set('tejfProm', _tejFmtKg(prom));
+
+  // Re-render individual roll list with delete buttons
+  const listEl = document.getElementById('tejfRollos');
+  if (listEl) {
+    if (_tejCurrentRollos.length === 0) {
+      listEl.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Aún no hay rollos. Escribe un peso y presiona ENTER o Agregar.</div>';
+    } else {
+      listEl.innerHTML = _tejCurrentRollos.map((v, i) => `
+        <div class="flex items-center gap-2 py-1 px-2 rounded bg-ink-950/50 border border-ink-800">
+          <span class="text-[10px] text-slate-500 font-bold w-6 text-center">${i+1}</span>
+          <span class="flex-1 text-sm font-bold text-white tabular-nums">${_tejFmtKg(v)} <span class="text-[10px] text-slate-500">kg</span></span>
+          <button type="button" class="text-red-400 hover:text-red-300 text-lg leading-none px-1" data-tej-rollo-del="${i}" title="Eliminar rollo">×</button>
+        </div>`).join('');
+      listEl.querySelectorAll('[data-tej-rollo-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-tej-rollo-del'), 10);
+          if (!isNaN(idx)) {
+            _tejCurrentRollos.splice(idx, 1);
+            _tejUpdateModalSum();
+          }
+        });
+      });
+    }
+  }
+}
+
+function _tejOpenModal(idOrNull) {
+  const modal = document.getElementById('tejModal');
+  const del = document.getElementById('tejModalDelete');
+  const title = document.getElementById('tejModalTitle');
+  const meta = document.getElementById('tejModalMeta');
+  if (!modal) return;
+
+  _tejEditingId = idOrNull || null;
+
+  if (idOrNull) {
+    const rec = (state.tejeduria||[]).find(r => r.id === idOrNull);
+    if (!rec) { toast('Registro no encontrado', true); return; }
+    document.getElementById('tejfMaquina').value = rec.maquina || '';
+    document.getElementById('tejfTela').value = rec.tela || '';
+    document.getElementById('tejfLote').value = rec.lote || '';
+    _tejCurrentRollos = Array.isArray(rec.rollos) ? [...rec.rollos] : [];
+    title.textContent = 'Editar rollo · Tejeduría';
+    meta.textContent = `${rec.operador||'?'} · Turno ${rec.turno||'?'} · ${rec.fechaProd||rec.fecha||''}`;
+    del?.classList.remove('hidden');
+  } else {
+    // Reset for new
+    document.getElementById('tejfMaquina').value = '';
+    document.getElementById('tejfTela').value = '';
+    document.getElementById('tejfLote').value = '';
+    _tejCurrentRollos = [];
+    const ctx = _tejGetSessionCtx();
+    title.textContent = 'Registrar rollo · Tejeduría';
+    if (!ctx.operador) {
+      meta.innerHTML = '<span class="text-amber-300">⚠ Selecciona tu nombre en la barra de sesión antes de guardar</span>';
+    } else {
+      meta.textContent = `${ctx.operador} · Turno ${ctx.turno} · ${ctx.fecha}`;
+    }
+    del?.classList.add('hidden');
+  }
+
+  _tejUpdateModalSum();
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('tejfMaquina')?.focus(), 60);
+}
+
+function _tejCloseModal() {
+  const modal = document.getElementById('tejModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.style.display = 'none';
+  _tejEditingId = null;
+  _tejCurrentRollos = [];
+}
+
+function _tejAddRolloFromInput() {
+  const input = document.getElementById('tejfNewRollo');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) return;
+  const v = Number(raw);
+  if (!isFinite(v) || v <= 0) {
+    toast('Peso inválido (debe ser un número mayor a 0)', true);
+    return;
+  }
+  if (v > 50) {
+    toast(`⚠ Peso muy alto: ${v} kg. Verifica.`, true);
+    // Don't block — user might have a very heavy roll. Just warn.
+  }
+  _tejCurrentRollos.push(Math.round(v*100)/100);
+  input.value = '';
+  _tejUpdateModalSum();
+  input.focus();
+}
+
+async function _tejSaveRollo() {
+  const ctx = _tejGetSessionCtx();
+  if (!ctx.operador) {
+    toast('Selecciona tu nombre en la barra de sesión antes de guardar', true);
+    document.getElementById('tejOperador')?.focus();
+    return;
+  }
+  const maquina = document.getElementById('tejfMaquina').value.trim();
+  const tela = document.getElementById('tejfTela').value.trim();
+  const lote = document.getElementById('tejfLote').value.trim();
+  if (!maquina) { toast('Falta máquina', true); return; }
+  if (!tela) { toast('Falta tela', true); return; }
+  if (_tejCurrentRollos.length === 0) {
+    // Try to auto-add the current input value if user forgot to press ENTER
+    const input = document.getElementById('tejfNewRollo');
+    if (input && input.value.trim()) {
+      _tejAddRolloFromInput();
+    }
+  }
+  if (_tejCurrentRollos.length === 0) {
+    toast('Registra al menos un peso de rollo', true);
+    return;
+  }
+
+  const total = _tejSum(_tejCurrentRollos);
+  const nowIso = new Date().toISOString();
+  const id = _tejEditingId || `tej_${ctx.fecha}_${ctx.turno.replace('°','')}_${(ctx.operador.split(' ')[0]||'op').toLowerCase()}_${maquina}_${Date.now().toString(36)}`;
+
+  let rec = (state.tejeduria||[]).find(r => r.id === _tejEditingId) || null;
+  const prevRollos = rec ? [...(rec.rollos||[])] : null;
+
+  const record = {
+    id,
+    fecha: ctx.fecha,                     // capture date
+    fechaProd: _tejProdDayForRecord({ ts: nowIso, turno: ctx.turno, fecha: ctx.fecha }),
+    turno: ctx.turno,
+    operador: ctx.operador,
+    maquina,
+    tela,
+    lote: lote || '',
+    rollos: [..._tejCurrentRollos],
+    total,
+    count: _tejCurrentRollos.length,
+    captureSource: 'manual',              // Fase 2 usará 'scale'
+    scaleModel: null,
+    ts: rec?.ts || nowIso,                // preserve original ts on edit
+    updatedAt: nowIso,
+    createdBy: rec?.createdBy || (state.currentUserEmail || 'anon'),
+    updatedBy: (state.currentUserEmail || 'anon')
+  };
+
+  // Merge into state
+  const arr = (state.tejeduria || []).slice();
+  const idx = arr.findIndex(r => r.id === id);
+  if (idx >= 0) arr[idx] = record; else arr.unshift(record);
+  state.tejeduria = arr;
+  try { save(LS_KEYS.tejeduria, arr); } catch(_){}
+
+  // Firestore
+  try {
+    await saveToCloud('tejeduria', record);
+  } catch(e) {
+    console.warn('[Tej] save to cloud failed', e);
+    toast('Guardado localmente. Nube reintentará.', false);
+  }
+
+  // Log
+  try {
+    logChange({
+      module: 'Tejeduría',
+      action: _tejEditingId ? 'editar-rollo' : 'nuevo-rollo',
+      machine: maquina,
+      lote: lote || '',
+      detail: `${tela} · ${_tejCurrentRollos.length}r · ${_tejFmtKg(total)}kg`
+    });
+  } catch(_){}
+
+  toast(_tejEditingId ? `✓ Rollo actualizado · ${_tejFmtKg(total)} kg` : `✓ Rollo guardado · ${_tejFmtKg(total)} kg`);
+  _tejCloseModal();
+  renderTejeduria();
+}
+
+async function _tejDeleteRollo() {
+  if (!_tejEditingId) return;
+  if (!confirm('¿Eliminar este rollo? Esta acción no se puede deshacer.')) return;
+  const rec = (state.tejeduria||[]).find(r => r.id === _tejEditingId);
+  const arr = (state.tejeduria||[]).filter(r => r.id !== _tejEditingId);
+  state.tejeduria = arr;
+  try { save(LS_KEYS.tejeduria, arr); } catch(_){}
+  try { await deleteFromCloud('tejeduria', _tejEditingId); } catch(e){ console.warn('[Tej] del cloud', e); }
+  try {
+    logChange({
+      module: 'Tejeduría', action: 'eliminar-rollo',
+      machine: rec?.maquina||'', lote: rec?.lote||'',
+      detail: `${rec?.tela||'?'} · ${(rec?.rollos||[]).length}r · ${_tejFmtKg(rec?.total||0)}kg`
+    });
+  } catch(_){}
+  toast('Rollo eliminado');
+  _tejCloseModal();
+  renderTejeduria();
+}
+
+/* ---------------- Event bindings (once) ---------------- */
+
+function _tejBindEventsOnce() {
+  if (_tejBinded) return;
+  _tejBinded = true;
+
+  // Session bar
+  const turnoEl = document.getElementById('tejTurno');
+  if (turnoEl) {
+    turnoEl.addEventListener('change', () => { turnoEl.dataset.userSet = '1'; renderTejeduria(); });
+  }
+  document.getElementById('tejOperador')?.addEventListener('change', renderTejeduria);
+  document.getElementById('tejOperador')?.addEventListener('input', () => {
+    // Debounce trivially — just re-render on input for the "your shift" chip
+    clearTimeout(_tejBindEventsOnce._opTimer);
+    _tejBindEventsOnce._opTimer = setTimeout(renderTejeduria, 250);
+  });
+  document.getElementById('tejFecha')?.addEventListener('change', renderTejeduria);
+  document.getElementById('tejHoyBtn')?.addEventListener('click', () => {
+    const fEl = document.getElementById('tejFecha');
+    if (fEl) { fEl.value = _tejFmtDateISO(new Date()); renderTejeduria(); }
+  });
+  document.getElementById('tejFiltroTurno')?.addEventListener('change', renderTejeduria);
+  document.getElementById('tejBuscar')?.addEventListener('input', () => {
+    clearTimeout(_tejBindEventsOnce._srchTimer);
+    _tejBindEventsOnce._srchTimer = setTimeout(renderTejeduria, 200);
+  });
+
+  // Open modal for new
+  document.getElementById('tejNewRolloBtn')?.addEventListener('click', () => _tejOpenModal(null));
+
+  // Modal buttons
+  document.getElementById('tejModalClose')?.addEventListener('click', _tejCloseModal);
+  document.getElementById('tejModalCancel')?.addEventListener('click', _tejCloseModal);
+  document.getElementById('tejModalSave')?.addEventListener('click', _tejSaveRollo);
+  document.getElementById('tejModalDelete')?.addEventListener('click', _tejDeleteRollo);
+
+  // Add-roll button + ENTER key
+  document.getElementById('tejfAddRollo')?.addEventListener('click', _tejAddRolloFromInput);
+  document.getElementById('tejfNewRollo')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      _tejAddRolloFromInput();
+    }
+  });
+
+  // Backdrop click closes modal
+  document.getElementById('tejModal')?.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'tejModal') _tejCloseModal();
+  });
+
+  // Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const m = document.getElementById('tejModal');
+      if (m && !m.classList.contains('hidden')) _tejCloseModal();
+    }
+  });
+}
+
+/* ---------------- Firestore subscription ---------------- */
+
+async function subscribeTejeduria() {
+  // Hydrate from LS first
+  try {
+    const cached = localStorage.getItem(LS_KEYS.tejeduria);
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr)) { state.tejeduria = arr; }
+    }
+  } catch(_){}
+
+  const FB = await whenFbReady();
+  if (!FB || !FB.onSnapshot) return;
+  try {
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.tejeduria) || 'tejeduria_rollos';
+    const collRef = FB.collection(FB.db, coll);
+    if (typeof TEJEDURIA_UNSUB === 'function') { try { TEJEDURIA_UNSUB(); } catch(_){} }
+    TEJEDURIA_UNSUB = FB.onSnapshot(collRef, (snap) => {
+      const arr = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (!data.id) data.id = d.id;
+        arr.push(data);
+      });
+      state.tejeduria = arr;
+      try { save(LS_KEYS.tejeduria, arr); } catch(_){}
+      try {
+        const sec = document.getElementById('tab-tejeduria');
+        if (sec && !sec.classList.contains('hidden') && typeof renderTejeduria === 'function') {
+          renderTejeduria();
+        }
+      } catch(_){}
+    }, (err) => console.warn('[Tej] onSnapshot error', err));
+  } catch (e) {
+    console.warn('[Tej] subscribe error', e);
+  }
+}
+
 
 function renderAll() {
   renderOpenFichasPanel();
