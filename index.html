@@ -5565,10 +5565,24 @@
         </div>
         <div class="flex items-center gap-2">
           <span id="tejGateInfo" class="hidden text-[10px] text-amber-300 bg-amber-900/40 border border-amber-700/50 px-2 py-1 rounded-md">🔒 Sólo lectura</span>
+          <button id="tejImportBtn" class="bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md" title="Importar reporte diario de Tejeduría desde Excel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" class="w-3.5 h-3.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Importar Excel
+          </button>
+          <input type="file" id="tejImportFile" accept=".xlsx,.xls,.csv" multiple class="hidden" />
           <button id="tejNewRolloBtn" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path d="M12 5v14M5 12h14"/></svg>
             Registrar rollo
           </button>
+        </div>
+      </div>
+
+      <!-- Drag-and-drop zone (visible when drag detected globally) -->
+      <div id="tejDropZone" class="hidden fixed inset-0 z-[110] bg-purple-900/40 backdrop-blur-sm items-center justify-center pointer-events-none">
+        <div class="pointer-events-auto bg-ink-950 border-4 border-dashed border-purple-400 rounded-2xl p-10 max-w-lg text-center shadow-2xl">
+          <div class="text-5xl mb-3">📄⬇️</div>
+          <div class="text-lg font-black text-white mb-1">Suelta el archivo Excel aquí</div>
+          <div class="text-xs text-slate-400">Acepta .xlsx, .xls, .csv · puedes soltar varios a la vez</div>
         </div>
       </div>
 
@@ -5638,6 +5652,64 @@
           <div class="text-[11px] mt-1">Presiona <b>Registrar rollo</b> para empezar.</div>
         </div>
         <div id="tejList" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- ============ MODAL: Importar Excel Tejeduría ============ -->
+    <div id="tejImportModal" class="hidden fixed inset-0 z-[125] bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" style="display:none">
+      <div class="bg-ink-950 border border-ink-700 rounded-2xl shadow-2xl w-full max-w-4xl my-8">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-800 sticky top-0 bg-ink-950 z-10 rounded-t-2xl">
+          <div>
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+              <span>📄</span> Importar Excel · Tejeduría
+            </h3>
+            <div class="text-[10px] text-slate-500 mt-0.5">Revisa los rollos detectados antes de confirmar la importación</div>
+          </div>
+          <button id="tejImportModalClose" class="text-slate-400 hover:text-white text-2xl leading-none px-2">×</button>
+        </div>
+        <div class="p-4 space-y-3">
+          <!-- Progress + counts strip -->
+          <div id="tejImportProgress" class="text-xs text-slate-400"></div>
+          <div id="tejImportSummary" class="hidden grid grid-cols-2 md:grid-cols-5 gap-2"></div>
+          <!-- Detected header info per file -->
+          <div id="tejImportFiles" class="space-y-2"></div>
+          <!-- Preview table -->
+          <div id="tejImportPreviewWrap" class="hidden max-h-[45vh] overflow-auto rounded-lg border border-ink-800">
+            <table class="w-full text-[11px]">
+              <thead class="bg-ink-900/80 sticky top-0">
+                <tr class="text-slate-400 text-[9px] uppercase tracking-wider">
+                  <th class="px-2 py-1.5 text-left">Estado</th>
+                  <th class="px-2 py-1.5 text-left">Fecha</th>
+                  <th class="px-2 py-1.5 text-left">Turno</th>
+                  <th class="px-2 py-1.5 text-left">Operador</th>
+                  <th class="px-2 py-1.5 text-left">Máq.</th>
+                  <th class="px-2 py-1.5 text-left">Tela</th>
+                  <th class="px-2 py-1.5 text-left">Lote</th>
+                  <th class="px-2 py-1.5 text-right">Rollos</th>
+                  <th class="px-2 py-1.5 text-right">Total kg</th>
+                  <th class="px-2 py-1.5 text-left">Notas</th>
+                </tr>
+              </thead>
+              <tbody id="tejImportPreviewBody"></tbody>
+            </table>
+          </div>
+          <!-- Errors list -->
+          <div id="tejImportErrors" class="hidden text-[11px] rounded-lg bg-red-950/30 border border-red-800/50 p-2.5"></div>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3 border-t border-ink-800 sticky bottom-0 bg-ink-950 rounded-b-2xl">
+          <div class="text-[10px] text-slate-500">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="tejImportOverwrite" class="accent-purple-600" />
+              <span>Sobrescribir si ya existe (misma fecha · turno · operador · máquina · tela)</span>
+            </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="tejImportCancel" class="text-slate-400 hover:text-white text-xs font-bold px-3 py-2 rounded-lg">Cancelar</button>
+            <button id="tejImportConfirm" class="bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2 rounded-lg shadow-md" disabled>
+              <span id="tejImportConfirmLabel">Importar</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -8955,9 +9027,27 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 11;
+  const CURRENT_VERSION = 12;
 
   const CHANGELOG = [
+    {
+      v: 12,
+      date: '2026-08-13',
+      icon: '📥',
+      title: 'Tejeduría · Importar Excel de Estadística',
+      summary: 'Ya puedes cargar de golpe el histórico del reporte mensual de Tejido que hace Estadística (ej. “8-AGOSTO-PROD.-TEJIDO-2026.xlsx”). Cada hoja diaria se convierte en registros por máquina · tela · turno con sus kilos exactos. Los registros importados quedan marcados como “bulk_excel_estadistica” para no chocar con las capturas por rollo que hace el operador en el piso.',
+      bullets: [
+        'Botón morado “📥 Importar Excel” arriba de Tejeduría — también soporta arrastrar y soltar archivos sobre la pestaña.',
+        'Puedes importar varios meses a la vez (Enero, Febrero, Marzo… en un solo click).',
+        'Auto-detecta mes y año del nombre del archivo y la fecha exacta de cada hoja diaria (A2 o “EXT 01”).',
+        'Salta hojas TOTAL / FORMAT-ROLLO / JUL automáticamente. Solo procesa hojas de producción diaria.',
+        'Vista previa antes de guardar: resumen de kilos, días, máquinas, telas y desglose por turno (T1/T2/T3).',
+        'Dedupe determinista: si vuelves a importar el mismo día · turno · máquina · tela, no se duplica (opción “Sobrescribir” para forzar).',
+        'Los registros “EXT 01/02…” se marcan como turno extra sin mezclarse con los turnos normales.',
+        'Sin conflictos con la captura por rollo: los importados NO tienen lista de rollos individuales (source: bulk_excel_estadistica).'
+      ],
+      where: 'Tab Tejeduría → botón morado “📥 Importar Excel” en la esquina superior derecha del header.'
+    },
     {
       v: 11,
       date: '2026-08-12',
@@ -21595,8 +21685,473 @@ function _tejBindEventsOnce() {
     if (e.key === 'Escape') {
       const m = document.getElementById('tejModal');
       if (m && !m.classList.contains('hidden')) _tejCloseModal();
+      const im = document.getElementById('tejImportModal');
+      if (im && !im.classList.contains('hidden')) _tejImportClose();
     }
   });
+
+  // ============== IMPORT EXCEL wiring ==============
+  const importBtn = document.getElementById('tejImportBtn');
+  const importFile = document.getElementById('tejImportFile');
+  importBtn?.addEventListener('click', () => importFile?.click());
+  importFile?.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) await _tejImportHandleFiles(files);
+    e.target.value = ''; // reset so same file can be re-picked
+  });
+
+  // Drag-and-drop — attach to whole Tejeduría section
+  const dropZone = document.getElementById('tejDropZone');
+  const tejSection = document.getElementById('tab-tejeduria');
+  let _tejDragCounter = 0;
+  const hasFileDrag = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+  window.addEventListener('dragenter', (e) => {
+    if (!hasFileDrag(e)) return;
+    if (!tejSection || tejSection.classList.contains('hidden')) return;
+    _tejDragCounter++;
+    if (dropZone) { dropZone.classList.remove('hidden'); dropZone.classList.add('flex'); }
+  });
+  window.addEventListener('dragleave', (e) => {
+    if (!hasFileDrag(e)) return;
+    _tejDragCounter = Math.max(0, _tejDragCounter - 1);
+    if (_tejDragCounter === 0 && dropZone) { dropZone.classList.add('hidden'); dropZone.classList.remove('flex'); }
+  });
+  window.addEventListener('dragover', (e) => { if (hasFileDrag(e)) e.preventDefault(); });
+  window.addEventListener('drop', async (e) => {
+    if (!hasFileDrag(e)) return;
+    if (!tejSection || tejSection.classList.contains('hidden')) return;
+    e.preventDefault();
+    _tejDragCounter = 0;
+    if (dropZone) { dropZone.classList.add('hidden'); dropZone.classList.remove('flex'); }
+    const files = Array.from(e.dataTransfer.files || []).filter(f => /\.(xlsx|xls|csv)$/i.test(f.name));
+    if (files.length) await _tejImportHandleFiles(files);
+  });
+
+  // Import modal buttons
+  document.getElementById('tejImportModalClose')?.addEventListener('click', _tejImportClose);
+  document.getElementById('tejImportCancel')?.addEventListener('click', _tejImportClose);
+  document.getElementById('tejImportConfirm')?.addEventListener('click', _tejImportConfirm);
+  document.getElementById('tejImportModal')?.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'tejImportModal') _tejImportClose();
+  });
+}
+
+/* ---------------- EXCEL IMPORTER ---------------- */
+// Model: historical backfill from Estadística's monthly Excel ("N-MES-PROD.-TEJIDO-YYYY.xlsx").
+// The file has per-turno TOTALS per máquina, NOT individual rolls. We import each turno-bucket
+// as ONE record tagged captureSource: 'bulk_excel_estadistica' so it doesn't collide with
+// per-roll records from operators at the knitting station.
+
+let _tejImportStaged = []; // { fecha, turno, maq, tela, kg, source, key }
+let _tejImportBusy = false;
+
+const TEJ_IMPORT_MONTH_NAMES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+function _tejImportNorm(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+}
+
+function _tejImportNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  const s = String(v).replace(/,/g,'.').replace(/[^0-9.\-]/g,'');
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Try to detect month + year from a filename like "8-AGOSTO-PROD.-TEJIDO-2026.xlsx"
+function _tejImportInferMonthYearFromFilename(name) {
+  const up = _tejImportNorm(name);
+  let year = null, month = null;
+  const ym = up.match(/(20\d{2})/);
+  if (ym) year = parseInt(ym[1], 10);
+  for (let i = 0; i < TEJ_IMPORT_MONTH_NAMES.length; i++) {
+    if (up.includes(TEJ_IMPORT_MONTH_NAMES[i])) { month = i + 1; break; }
+  }
+  return { year, month };
+}
+
+// Given sheet name ("1", "3", "EXT 01") + inferred year/month, resolve a fecha ISO
+function _tejImportSheetToFecha(sheetName, ym, sheetA2) {
+  // If cell A2 already holds a date (openpyxl returns a Date), use it
+  if (sheetA2 instanceof Date && !isNaN(sheetA2)) {
+    const y = sheetA2.getFullYear(), m = sheetA2.getMonth() + 1, d = sheetA2.getDate();
+    return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  // If A2 is a string like "2026-08-01" or "EXTRAS 01/08/2026"
+  if (typeof sheetA2 === 'string') {
+    const iso = sheetA2.match(/(20\d{2})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (iso) return `${iso[1]}-${String(iso[2]).padStart(2,'0')}-${String(iso[3]).padStart(2,'0')}`;
+    const dmy = sheetA2.match(/(\d{1,2})[-/](\d{1,2})[-/](20\d{2})/);
+    if (dmy) return `${dmy[3]}-${String(dmy[2]).padStart(2,'0')}-${String(dmy[1]).padStart(2,'0')}`;
+  }
+  // Sheet name like "3" or "EXT 01" — combine with inferred year/month
+  const up = _tejImportNorm(sheetName);
+  const m = up.match(/(\d{1,2})/);
+  if (m && ym.year && ym.month) {
+    const day = parseInt(m[1], 10);
+    if (day >= 1 && day <= 31) {
+      return `${ym.year}-${String(ym.month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+  }
+  return null;
+}
+
+function _tejImportIsExtraSheet(sheetName) {
+  return _tejImportNorm(sheetName).startsWith('EXT');
+}
+
+function _tejImportSkipSheet(sheetName) {
+  const up = _tejImportNorm(sheetName);
+  return ['TOTAL','HOJA2','FORMAT-ROLLO','JUL','JUN','MAY'].some(x => up === x || up.startsWith(x));
+}
+
+// Read one sheet matrix and emit staging rows
+function _tejImportParseSheet(matrix, sheetName, ym) {
+  if (!matrix || matrix.length < 4) return { rows: [], reason: 'sheet too short' };
+  if (_tejImportSkipSheet(sheetName)) return { rows: [], reason: 'skip sheet' };
+
+  // A1 should say DEPARTAMENTO DE TEJIDO for the daily sheets
+  const a1 = _tejImportNorm(matrix[0] && matrix[0][0]);
+  if (!a1.includes('DEPARTAMENTO') && !a1.includes('TEJIDO')) {
+    return { rows: [], reason: 'not a Tejido daily sheet' };
+  }
+
+  const a2 = matrix[1] && matrix[1][0];
+  const fecha = _tejImportSheetToFecha(sheetName, ym, a2);
+  if (!fecha) return { rows: [], reason: 'no fecha detectable' };
+
+  // Header row is expected at row 3 (index 2): MAQ | TELA | T1 | T2 | T3 | TOTAL
+  const header = (matrix[2] || []).map(_tejImportNorm);
+  const findCol = (needle) => header.findIndex(h => h && h.includes(needle));
+  const colMaq = findCol('MAQ');
+  const colTela = findCol('TELA');
+  let colT1 = findCol('T1');
+  let colT2 = findCol('T2');
+  let colT3 = findCol('T3');
+  // Fallback to fixed positions if headers are missing
+  if (colMaq < 0) colMaq = 0;
+  if (colTela < 0) colTela = 1;
+  if (colT1 < 0) colT1 = 2;
+  if (colT2 < 0) colT2 = 3;
+  if (colT3 < 0) colT3 = 4;
+
+  const isExtra = _tejImportIsExtraSheet(sheetName);
+  const rows = [];
+
+  for (let r = 3; r < matrix.length; r++) {
+    const row = matrix[r] || [];
+    const maqRaw = row[colMaq];
+    const telaRaw = row[colTela];
+    if (maqRaw === null || maqRaw === undefined || maqRaw === '') continue;
+    const maqStr = String(maqRaw).trim();
+    // Skip footer rows like "TOTALES POR TURNO"
+    if (/TOTAL/i.test(maqStr)) continue;
+    const tela = telaRaw ? String(telaRaw).trim() : '';
+    if (!tela) continue;
+
+    const t1 = _tejImportNum(row[colT1]);
+    const t2 = _tejImportNum(row[colT2]);
+    const t3 = _tejImportNum(row[colT3]);
+
+    // Emit up to 3 records — one per turno with kg > 0
+    const pushIf = (turno, kg) => {
+      if (kg === null || kg === 0) return;
+      rows.push({
+        fecha, turno, maq: maqStr, tela,
+        kg: Math.round(kg * 100) / 100,
+        isExtra,
+        sheetName,
+        source: 'bulk_excel_estadistica'
+      });
+    };
+    pushIf(1, t1);
+    pushIf(2, t2);
+    pushIf(3, t3);
+  }
+  return { rows, reason: rows.length ? 'ok' : 'no non-zero rows' };
+}
+
+function _tejImportReadFile(file) {
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onload = e => resolve(e.target.result);
+    rd.onerror = e => reject(e);
+    rd.readAsArrayBuffer(file);
+  });
+}
+
+async function _tejImportOpenWorkbook(file) {
+  const buf = await _tejImportReadFile(file);
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  const out = {};
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    out[name] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  }
+  return out;
+}
+
+async function _tejImportHandleFiles(files) {
+  if (_tejImportBusy) return;
+  _tejImportBusy = true;
+  try {
+    _tejImportStaged = [];
+    _tejImportOpen();
+    const progressEl = document.getElementById('tejImportProgress');
+    const filesEl = document.getElementById('tejImportFiles');
+    if (filesEl) filesEl.innerHTML = '';
+
+    let totalRows = 0, filesOk = 0, filesFailed = 0, sheetsParsed = 0, sheetsSkipped = 0;
+    const perFileInfo = [];
+
+    for (const file of files) {
+      if (progressEl) progressEl.textContent = `Leyendo “${file.name}”…`;
+      let matrices;
+      try {
+        matrices = await _tejImportOpenWorkbook(file);
+      } catch(err) {
+        filesFailed++;
+        perFileInfo.push({ file: file.name, status: 'error', msg: (err && err.message) || String(err) });
+        continue;
+      }
+      const ym = _tejImportInferMonthYearFromFilename(file.name);
+      const fileRows = [];
+      const fileSheets = [];
+      for (const [sheetName, matrix] of Object.entries(matrices)) {
+        const r = _tejImportParseSheet(matrix, sheetName, ym);
+        if (r.rows.length === 0) { sheetsSkipped++; fileSheets.push({ name: sheetName, count: 0, reason: r.reason }); continue; }
+        sheetsParsed++;
+        fileRows.push(...r.rows);
+        fileSheets.push({ name: sheetName, count: r.rows.length, fecha: r.rows[0].fecha });
+      }
+      totalRows += fileRows.length;
+      _tejImportStaged.push(...fileRows);
+      filesOk++;
+      perFileInfo.push({ file: file.name, status: 'ok', sheets: fileSheets, count: fileRows.length, ym });
+    }
+
+    // Render summary + preview
+    if (progressEl) progressEl.textContent = filesFailed
+      ? `⚠️ ${filesFailed} archivo(s) fallaron. ✅ ${filesOk} leídos, ${sheetsParsed} hojas válidas, ${sheetsSkipped} omitidas, ${totalRows} filas listas.`
+      : `✅ ${filesOk} archivo(s) leídos · ${sheetsParsed} hojas · ${sheetsSkipped} omitidas · ${totalRows} registros listos.`;
+
+    _tejImportRenderFilesList(perFileInfo);
+    _tejImportRenderSummary();
+    _tejImportRenderPreview();
+
+    const confirmBtn = document.getElementById('tejImportConfirm');
+    if (confirmBtn) {
+      confirmBtn.disabled = _tejImportStaged.length === 0;
+      const lbl = document.getElementById('tejImportConfirmLabel');
+      if (lbl) lbl.textContent = _tejImportStaged.length
+        ? `Importar ${_tejImportStaged.length} registro${_tejImportStaged.length === 1 ? '' : 's'}`
+        : 'Importar';
+    }
+  } finally {
+    _tejImportBusy = false;
+  }
+}
+
+function _tejImportRenderFilesList(perFileInfo) {
+  const el = document.getElementById('tejImportFiles');
+  if (!el) return;
+  el.innerHTML = perFileInfo.map(f => {
+    if (f.status === 'error') {
+      return `<div class="text-[11px] rounded-md bg-red-950/30 border border-red-800/50 p-2">
+        <b class="text-red-300">❌ ${_htmlEscape(f.file)}</b>
+        <div class="text-red-400/80 mt-0.5">${_htmlEscape(f.msg || '')}</div>
+      </div>`;
+    }
+    const sheetsInfo = (f.sheets || []).map(s => {
+      if (s.count === 0) return `<span class="text-slate-600" title="${_htmlEscape(s.reason||'')}">${_htmlEscape(s.name)}·0</span>`;
+      return `<span class="text-emerald-400">${_htmlEscape(s.name)}·${s.count}</span>`;
+    }).join(' · ');
+    const ymTxt = f.ym && f.ym.month
+      ? `${TEJ_IMPORT_MONTH_NAMES[f.ym.month-1]} ${f.ym.year || '—'}`
+      : 'sin mes';
+    return `<div class="text-[11px] rounded-md bg-ink-900/50 border border-ink-800 p-2">
+      <div class="flex items-center justify-between">
+        <b class="text-emerald-300">✅ ${_htmlEscape(f.file)}</b>
+        <span class="text-slate-500 text-[10px]">${ymTxt} · ${f.count} filas</span>
+      </div>
+      <div class="text-slate-400 mt-0.5">${sheetsInfo}</div>
+    </div>`;
+  }).join('');
+}
+
+function _tejImportRenderSummary() {
+  const el = document.getElementById('tejImportSummary');
+  if (!el) return;
+  if (_tejImportStaged.length === 0) { el.classList.add('hidden'); return; }
+  const kg = _tejImportStaged.reduce((s,r) => s + (r.kg || 0), 0);
+  const dates = new Set(_tejImportStaged.map(r => r.fecha));
+  const maqs = new Set(_tejImportStaged.map(r => r.maq));
+  const telas = new Set(_tejImportStaged.map(r => r.tela));
+  const byT = { 1:0, 2:0, 3:0 };
+  _tejImportStaged.forEach(r => byT[r.turno] = (byT[r.turno] || 0) + (r.kg || 0));
+  el.classList.remove('hidden');
+  const card = (label, val, tone='teal') => `<div class="rounded-md bg-ink-900/60 border border-ink-800 p-2 text-center">
+    <div class="text-[9px] text-slate-500 uppercase tracking-wider">${label}</div>
+    <div class="text-sm font-black text-${tone}-300 mt-0.5">${val}</div>
+  </div>`;
+  el.innerHTML = [
+    card('Registros', _tejImportStaged.length, 'purple'),
+    card('Kilos totales', `${kg.toFixed(2)}`, 'teal'),
+    card('Días', dates.size, 'sky'),
+    card('Máquinas', maqs.size, 'amber'),
+    card('Telas', telas.size, 'emerald'),
+    card('T1', `${(byT[1]||0).toFixed(1)}`, 'slate'),
+    card('T2', `${(byT[2]||0).toFixed(1)}`, 'slate'),
+    card('T3', `${(byT[3]||0).toFixed(1)}`, 'slate')
+  ].join('');
+  // Adjust grid to fit 8 items
+  el.classList.remove('md:grid-cols-5');
+  el.classList.add('md:grid-cols-8');
+}
+
+function _tejImportRenderPreview() {
+  const wrap = document.getElementById('tejImportPreviewWrap');
+  const body = document.getElementById('tejImportPreviewBody');
+  if (!wrap || !body) return;
+  if (_tejImportStaged.length === 0) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  const rows = _tejImportStaged.slice(0, 400); // cap preview render
+  body.innerHTML = rows.map((r, i) => {
+    return `<tr class="${i%2 ? 'bg-ink-900/30' : ''}">
+      <td class="px-2 py-1 text-[10px] text-emerald-400">✓</td>
+      <td class="px-2 py-1 text-slate-300">${r.fecha}</td>
+      <td class="px-2 py-1"><span class="px-1.5 py-0.5 rounded bg-ink-800 text-[10px]">T${r.turno}${r.isExtra?' · EXT':''}</span></td>
+      <td class="px-2 py-1 text-slate-400 italic">— (bulk)</td>
+      <td class="px-2 py-1 text-slate-200 font-mono text-[10px]">${_htmlEscape(r.maq)}</td>
+      <td class="px-2 py-1 text-slate-300">${_htmlEscape(r.tela)}</td>
+      <td class="px-2 py-1 text-slate-500">—</td>
+      <td class="px-2 py-1 text-right text-slate-500">—</td>
+      <td class="px-2 py-1 text-right text-teal-300 font-bold">${r.kg.toFixed(2)}</td>
+      <td class="px-2 py-1 text-slate-500 text-[10px]">bulk_excel</td>
+    </tr>`;
+  }).join('');
+  if (_tejImportStaged.length > 400) {
+    body.innerHTML += `<tr><td colspan="10" class="px-2 py-2 text-center text-[10px] text-slate-500 italic">… y ${_tejImportStaged.length - 400} más (se importarán todos)</td></tr>`;
+  }
+}
+
+function _tejImportOpen() {
+  const m = document.getElementById('tejImportModal');
+  if (!m) return;
+  m.classList.remove('hidden');
+  m.style.display = 'flex';
+}
+
+function _tejImportClose() {
+  const m = document.getElementById('tejImportModal');
+  if (!m) return;
+  m.classList.add('hidden');
+  m.style.display = 'none';
+  // Reset state
+  _tejImportStaged = [];
+  const confirmBtn = document.getElementById('tejImportConfirm');
+  if (confirmBtn) { confirmBtn.disabled = true; }
+  const lbl = document.getElementById('tejImportConfirmLabel');
+  if (lbl) lbl.textContent = 'Importar';
+  const summary = document.getElementById('tejImportSummary');
+  if (summary) { summary.classList.add('hidden'); summary.innerHTML = ''; }
+  const wrap = document.getElementById('tejImportPreviewWrap');
+  if (wrap) wrap.classList.add('hidden');
+  const filesEl = document.getElementById('tejImportFiles');
+  if (filesEl) filesEl.innerHTML = '';
+  const progressEl = document.getElementById('tejImportProgress');
+  if (progressEl) progressEl.textContent = '';
+  const errEl = document.getElementById('tejImportErrors');
+  if (errEl) { errEl.classList.add('hidden'); errEl.innerHTML = ''; }
+}
+
+async function _tejImportConfirm() {
+  if (!_tejImportStaged.length || _tejImportBusy) return;
+  _tejImportBusy = true;
+  const confirmBtn = document.getElementById('tejImportConfirm');
+  const lbl = document.getElementById('tejImportConfirmLabel');
+  const progressEl = document.getElementById('tejImportProgress');
+  const overwrite = !!document.getElementById('tejImportOverwrite')?.checked;
+  try {
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (lbl) lbl.textContent = 'Importando…';
+    const FB = await whenFbReady();
+    if (!FB || !FB.db) throw new Error('Firestore no disponible');
+    const coll = (FB_COLLECTIONS && FB_COLLECTIONS.tejeduria) || 'tejeduria_rollos';
+    const collRef = FB.collection(FB.db, coll);
+
+    let ok = 0, skipped = 0, err = 0;
+    const total = _tejImportStaged.length;
+    const user = (window.EMP_STATE && EMP_STATE.currentUserEmp && EMP_STATE.currentUserEmp.nombre) || 'import';
+    const now = Date.now();
+
+    // Chunked writes
+    for (let i = 0; i < _tejImportStaged.length; i++) {
+      const r = _tejImportStaged[i];
+      // Deterministic doc id — lets us dedupe across re-imports
+      const key = `bulk_${r.fecha}_T${r.turno}_${_slug(r.maq)}_${_slug(r.tela)}${r.isExtra?'_ext':''}`;
+      const docRef = FB.doc(FB.db, coll, key);
+      try {
+        // Existence check via snapshot cache in state.tejeduria (fast, no read)
+        const exists = Array.isArray(state.tejeduria) && state.tejeduria.some(x => x.id === key);
+        if (exists && !overwrite) { skipped++; }
+        else {
+          const doc = {
+            id: key,
+            fecha: r.fecha,
+            fechaProd: r.fecha, // bulk imports assume date already correct
+            turno: r.turno,
+            operador: '(Excel Estadística)',
+            maquina: r.maq,
+            tela: r.tela,
+            lote: '',
+            rollos: [],           // no per-roll detail in this file
+            total: r.kg,
+            count: 0,
+            captureSource: 'bulk_excel_estadistica',
+            scaleModel: null,
+            isExtra: !!r.isExtra,
+            sourceSheet: r.sheetName || '',
+            ts: now, updatedAt: now,
+            createdBy: user, updatedBy: user
+          };
+          await FB.setDoc(docRef, doc, { merge: overwrite });
+          ok++;
+        }
+      } catch(e) {
+        console.warn('bulk import doc failed', key, e);
+        err++;
+      }
+      if (i % 25 === 0 && progressEl) {
+        progressEl.textContent = `Guardando ${i+1}/${total}… ✅ ${ok} ⏭ ${skipped} ⚠️ ${err}`;
+      }
+    }
+    if (progressEl) progressEl.textContent = `✅ Importación terminada. Guardados: ${ok} · Omitidos (ya existían): ${skipped} · Errores: ${err}`;
+    if (lbl) lbl.textContent = 'Listo';
+    // Auto-close after 2.5s if all clean
+    if (err === 0) {
+      setTimeout(() => { _tejImportClose(); renderTejeduria(); }, 2500);
+    } else {
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (lbl) lbl.textContent = 'Importar';
+    }
+  } catch(e) {
+    if (progressEl) progressEl.textContent = `❌ Error: ${(e && e.message) || String(e)}`;
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (lbl) lbl.textContent = 'Importar';
+  } finally {
+    _tejImportBusy = false;
+  }
+}
+
+// small helpers if not already present
+function _slug(s) {
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase() || 'x';
+}
+function _htmlEscape(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 /* ---------------- Firestore subscription ---------------- */
