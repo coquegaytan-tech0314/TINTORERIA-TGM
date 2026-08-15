@@ -2395,29 +2395,41 @@
     <!-- Tarjeta Rama (Bruckner + Compactadora + Monforts) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" id="repRamaSection">
       <!-- Bruckner -->
-      <div class="card p-5">
+      <div class="card p-5" title="Producción real terminada (Empacado) arriba · Total incluye Termofijado + Suavizado como pasos intermedios">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-black text-white text-base">🧵 Bruckner</h3>
           <span class="chip chip-ok">Activa</span>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-3">
+        <!-- EMPACADO hero (producción real terminada) -->
+        <div class="mb-2">
+          <div class="flex items-baseline justify-between gap-2 flex-wrap">
+            <div class="kpi-lbl flex items-center gap-1">
+              <span>✅ Empacado</span>
+              <span class="text-[9px] px-1 rounded" style="background:rgba(16,185,129,0.15);color:#6ee7b7">PRODUCCIÓN REAL</span>
+            </div>
+            <span id="rep_bruck_emp_pct" class="text-[10px] text-slate-500">0% del total</span>
+          </div>
+          <div id="rep_bruck_emp_hero" class="text-3xl font-black leading-none" style="color:#10b981">0</div>
+          <div class="text-[10px] text-slate-500">kg terminados hoy</div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 my-3 pt-2 border-t border-ink-800">
           <div>
-            <div class="kpi-lbl">Kilos</div>
-            <div id="rep_bruck_k" class="text-xl font-black text-sky-accent">0</div>
+            <div class="kpi-lbl" title="Total = Empacado + Termofijado + Suavizado (todos los procesos de RAMA)">Total (kg)</div>
+            <div id="rep_bruck_k" class="text-lg font-black text-sky-accent">0</div>
           </div>
           <div>
             <div class="kpi-lbl">Metros</div>
-            <div id="rep_bruck_m" class="text-xl font-black text-emer-accent">0</div>
+            <div id="rep_bruck_m" class="text-lg font-black text-emer-accent">0</div>
           </div>
           <div>
             <div class="kpi-lbl">Fichas</div>
-            <div id="rep_bruck_f" class="text-xl font-black text-white">0</div>
+            <div id="rep_bruck_f" class="text-lg font-black text-white">0</div>
           </div>
         </div>
-        <!-- Meta y progreso -->
+        <!-- Meta y progreso (vs Empacado) -->
         <div class="mb-2">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-xs text-slate-400">Meta: <span id="rep_bruck_meta" class="text-slate-300">15,000 kg</span></span>
+            <span class="text-xs text-slate-400">Meta empacado: <span id="rep_bruck_meta" class="text-slate-300">15,000 kg</span></span>
             <span id="rep_bruck_pct" class="chip chip-info text-xs">0% de meta</span>
           </div>
           <div class="h-2 bg-slate-800 rounded">
@@ -2426,37 +2438,49 @@
         </div>
         <!-- Desglose por proceso -->
         <div class="flex flex-wrap gap-1 mt-2">
-          <span id="rep_bruck_emp"  class="chip text-xs" style="background:#0c4a6e;color:#7dd3fc">Empacado: — kg</span>
-          <span id="rep_bruck_term" class="chip text-xs" style="background:#451a03;color:#fcd34d">Termofijado: — kg</span>
-          <span id="rep_bruck_suav" class="chip text-xs" style="background:#064e3b;color:#6ee7b7">Suavizado: — kg</span>
+          <span id="rep_bruck_emp"  class="chip text-xs" style="background:#064e3b;color:#6ee7b7;border:1px solid rgba(16,185,129,0.4)" title="Producción real terminada">Empacado: — kg</span>
+          <span id="rep_bruck_term" class="chip text-xs" style="background:#451a03;color:#fcd34d" title="Intermedio: la tela regresa a Empacado">Termofijado: — kg</span>
+          <span id="rep_bruck_suav" class="chip text-xs" style="background:#0c4a6e;color:#7dd3fc" title="Intermedio: la tela regresa a Empacado">Suavizado: — kg</span>
         </div>
       </div>
 
       <!-- Compactadora · Ruta Tubular -->
-      <div class="card p-5" style="border-left:3px solid #22d3ee;">
+      <div class="card p-5" style="border-left:3px solid #22d3ee;" title="Producción real terminada (Empacado) arriba · Total incluye Compactado + Tubular Dry como pasos intermedios">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-black text-white text-base">📏 Compactadora</h3>
           <span class="chip" style="background:rgba(34,211,238,0.15); border:1px solid #22d3ee; color:#22d3ee">Tubular</span>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-3">
+        <!-- EMPACADO hero (producción real terminada) -->
+        <div class="mb-2">
+          <div class="flex items-baseline justify-between gap-2 flex-wrap">
+            <div class="kpi-lbl flex items-center gap-1">
+              <span>✅ Empacado</span>
+              <span class="text-[9px] px-1 rounded" style="background:rgba(16,185,129,0.15);color:#6ee7b7">PRODUCCIÓN REAL</span>
+            </div>
+            <span id="rep_comp_emp_pct" class="text-[10px] text-slate-500">0% del total</span>
+          </div>
+          <div id="rep_comp_emp_hero" class="text-3xl font-black leading-none" style="color:#10b981">0</div>
+          <div class="text-[10px] text-slate-500">kg terminados hoy</div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 my-3 pt-2 border-t border-ink-800">
           <div>
-            <div class="kpi-lbl">Kilos</div>
-            <div id="rep_comp_k" class="text-xl font-black" style="color:#22d3ee">0</div>
+            <div class="kpi-lbl" title="Total = Empacado + Compactado + Tubular Dry">Total (kg)</div>
+            <div id="rep_comp_k" class="text-lg font-black" style="color:#22d3ee">0</div>
           </div>
           <div>
             <div class="kpi-lbl">Metros</div>
-            <div id="rep_comp_m" class="text-xl font-black text-emer-accent">0</div>
+            <div id="rep_comp_m" class="text-lg font-black text-emer-accent">0</div>
           </div>
           <div>
             <div class="kpi-lbl">Fichas</div>
-            <div id="rep_comp_f" class="text-xl font-black text-white">0</div>
+            <div id="rep_comp_f" class="text-lg font-black text-white">0</div>
           </div>
         </div>
         <!-- Desglose por proceso Compactadora -->
         <div class="flex flex-wrap gap-1 mt-2">
-          <span id="rep_comp_emp"    class="chip text-xs" style="background:#0c4a6e;color:#7dd3fc">Empacado: — kg</span>
-          <span id="rep_comp_compct" class="chip text-xs" style="background:#164e63;color:#67e8f9">Compactado: — kg</span>
-          <span id="rep_comp_tdry"   class="chip text-xs" style="background:#422006;color:#fdba74">Tubular Dry: — kg</span>
+          <span id="rep_comp_emp"    class="chip text-xs" style="background:#064e3b;color:#6ee7b7;border:1px solid rgba(16,185,129,0.4)" title="Producción real terminada">Empacado: — kg</span>
+          <span id="rep_comp_compct" class="chip text-xs" style="background:#164e63;color:#67e8f9" title="Intermedio">Compactado: — kg</span>
+          <span id="rep_comp_tdry"   class="chip text-xs" style="background:#422006;color:#fdba74" title="Intermedio: la tela regresa a Empacado">Tubular Dry: — kg</span>
         </div>
         <div class="mt-2 text-[10px] text-slate-500 italic">Ruta tubular · PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS</div>
       </div>
@@ -3498,12 +3522,24 @@
     <!-- KPIs Bruckner (clickeables · click = ver detalle)
          AHORA solo cuentan EMPACADO (producción real terminada).
          Suavizado/Termofijado se listan aparte como reproceso (badge). -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-2">
       <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('kilosHoy')"
-           title="Kilos EMPACADOS hoy — producción real terminada (excluye Suavizado/Termofijado)">
-        <div class="kpi-lbl flex items-center justify-between">Empacado hoy <span class="text-[10px] text-slate-500">🔍</span></div>
+           title="Kilos EMPACADOS hoy en Bruckner — producción real terminada (excluye Suavizado/Termofijado)">
+        <div class="kpi-lbl flex items-center justify-between">Empacado hoy (Brk) <span class="text-[10px] text-slate-500">🔍</span></div>
         <div id="br_kpiKilos" class="kpi-num text-sky-accent mt-1">0</div>
-        <div class="text-[9px] text-slate-500 mt-1">kg de producto terminado</div>
+        <div class="text-[9px] text-slate-500 mt-1">kg terminados Bruckner</div>
+      </div>
+      <!-- v13 · Roger: Total Empacado (Bruckner + Compactadora) -->
+      <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition"
+           style="border:1px solid rgba(16,185,129,0.35); background:linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(34,211,238,0.06) 100%)"
+           onclick="openBruckKpiDrill('empacTotalBrkComp')"
+           title="Total real terminado del día = Bruckner Empacado + Compactadora Empacado (todo lo que ya se puede embolsar/mandar)">
+        <div class="kpi-lbl flex items-center justify-between">
+          <span>✅ Total Empacado hoy</span>
+          <span class="text-[9px] px-1 rounded" style="background:rgba(16,185,129,0.20);color:#6ee7b7">BRK+COMP</span>
+        </div>
+        <div id="br_kpiTotalEmp" class="kpi-num mt-1" style="color:#10b981">0</div>
+        <div id="br_kpiTotalEmpSub" class="text-[9px] text-slate-400 mt-1">Brk 0 + Comp 0 kg</div>
       </div>
       <div class="card p-5 cursor-pointer hover:bg-slate-800/40 transition" onclick="openBruckKpiDrill('metrosHoy')"
            title="Metros empacados hoy (producto terminado)">
@@ -3685,10 +3721,15 @@
     <div class="card p-5 mb-4" id="resumenTerminadoCard" style="border-left: 4px solid #10b981;">
       <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
         <div>
-          <h3 class="text-lg font-black text-white">📲 Producción de Terminado <span class="text-emer-accent">· Resumen del día</span></h3>
-          <p class="text-xs text-slate-400 mt-1">Listo para enviar al jefe — mismo formato que el mensaje actual.</p>
+          <h3 class="text-lg font-black text-white">📲 Producción de Terminado <span id="resumenScopeTitle" class="text-emer-accent">· Resumen del día</span></h3>
+          <p id="resumenScopeHint" class="text-xs text-slate-400 mt-1">Listo para enviar al jefe — mismo formato que el mensaje actual.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+          <!-- v13 · Roger: toggle Diario / Semanal -->
+          <div class="inline-flex rounded-lg overflow-hidden border border-slate-700" role="tablist" aria-label="Alcance del resumen">
+            <button id="resumenScopeDia"     class="px-3 py-2 text-xs font-bold transition" data-scope="dia"     type="button">Diario</button>
+            <button id="resumenScopeSemana"  class="px-3 py-2 text-xs font-bold transition" data-scope="semana" type="button">Semanal (Lun→Dom)</button>
+          </div>
           <input type="date" id="resumen_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
           <button id="resumenCopyBtn" class="btn btn-primary !py-2 !px-4 text-sm" title="Copiar el mensaje al portapapeles">📋 Copiar para WhatsApp</button>
         </div>
@@ -3704,12 +3745,12 @@
         <div class="card p-4">
           <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">RAMA (Bruckner)</div>
           <div id="res_rama" class="text-3xl font-black text-sky-accent mt-1">0.0</div>
-          <div class="text-[10px] text-slate-500 mt-0.5">kilos del día</div>
+          <div id="res_rama_hint" class="text-[10px] text-slate-500 mt-0.5">kilos del día</div>
         </div>
         <div class="card p-4">
           <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">COMP. (Compactadora)</div>
           <div id="res_comp" class="text-3xl font-black text-amber-accent mt-1">0.0</div>
-          <div class="text-[10px] text-slate-500 mt-0.5">kilos del día</div>
+          <div id="res_comp_hint" class="text-[10px] text-slate-500 mt-0.5">kilos del día</div>
         </div>
       </div>
 
@@ -9027,9 +9068,26 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 12;
+  const CURRENT_VERSION = 13;
 
   const CHANGELOG = [
+    {
+      v: 13,
+      date: '2026-08-15',
+      icon: '✅',
+      title: 'Reporte Diario · Empacado real + Total Brk+Comp + Resumen Semanal',
+      summary: 'Tres mejoras pedidas por Roger para que el dashboard hable el mismo idioma que el reporte del jefe: (1) las tarjetas de Bruckner y Compactadora ahora muestran el EMPACADO real (kg terminados) como cifra principal, con el total y los sub-badges rellenados con kilos por proceso; (2) el tab Bruckner suma la nueva tarjeta “✅ Total Empacado hoy” = Bruckner + Compactadora; (3) el “Resumen del día para el jefe” ahora tiene un toggle Diario / Semanal (Lunes→Domingo ISO) con el mismo botón “Copiar para WhatsApp”.',
+      bullets: [
+        'Reporte Diario · tarjeta Bruckner: cifra grande verde = kg EMPACADOS (producción real terminada). Debajo aparece el total (Empacado+Termofijado+Suavizado) como referencia.',
+        'Reporte Diario · tarjeta Compactadora: cifra grande verde = kg EMPACADOS. Total (Empacado+Compactado+Tubular Dry) queda como referencia debajo.',
+        'Sub-badges de cada tarjeta se rellenan siempre con el kg + % (Empacado / Termofijado / Suavizado en Bruckner · Empacado / Compactado / Tubular Dry en Compactadora).',
+        'La barra de meta de Bruckner ahora se mide contra el Empacado real (no contra el total, que inflaba el %).',
+        'Tab Bruckner · KPI nuevo “✅ Total Empacado hoy” con badge BRK+COMP: suma lo terminado de Bruckner + Compactadora. Click abre el drill con las fichas de ambas máquinas.',
+        'Resumen del jefe · nuevo toggle Diario / Semanal (Lun→Dom ISO). El mismo card cambia título, KPIs y botón Copiar para armar el mensaje al jefe con los kilos de la semana completa.',
+        'El mensaje semanal incluye TOTAL / RAMA / COMP / SUAVIZADO / TERMOFIJADO / EMPACADO + detalle por día “Lun 11: 15,496 kg”.'
+      ],
+      where: 'Reporte Diario (Bruckner + Compactadora) · Tab Bruckner (fila de KPIs) · Bruckner → Resumen del día para el jefe (toggle arriba a la derecha).'
+    },
     {
       v: 12,
       date: '2026-08-13',
@@ -11084,13 +11142,18 @@ function renderReport() {
   const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && r.fecha === date);
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   const bruckKg = bruckRows.reduce((a,r)=>a+r.kilos,0);
+  // Empacado real (producción terminada) — Bruckner
+  const bruckEmpKg = bruckRows.filter(r => (r.proceso||'').trim() === 'Empacado').reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_bruck_emp_hero', fmtKg(bruckEmpKg));
+  const bruckEmpPctEl = document.getElementById('rep_bruck_emp_pct');
+  if (bruckEmpPctEl) bruckEmpPctEl.textContent = bruckKg > 0 ? Math.round(bruckEmpKg*100/bruckKg) + '% del total' : '—';
   setEl('rep_bruck_k', fmtKg(bruckKg));
   setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+r.metros,0)));
   setEl('rep_bruck_f', bruckRows.length);
 
-  // Meta + progreso Bruckner
+  // Meta + progreso Bruckner (v13: la meta ahora se mide contra EMPACADO real)
   const ramaMeta = getRamaMeta();
-  const brPct = ramaMeta > 0 ? Math.round(bruckKg * 100 / ramaMeta) : 0;
+  const brPct = ramaMeta > 0 ? Math.round(bruckEmpKg * 100 / ramaMeta) : 0;
   const brBarColor = brPct >= 90 ? '#10b981' : brPct >= 60 ? '#f59e0b' : '#ef4444';
   const brChipCls  = brPct >= 90 ? 'chip-ok' : brPct >= 60 ? 'chip-warn' : 'chip-bad';
   setEl('rep_bruck_meta', fmtKg(ramaMeta) + ' kg');
@@ -11121,6 +11184,12 @@ function renderReport() {
   const compRows = (state.compact || []).filter(r => r.fecha === date);
   const compKg = compRows.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
   const compM  = compRows.reduce((a,r) => a + (parseFloat(r.metros)||0), 0);
+  // Empacado real Compactadora
+  const compEmpKg = compRows.filter(r => String(r.proceso||'').toLowerCase().includes('empac'))
+                            .reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  setEl('rep_comp_emp_hero', fmtKg(compEmpKg));
+  const compEmpPctEl = document.getElementById('rep_comp_emp_pct');
+  if (compEmpPctEl) compEmpPctEl.textContent = compKg > 0 ? Math.round(compEmpKg*100/compKg) + '% del total' : '—';
   setEl('rep_comp_k', fmtKg(compKg));
   setEl('rep_comp_m', fmtKg(compM));
   setEl('rep_comp_f', compRows.length);
@@ -11262,14 +11331,19 @@ function renderReportMonth() {
   const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && (r.fecha||'').startsWith(ym));
   const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && (r.fecha||'').startsWith(ym));
   const bruckKg = bruckRows.reduce((a,r)=>a+(r.kilos||0), 0);
+  // Empacado real — mes
+  const bruckEmpKg = bruckRows.filter(r => (r.proceso||'').trim() === 'Empacado').reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_bruck_emp_hero', fmtKg(bruckEmpKg));
+  const bruckEmpPctEl = document.getElementById('rep_bruck_emp_pct');
+  if (bruckEmpPctEl) bruckEmpPctEl.textContent = bruckKg > 0 ? Math.round(bruckEmpKg*100/bruckKg) + '% del total' : '—';
   setEl('rep_bruck_k', fmtKg(bruckKg));
   setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_bruck_f', bruckRows.length);
 
-  // Meta mensual = meta diaria × días con datos (informativo)
+  // Meta mensual = meta diaria × días con datos (informativo) — medida vs EMPACADO real
   const ramaMeta = getRamaMeta();
   const metaMes = ramaMeta * Math.max(daysWithData, 1);
-  const brPct = metaMes > 0 ? Math.round(bruckKg * 100 / metaMes) : 0;
+  const brPct = metaMes > 0 ? Math.round(bruckEmpKg * 100 / metaMes) : 0;
   const brBarColor = brPct >= 90 ? '#10b981' : brPct >= 60 ? '#f59e0b' : '#ef4444';
   const brChipCls  = brPct >= 90 ? 'chip-ok' : brPct >= 60 ? 'chip-warn' : 'chip-bad';
   setEl('rep_bruck_meta', fmtKg(metaMes) + ' kg (mes)');
@@ -11297,6 +11371,11 @@ function renderReportMonth() {
   // === Compactadora · Mes ===
   const compRowsM = (state.compact || []).filter(r => (r.fecha||'').startsWith(ym));
   const compKgM = compRowsM.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  const compEmpKgM = compRowsM.filter(r => String(r.proceso||'').toLowerCase().includes('empac'))
+                              .reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  setEl('rep_comp_emp_hero', fmtKg(compEmpKgM));
+  const compEmpPctElM = document.getElementById('rep_comp_emp_pct');
+  if (compEmpPctElM) compEmpPctElM.textContent = compKgM > 0 ? Math.round(compEmpKgM*100/compKgM) + '% del total' : '—';
   setEl('rep_comp_k', fmtKg(compKgM));
   setEl('rep_comp_m', fmtKg(compRowsM.reduce((a,r) => a + (parseFloat(r.metros)||0), 0)));
   setEl('rep_comp_f', compRowsM.length);
@@ -11446,15 +11525,60 @@ function renderReportRange() {
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && (r.fecha||'') >= from && (r.fecha||'') <= to);
   const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && (r.fecha||'') >= from && (r.fecha||'') <= to);
-  setEl('rep_bruck_k', fmtKg(bruckRows.reduce((a,r)=>a+(r.kilos||0), 0)));
+  const bruckKgR = bruckRows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const bruckEmpKgR = bruckRows.filter(r => (r.proceso||'').trim() === 'Empacado').reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_bruck_emp_hero', fmtKg(bruckEmpKgR));
+  const bruckEmpPctElR = document.getElementById('rep_bruck_emp_pct');
+  if (bruckEmpPctElR) bruckEmpPctElR.textContent = bruckKgR > 0 ? Math.round(bruckEmpKgR*100/bruckKgR) + '% del total' : '—';
+  setEl('rep_bruck_k', fmtKg(bruckKgR));
   setEl('rep_bruck_m', fmtKg(bruckRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_bruck_f', bruckRows.length);
+  // Refill desglose chips — Bruckner rango
+  (function(){
+    const byP = {};
+    bruckRows.forEach(r => { const p = (r.proceso||'Otro').trim(); byP[p] = (byP[p]||0) + (r.kilos||0); });
+    const totKg = bruckKgR;
+    const fmt = (id, key, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      const kg = byP[key] || 0;
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    };
+    fmt('rep_bruck_emp',  'Empacado',   'Empacado');
+    fmt('rep_bruck_term', 'Termofijado','Termofijado');
+    fmt('rep_bruck_suav', 'Suavizado',  'Suavizado');
+  })();
 
   // === Compactadora · Rango ===
   const compRowsR = (state.compact || []).filter(r => (r.fecha||'') >= from && (r.fecha||'') <= to);
-  setEl('rep_comp_k', fmtKg(compRowsR.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0)));
+  const compKgR = compRowsR.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  const compEmpKgR = compRowsR.filter(r => String(r.proceso||'').toLowerCase().includes('empac'))
+                              .reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  setEl('rep_comp_emp_hero', fmtKg(compEmpKgR));
+  const compEmpPctElR = document.getElementById('rep_comp_emp_pct');
+  if (compEmpPctElR) compEmpPctElR.textContent = compKgR > 0 ? Math.round(compEmpKgR*100/compKgR) + '% del total' : '—';
+  setEl('rep_comp_k', fmtKg(compKgR));
   setEl('rep_comp_m', fmtKg(compRowsR.reduce((a,r) => a + (parseFloat(r.metros)||0), 0)));
   setEl('rep_comp_f', compRowsR.length);
+  // Refill desglose chips — Compactadora rango
+  (function(){
+    const byP = {};
+    compRowsR.forEach(r => {
+      const p = String(r.proceso || 'Empacado').trim();
+      byP[p] = (byP[p] || 0) + (parseFloat(r.kilos) || 0);
+    });
+    const totKg = compKgR;
+    const setChip = (id, keys, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      let kg = 0;
+      keys.forEach(k => { Object.keys(byP).forEach(p => { if (p.toLowerCase().includes(k)) kg += byP[p]; }); });
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    };
+    setChip('rep_comp_emp',    ['empac'],   'Empacado');
+    setChip('rep_comp_compct', ['compact'], 'Compactado');
+    setChip('rep_comp_tdry',   ['tubular', 'dry'], 'Tubular Dry');
+  })();
 
   setEl('rep_monf_k',  fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
   setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
@@ -13923,6 +14047,18 @@ function renderBruckner() {
   $('#br_kpiFichas').textContent = rows.length;
   $('#br_kpiTot').textContent    = fmtKg(totK);
 
+  // v13 · Roger: Total Empacado hoy = Bruckner empacado + Compactadora empacado
+  // Roger dijo: "para saber el total empacado hay que sumarle lo de la compactadora"
+  const compArr = Array.isArray(state.compact) ? state.compact : [];
+  const kgCompEmpHoy = compArr
+    .filter(r => r.fecha === today && String(r.proceso||'').toLowerCase().includes('empac'))
+    .reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
+  const totalEmpHoy = kgEmpHoy + kgCompEmpHoy;
+  const totEmpEl = document.getElementById('br_kpiTotalEmp');
+  if (totEmpEl) totEmpEl.textContent = fmtKg(totalEmpHoy);
+  const totEmpSubEl = document.getElementById('br_kpiTotalEmpSub');
+  if (totEmpSubEl) totEmpSubEl.textContent = `Brk ${fmtKg(kgEmpHoy)} + Comp ${fmtKg(kgCompEmpHoy)} kg`;
+
   // === Sub-badges bajo los KPIs · muestran el desglose para transparencia
   // (Emp real vs Reproceso pasando por Bruckner)
   const badgeHost = document.getElementById('br_kpiSplit');
@@ -14126,6 +14262,25 @@ window.openBruckKpiDrill = function(kind) {
       subtitle = `${todayRows.length} lote(s) · ${fmtKg(todayRows.reduce((a,r)=>a+(r.kilos||0),0))} kg total`;
       rows = todayRows.slice().sort((a,b)=>(b.kilos||0)-(a.kilos||0));
       break;
+    case 'empacTotalBrkComp': {
+      // v13 · Roger: drill-down del Total Empacado (Brk + Comp) del día
+      const brkEmp = todayRows.filter(r => brIsEmpacado(r.proceso));
+      const compArr = Array.isArray(state.compact) ? state.compact : [];
+      const compEmpTodayRaw = compArr.filter(r => r.fecha === today && String(r.proceso||'').toLowerCase().includes('empac'));
+      // Normalizar registros de Compactadora a la forma que espera la tabla del drill (columnas Bruckner)
+      const compEmpNorm = compEmpTodayRaw.map(r => Object.assign({}, r, {
+        rama: 'Compactadora',
+        proceso: 'Empacado (Comp)',
+        _isComp: true
+      }));
+      const combined = brkEmp.concat(compEmpNorm).sort((a,b)=>(b.kilos||0)-(a.kilos||0));
+      const totBrk = brkEmp.reduce((a,r)=>a+(r.kilos||0),0);
+      const totComp = compEmpTodayRaw.reduce((a,r)=>a+(parseFloat(r.kilos)||0),0);
+      title = `✅ Total Empacado hoy · Brk + Comp (${today})`;
+      subtitle = `Bruckner ${fmtKg(totBrk)} kg + Compactadora ${fmtKg(totComp)} kg = ${fmtKg(totBrk+totComp)} kg terminados`;
+      rows = combined;
+      break;
+    }
     case 'metrosHoy':
       title = `📏 Metros de hoy (${today})`;
       subtitle = `${todayRows.length} lote(s) · ${fmtKg(todayRows.reduce((a,r)=>a+(r.metros||0),0))} m total`;
@@ -18656,15 +18811,156 @@ function _resumenBuildMessage(fecha, br, comp) {
   return lines.join('\n');
 }
 
+/* v13 · Roger: alcance del resumen (día / semana ISO Lun→Dom) */
+let _resumenScope = 'dia';  // 'dia' | 'semana'
+
+/** Devuelve las fechas ISO YYYY-MM-DD de la semana ISO (Lun→Dom) que contiene refFecha */
+function _resumenSemanaISODates(refFecha) {
+  const d = new Date((refFecha || todayISO()) + 'T12:00:00');
+  // getDay(): 0=Dom, 1=Lun … 6=Sáb → desplazar al lunes
+  const dow = d.getDay();
+  const daysFromMon = dow === 0 ? 6 : dow - 1;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - daysFromMon);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const x = new Date(mon);
+    x.setDate(mon.getDate() + i);
+    const yyyy = x.getFullYear();
+    const mm = String(x.getMonth()+1).padStart(2,'0');
+    const dd = String(x.getDate()).padStart(2,'0');
+    dates.push(`${yyyy}-${mm}-${dd}`);
+  }
+  return dates;  // [Lun…Dom]
+}
+
+/** Título humano de la semana ISO: "SEMANA 11–17 AGOSTO 2026" */
+function _resumenSemanaTitulo(refFecha) {
+  const dates = _resumenSemanaISODates(refFecha);
+  const dMon = new Date(dates[0] + 'T12:00:00');
+  const dDom = new Date(dates[6] + 'T12:00:00');
+  const sameMonth = dMon.getMonth() === dDom.getMonth();
+  if (sameMonth) {
+    return `SEMANA ${dMon.getDate()}–${dDom.getDate()} ${MESES_ES[dMon.getMonth()]} ${dMon.getFullYear()}`;
+  }
+  return `SEMANA ${dMon.getDate()} ${MESES_ES[dMon.getMonth()]} – ${dDom.getDate()} ${MESES_ES[dDom.getMonth()]} ${dDom.getFullYear()}`;
+}
+
+/** Agrega los totales Bruckner + Compactadora de una semana ISO (Lun→Dom) */
+function _resumenComputeSemana(refFecha) {
+  const dates = _resumenSemanaISODates(refFecha);
+  const agg = {
+    suavizado: 0, termofijado: 0, empacado: 0, otros: 0, total: 0,
+    empacadoNeto: 0, otrosNeto: 0, suavizadoNeto: 0, termofijadoNeto: 0, totalNeto: 0,
+    reprocKg: 0,
+    reprocPorMotivo: { mod_ancho:0, reproceso_calidad:0, reproceso_otro:0, reproceso_desconocido:0 },
+    reprocCount: 0, nRows: 0
+  };
+  let compSem = 0;
+  const daysWithData = [];
+  dates.forEach(f => {
+    const br = _resumenComputeBruck(f);
+    const c = _resumenComputeComp(f);
+    ['suavizado','termofijado','empacado','otros','total',
+     'empacadoNeto','otrosNeto','suavizadoNeto','termofijadoNeto','totalNeto',
+     'reprocKg','reprocCount','nRows'].forEach(k => { agg[k] += (br[k]||0); });
+    Object.keys(agg.reprocPorMotivo).forEach(m => {
+      agg.reprocPorMotivo[m] += (br.reprocPorMotivo && br.reprocPorMotivo[m]) || 0;
+    });
+    compSem += (c||0);
+    if ((br.total||0) > 0 || (c||0) > 0) daysWithData.push(f);
+  });
+  return { br: agg, comp: compSem, dates, daysWithData };
+}
+
+/** Construye el mensaje semanal (mismo formato del jefe, cabecera + totales acumulados + detalle por día) */
+function _resumenBuildMessageSemana(refFecha, agg) {
+  const titulo = _resumenSemanaTitulo(refFecha);
+  const ramaNeto = agg.br.totalNeto || 0;
+  const total    = ramaNeto + (agg.comp || 0);
+  const lines = [];
+  lines.push(titulo);
+  lines.push('PRODUCCION DE TERMINADO · SEMANA');
+  lines.push(`TOTAL = ${_resumenFmt(total)}`);
+  lines.push(`RAMA = ${_resumenFmt(ramaNeto)}`);
+  lines.push(`COMP. = ${_resumenFmt(agg.comp)}`);
+  lines.push('');
+  if (agg.br.suavizadoNeto > 0)   lines.push(`SUAVIZADO = ${_resumenFmt(agg.br.suavizadoNeto)}`);
+  if (agg.br.termofijadoNeto > 0) lines.push(`TERMOFIJADO = ${_resumenFmt(agg.br.termofijadoNeto)}`);
+  if (agg.br.empacadoNeto > 0)    lines.push(`EMPACADO = ${_resumenFmt(agg.br.empacadoNeto)}`);
+  if (agg.br.otrosNeto > 0)       lines.push(`OTROS = ${_resumenFmt(agg.br.otrosNeto)}`);
+  if (agg.br.reprocKg > 0) {
+    lines.push('');
+    lines.push(`(Reprocesos descontados = ${_resumenFmt(agg.br.reprocKg)})`);
+  }
+  // Detalle diario (mini)
+  lines.push('');
+  lines.push('Detalle por día (RAMA + COMP.):');
+  agg.dates.forEach(f => {
+    const br = _resumenComputeBruck(f);
+    const c = _resumenComputeComp(f);
+    const t = (br.totalNeto||0) + (c||0);
+    const dow = new Date(f+'T12:00:00').getDay();
+    const dowShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][dow];
+    lines.push(`  ${dowShort} ${f.slice(8,10)}: ${_resumenFmt(t)} kg`);
+  });
+  return lines.join('\n');
+}
+
+/** Aplica el estilo activo/inactivo a los botones del toggle */
+function _resumenApplyToggleUI() {
+  const btnD = document.getElementById('resumenScopeDia');
+  const btnS = document.getElementById('resumenScopeSemana');
+  if (!btnD || !btnS) return;
+  const activeStyle = 'background:#10b981;color:#0c1320';
+  const inactiveStyle = 'background:transparent;color:#94a3b8';
+  btnD.setAttribute('style', _resumenScope === 'dia' ? activeStyle : inactiveStyle);
+  btnS.setAttribute('style', _resumenScope === 'semana' ? activeStyle : inactiveStyle);
+}
+
 /** Pinta los KPIs del resumen y el texto del mensaje */
 function renderResumenTerminado() {
   const fechaInput = document.getElementById('resumen_fecha');
   if (!fechaInput) return;
   const fecha = fechaInput.value || todayISO();
-  const br = _resumenComputeBruck(fecha);
-  const comp = _resumenComputeComp(fecha);
+
+  _resumenApplyToggleUI();
+
+  const scopeTitleEl = document.getElementById('resumenScopeTitle');
+  const scopeHintEl  = document.getElementById('resumenScopeHint');
+  const ramaHintEl   = document.getElementById('res_rama_hint');
+  const compHintEl   = document.getElementById('res_comp_hint');
 
   const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  if (_resumenScope === 'semana') {
+    const agg = _resumenComputeSemana(fecha);
+    if (scopeTitleEl) scopeTitleEl.textContent = '· Resumen semanal';
+    if (scopeHintEl)  scopeHintEl.textContent  = `Semana ISO ${agg.dates[0]} → ${agg.dates[6]} (Lun→Dom) — mismo formato al jefe.`;
+    if (ramaHintEl)   ramaHintEl.textContent   = 'kilos de la semana';
+    if (compHintEl)   compHintEl.textContent   = 'kilos de la semana';
+    const ramaNeto = agg.br.totalNeto || 0;
+    const totalNeto = ramaNeto + agg.comp;
+    setEl('res_total',       _resumenFmt(totalNeto));
+    setEl('res_rama',        _resumenFmt(ramaNeto));
+    setEl('res_comp',        _resumenFmt(agg.comp));
+    setEl('res_suavizado',   _resumenFmt(agg.br.suavizadoNeto));
+    setEl('res_termofijado', _resumenFmt(agg.br.termofijadoNeto));
+    setEl('res_empacado',    _resumenFmt(agg.br.empacadoNeto));
+    setEl('res_otros',       _resumenFmt(agg.br.otrosNeto));
+    const preEl = document.getElementById('resumen_preview');
+    if (preEl) preEl.textContent = _resumenBuildMessageSemana(fecha, agg);
+    return;
+  }
+
+  // Diario (comportamiento original)
+  const br = _resumenComputeBruck(fecha);
+  const comp = _resumenComputeComp(fecha);
+  if (scopeTitleEl) scopeTitleEl.textContent = '· Resumen del día';
+  if (scopeHintEl)  scopeHintEl.textContent  = 'Listo para enviar al jefe — mismo formato que el mensaje actual.';
+  if (ramaHintEl)   ramaHintEl.textContent   = 'kilos del día';
+  if (compHintEl)   compHintEl.textContent   = 'kilos del día';
+
   // Usar NETO en las tarjetas visibles (sin re-pases) para consistencia con el mensaje al jefe.
   const ramaNeto = br.totalNeto || 0;
   const totalNeto = ramaNeto + comp;
@@ -18783,21 +19079,40 @@ function bindResumenTerminado() {
     });
   }
 
+  // v13 · Roger: toggle Diario / Semanal
+  const btnScopeDia = document.getElementById('resumenScopeDia');
+  const btnScopeSemana = document.getElementById('resumenScopeSemana');
+  if (btnScopeDia) btnScopeDia.addEventListener('click', () => {
+    _resumenScope = 'dia';
+    renderResumenTerminado();
+  });
+  if (btnScopeSemana) btnScopeSemana.addEventListener('click', () => {
+    _resumenScope = 'semana';
+    renderResumenTerminado();
+  });
+
   document.getElementById('resumenCopyBtn')?.addEventListener('click', async () => {
     const fecha = fechaInput.value || todayISO();
-    const br = _resumenComputeBruck(fecha);
-    const comp = _resumenComputeComp(fecha);
-    const msg = _resumenBuildMessage(fecha, br, comp);
+    let msg;
+    if (_resumenScope === 'semana') {
+      const agg = _resumenComputeSemana(fecha);
+      msg = _resumenBuildMessageSemana(fecha, agg);
+    } else {
+      const br = _resumenComputeBruck(fecha);
+      const comp = _resumenComputeComp(fecha);
+      msg = _resumenBuildMessage(fecha, br, comp);
+    }
+    const okToast = _resumenScope === 'semana' ? 'Resumen semanal copiado — pégalo en WhatsApp' : 'Resumen copiado — pégalo en WhatsApp';
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(msg);
-        toast('Resumen copiado — pégalo en WhatsApp');
+        toast(okToast);
       } else {
         // Fallback: textarea temporal + execCommand
         const ta = document.createElement('textarea');
         ta.value = msg; document.body.appendChild(ta); ta.select();
         document.execCommand('copy'); ta.remove();
-        toast('Resumen copiado — pégalo en WhatsApp');
+        toast(okToast);
       }
     } catch (e) {
       console.warn('clipboard error', e);
