@@ -6125,6 +6125,10 @@
 <!-- ============================================================= -->
 <nav class="fixed bottom-0 left-0 right-0 z-40 bg-ink-950/98 backdrop-blur border-t border-ink-800 safe-bottom">
   <div class="max-w-7xl mx-auto px-2 py-2 flex gap-1">
+    <button class="tab-btn" data-tab="tab-tejeduria" title="Tejeduría · Registro de rollos crudo (kilos) — antes de teñido">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M4 12c3.5-3 12.5-3 16 0"/><path d="M4 12c3.5 3 12.5 3 16 0"/><path d="M12 3v18"/></svg>
+      <span>Tejeduría</span>
+    </button>
     <button class="tab-btn active" data-tab="tab-capture">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       <span>Ficha</span>
@@ -6152,10 +6156,6 @@
     <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
       <span>Compactadora</span>
-    </button>
-    <button class="tab-btn" data-tab="tab-tejeduria" title="Tejeduría · Registro de rollos crudo (kilos) — antes de teñido">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M4 12c3.5-3 12.5-3 16 0"/><path d="M4 12c3.5 3 12.5 3 16 0"/><path d="M12 3v18"/></svg>
-      <span>Tejeduría</span>
     </button>
     <button class="tab-btn" data-tab="tab-estadistica" title="Estadística · Reporte de entrega de producto terminado (Calidad + Logística)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
@@ -9113,9 +9113,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 14;
+  const CURRENT_VERSION = 15;
 
   const CHANGELOG = [
+    {
+      v: 15,
+      date: '2026-08-17',
+      icon: '🧶',
+      title: 'Tejeduría · primera pestaña de la barra',
+      summary: 'La pestaña “Tejeduría” ahora aparece de primera (extrema izquierda) para que sea más rápido llegar cuando registres rollos desde el PC del Bay 1. La pestaña “Ficha” se mueve una posición a la derecha pero sigue siendo la que se abre automáticamente al entrar al dashboard — la muscle memory se conserva.',
+      bullets: [
+        'Nueva posición: Tejeduría → Ficha → Reporte → Eficiencia… (antes: Ficha → Reporte → … → Tejeduría cerca del final).',
+        'Al entrar al dashboard, la pestaña activa sigue siendo Ficha — nadie tiene que “aprender” la barra de nuevo.',
+        'Los turnos, roles (Supervisor/Jefe) y accesos directos con teclado siguen funcionando idénticos.'
+      ],
+      where: 'Barra inferior de pestañas — primera de izquierda a derecha.'
+    },
     {
       v: 14,
       date: '2026-08-17',
