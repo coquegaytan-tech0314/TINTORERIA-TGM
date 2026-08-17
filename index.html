@@ -5601,7 +5601,7 @@
           </h2>
           <p class="text-[11px] text-slate-400 mt-1">
             Registro digital de rollos que salen de tejeduría. Reemplaza la hoja de papel — <b>la suma es automática</b>.
-            <span class="text-slate-500">Fase 2 conectará la báscula DWI-110 para auto-captura de peso.</span>
+            <span class="text-slate-500">Fase 2 activa: conecta la báscula PreciCell TI-1500 por USB (botón dentro del modal de rollo).</span>
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -5826,16 +5826,61 @@
             </div>
           </div>
 
-          <!-- Scale connect (Phase 2 placeholder — visible but disabled) -->
-          <div class="rounded-lg bg-purple-950/30 border border-purple-800/40 p-2.5">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div>
-                <div class="text-[10px] text-purple-300 uppercase tracking-wider font-bold">🔌 Báscula DWI-110</div>
-                <div class="text-[10px] text-slate-400">Fase 2 · Conecta báscula por USB-Serial para auto-llenar el peso</div>
+          <!-- Scale connect (v14 · Fase 2 · Web Serial · TI-1500) -->
+          <div id="tejfScaleCard" class="rounded-lg bg-purple-950/30 border border-purple-800/40 p-3">
+            <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
+              <div class="flex items-center gap-2">
+                <span id="tejfScaleDot" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-600" title="Estado báscula"></span>
+                <div>
+                  <div class="text-[10px] text-purple-300 uppercase tracking-wider font-bold">🔌 Báscula PreciCell TI-1500</div>
+                  <div id="tejfScaleStatus" class="text-[10px] text-slate-400">Desconectada · presiona “Conectar”</div>
+                </div>
               </div>
-              <button id="tejfScaleBtn" class="bg-purple-800/50 hover:bg-purple-700/60 disabled:opacity-40 disabled:cursor-not-allowed text-purple-200 text-[10px] font-bold px-3 py-1.5 rounded-md" disabled>
-                Próximamente
-              </button>
+              <div class="flex items-center gap-2">
+                <button id="tejfScaleDiagBtn" class="hidden text-[10px] text-purple-300 hover:text-purple-200 underline decoration-dotted" type="button">🔧 Diagnóstico</button>
+                <button id="tejfScaleBtn" class="bg-purple-700 hover:bg-purple-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-md shadow-md" type="button">
+                  Conectar báscula
+                </button>
+              </div>
+            </div>
+
+            <!-- Live weight readout (visible only when connected) -->
+            <div id="tejfScaleLive" class="hidden mt-2 pt-2 border-t border-purple-800/40">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-[9px] text-purple-300 uppercase tracking-wider font-bold">Peso en vivo</div>
+                  <div class="flex items-baseline gap-2 mt-0.5">
+                    <span id="tejfScaleWeight" class="text-4xl font-black text-green-300" style="font-variant-numeric: tabular-nums;">0.00</span>
+                    <span class="text-lg font-bold text-green-500">kg</span>
+                    <span id="tejfScaleStable" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800/60 text-slate-400">—</span>
+                  </div>
+                  <div id="tejfScaleAge" class="text-[9px] text-slate-500 mt-0.5">Última lectura: —</div>
+                </div>
+                <div class="text-right">
+                  <button id="tejfScaleCaptureBtn" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-md" type="button">
+                    Capturar ahora
+                  </button>
+                  <div class="text-[9px] text-slate-500 mt-1">o suelta el rollo y espera 3 s</div>
+                </div>
+              </div>
+              <!-- Auto-capture confirm toast (inline, non-modal) -->
+              <div id="tejfScaleConfirm" class="hidden mt-2 rounded-md bg-green-900/40 border border-green-600/60 p-2 flex items-center gap-2">
+                <div class="flex-1">
+                  <div class="text-[10px] text-green-300 uppercase tracking-wider font-bold">Peso estable detectado</div>
+                  <div class="text-sm font-black text-green-200">¿Capturar <span id="tejfScaleConfirmKg">0.00</span> kg?</div>
+                </div>
+                <button id="tejfScaleConfirmYes" class="bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-md" type="button">Confirmar</button>
+                <button id="tejfScaleConfirmNo" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-[11px] font-bold px-3 py-1.5 rounded-md" type="button">Descartar</button>
+              </div>
+            </div>
+
+            <!-- Diagnostics (raw serial) -->
+            <div id="tejfScaleDiag" class="hidden mt-2 pt-2 border-t border-purple-800/40">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[9px] text-purple-300 uppercase tracking-wider font-bold">Salída cruda del serial</span>
+                <button id="tejfScaleDiagClear" class="text-[9px] text-slate-500 hover:text-slate-300 underline decoration-dotted" type="button">Limpiar</button>
+              </div>
+              <pre id="tejfScaleDiagLog" class="text-[10px] leading-tight text-slate-400 bg-ink-950 border border-ink-800 rounded p-2 max-h-32 overflow-y-auto" style="font-variant-numeric: tabular-nums;"></pre>
             </div>
           </div>
         </div>
@@ -6080,10 +6125,6 @@
 <!-- ============================================================= -->
 <nav class="fixed bottom-0 left-0 right-0 z-40 bg-ink-950/98 backdrop-blur border-t border-ink-800 safe-bottom">
   <div class="max-w-7xl mx-auto px-2 py-2 flex gap-1">
-    <button class="tab-btn" data-tab="tab-tejeduria" title="Tejeduría · Registro de rollos crudo (kilos) — antes de teñido">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M4 12c3.5-3 12.5-3 16 0"/><path d="M4 12c3.5 3 12.5 3 16 0"/><path d="M12 3v18"/></svg>
-      <span>Tejeduría</span>
-    </button>
     <button class="tab-btn active" data-tab="tab-capture">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       <span>Ficha</span>
@@ -6111,6 +6152,10 @@
     <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
       <span>Compactadora</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-tejeduria" title="Tejeduría · Registro de rollos crudo (kilos) — antes de teñido">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M4 12c3.5-3 12.5-3 16 0"/><path d="M4 12c3.5 3 12.5 3 16 0"/><path d="M12 3v18"/></svg>
+      <span>Tejeduría</span>
     </button>
     <button class="tab-btn" data-tab="tab-estadistica" title="Estadística · Reporte de entrega de producto terminado (Calidad + Logística)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
@@ -9068,9 +9113,29 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 13;
+  const CURRENT_VERSION = 14;
 
   const CHANGELOG = [
+    {
+      v: 14,
+      date: '2026-08-17',
+      icon: '⚖️',
+      title: 'Tejeduría · Báscula PreciCell TI-1500 conectada por USB',
+      summary: 'Fase 2 lista: la báscula PreciCell TI-1500 del PC dedicado en Tejeduría ya se puede conectar por USB-Serial y el peso de cada rollo se auto-llena en el modal de “Registrar rollo”. Ya no se teclea el número — sólo sueltas el rollo en la báscula, esperas 3 segundos y confirmas. La entrada manual sigue funcionando por si el cable falla o la báscula está apagada.',
+      bullets: [
+        'Nuevo botón morado “🔌 Conectar báscula PreciCell TI-1500” dentro del modal de Registrar/Editar rollo.',
+        'Primer click en Chrome pide permiso para elegir el puerto USB (COM del FTDI) — sólo se hace una vez por PC.',
+        'Baud rate 9600 8N1 (estándar Toledo) · auto-detecta chips FTDI, CP210x y CH340.',
+        'Display de peso en vivo grande verde con chip de estado: ● ESTABLE / CAMBIANDO / Esperando…',
+        'Auto-captura con confirmación: cuando el peso queda quieto 3 s (±5 g), aparece “¿Capturar X.XX kg? [Confirmar] [Descartar]”.',
+        'Botón “Capturar ahora” por si quieres saltarte la espera de 3 s.',
+        'Cooldown de 4 s después de cada captura para que no se repita el mismo peso si el rollo tarda en salir de la báscula.',
+        'Detección automática si desenchufan el cable USB · status rojo + toast de aviso.',
+        'Panel “🔧 Diagnóstico” colapsable que muestra la salida cruda del serial para depurar problemas del protocolo.',
+        'La entrada manual (input numérico + botón Agregar) sigue funcionando en paralelo — el operador puede combinar báscula y captura a mano en el mismo rollo.'
+      ],
+      where: 'Tab Tejeduría → botón “Registrar rollo” → dentro del modal, tarjeta morada “Báscula PreciCell TI-1500” abajo del bloque de pesos.'
+    },
     {
       v: 13,
       date: '2026-08-15',
@@ -21944,11 +22009,368 @@ async function _tejDeleteRollo() {
   renderTejeduria();
 }
 
+/* ================================================================= */
+/* v14 · FASE 2 · Web Serial + PreciCell TI-1500 (Toledo-standard)     */
+/* Continuous ASCII protocol, 9600 8N1. Frames look like:              */
+/*   "ST,GS,+  12.345 kg\r\n"   (Stable, Gross, sign, weight, unit)    */
+/*   "US,GS,-   0.010 kg\r\n"   (Unstable)                             */
+/* We accept any line containing a signed decimal followed by kg/g,    */
+/* plus optional ST/US prefix to indicate stability.                   */
+/* ================================================================= */
+
+const _tejScale = {
+  port: null,
+  reader: null,
+  keepReading: false,
+  connected: false,
+  lastKg: null,           // last parsed weight in kg
+  lastStable: false,      // ST prefix (or heuristic-detected stable)
+  lastRxAt: 0,            // timestamp of last frame
+  bufferText: '',         // partial line buffer
+  stableStart: 0,         // ms since weight became stable at current value
+  stableRefKg: null,      // kg value being tracked for stability
+  captureCooldownUntil: 0,// don't auto-confirm again within this window
+  autoConfirmPending: false,
+  diagLog: [],
+  diagMax: 60,
+  liveTimer: null,
+  onDisconnectBound: null,
+};
+
+const TEJ_SCALE_STABLE_TOL_KG = 0.005;  // ±5 g tolerance for "same weight"
+const TEJ_SCALE_STABLE_MS     = 3000;   // 3 s stable window → auto-confirm prompt
+const TEJ_SCALE_MIN_KG        = 0.10;   // ignore ghost readings under 100 g
+const TEJ_SCALE_MAX_KG        = 50.0;   // sanity cap (matches manual max)
+const TEJ_SCALE_COOLDOWN_MS   = 4000;   // after a capture, don't re-fire for 4 s
+
+function _tejScaleSupported() {
+  return typeof navigator !== 'undefined' && !!navigator.serial;
+}
+
+function _tejScaleDiag(line) {
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,'0');
+  const mm = String(t.getMinutes()).padStart(2,'0');
+  const ss = String(t.getSeconds()).padStart(2,'0');
+  _tejScale.diagLog.push(`${hh}:${mm}:${ss}  ${line}`);
+  if (_tejScale.diagLog.length > _tejScale.diagMax) _tejScale.diagLog.shift();
+  const el = document.getElementById('tejfScaleDiagLog');
+  if (el) { el.textContent = _tejScale.diagLog.join('\n'); el.scrollTop = el.scrollHeight; }
+}
+
+function _tejScaleParseLine(line) {
+  // Return { kg:Number, stable:Boolean } or null.
+  if (!line) return null;
+  const raw = String(line).trim();
+  if (!raw) return null;
+
+  // Detect stability tag if present (Toledo/Mettler-standard prefix)
+  let stable = null; // null = unknown
+  if (/^ST[,\s]/i.test(raw))       stable = true;
+  else if (/^US[,\s]/i.test(raw))  stable = false;
+  else if (/\bST\b/i.test(raw))    stable = true;
+  else if (/\bUS\b/i.test(raw))    stable = false;
+
+  // Extract first signed decimal number.
+  const m = raw.match(/([+-]?\d+(?:[.,]\d+)?)\s*(kg|g|lb)?/i);
+  if (!m) return null;
+  let n = parseFloat(m[1].replace(',', '.'));
+  if (!isFinite(n)) return null;
+  const unit = (m[2]||'kg').toLowerCase();
+  let kg = n;
+  if (unit === 'g')  kg = n / 1000;
+  if (unit === 'lb') kg = n * 0.45359237;
+
+  return { kg: Math.round(kg * 1000) / 1000, stable };
+}
+
+function _tejScaleSetStatus(txt, color) {
+  const s = document.getElementById('tejfScaleStatus');
+  if (s) s.textContent = txt;
+  const dot = document.getElementById('tejfScaleDot');
+  if (dot) {
+    dot.classList.remove('bg-slate-600','bg-green-500','bg-amber-500','bg-red-500','animate-pulse');
+    if      (color === 'green')  dot.classList.add('bg-green-500');
+    else if (color === 'amber')  dot.classList.add('bg-amber-500','animate-pulse');
+    else if (color === 'red')    dot.classList.add('bg-red-500');
+    else                         dot.classList.add('bg-slate-600');
+  }
+}
+
+function _tejScaleRefreshLive() {
+  const wEl   = document.getElementById('tejfScaleWeight');
+  const stEl  = document.getElementById('tejfScaleStable');
+  const ageEl = document.getElementById('tejfScaleAge');
+  if (!wEl) return;
+  if (_tejScale.lastKg == null) {
+    wEl.textContent = '0.00';
+    if (stEl) { stEl.textContent = 'Esperando…'; stEl.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800/60 text-slate-400'; }
+    if (ageEl) ageEl.textContent = 'Última lectura: —';
+    return;
+  }
+  wEl.textContent = _tejScale.lastKg.toFixed(2);
+  if (stEl) {
+    if (_tejScale.lastStable) {
+      stEl.textContent = '● ESTABLE';
+      stEl.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-800/60 text-green-200';
+    } else {
+      stEl.textContent = 'CAMBIANDO';
+      stEl.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-800/60 text-amber-200';
+    }
+  }
+  if (ageEl) {
+    const s = Math.max(0, Math.round((Date.now() - _tejScale.lastRxAt) / 1000));
+    ageEl.textContent = `Última lectura hace ${s} s`;
+  }
+}
+
+function _tejScaleShowConfirmPrompt(kg) {
+  const box = document.getElementById('tejfScaleConfirm');
+  const kgEl = document.getElementById('tejfScaleConfirmKg');
+  if (!box || !kgEl) return;
+  kgEl.textContent = kg.toFixed(2);
+  box.classList.remove('hidden');
+  _tejScale.autoConfirmPending = true;
+  _tejScale._pendingKg = kg;
+}
+
+function _tejScaleHideConfirmPrompt() {
+  const box = document.getElementById('tejfScaleConfirm');
+  if (box) box.classList.add('hidden');
+  _tejScale.autoConfirmPending = false;
+  _tejScale._pendingKg = null;
+}
+
+function _tejScaleCommitKg(kg) {
+  // Injects the value into the peso list, using the same pipeline as manual entry.
+  if (!isFinite(kg) || kg <= 0) return;
+  if (kg > TEJ_SCALE_MAX_KG) {
+    toast(`⚠ Peso muy alto de báscula: ${kg.toFixed(2)} kg. Verifica.`, true);
+  }
+  _tejCurrentRollos.push(Math.round(kg * 100) / 100);
+  _tejUpdateModalSum();
+  _tejScale.captureCooldownUntil = Date.now() + TEJ_SCALE_COOLDOWN_MS;
+  _tejScaleHideConfirmPrompt();
+  // Visual pulse on the weight readout
+  const wEl = document.getElementById('tejfScaleWeight');
+  if (wEl) {
+    wEl.animate([{transform:'scale(1)',color:''},{transform:'scale(1.15)',color:'#86efac'},{transform:'scale(1)',color:''}], {duration:400});
+  }
+  toast(`✓ Capturado ${kg.toFixed(2)} kg de báscula`);
+}
+
+function _tejScaleOnReading(kg, stable) {
+  const now = Date.now();
+  _tejScale.lastKg     = kg;
+  _tejScale.lastStable = (stable === true);
+  _tejScale.lastRxAt   = now;
+
+  // Track stability window for auto-capture-with-confirm
+  const ignore = (kg < TEJ_SCALE_MIN_KG) || (kg > TEJ_SCALE_MAX_KG) || (now < _tejScale.captureCooldownUntil);
+
+  if (ignore) {
+    _tejScale.stableStart = 0;
+    _tejScale.stableRefKg = null;
+    if (_tejScale.autoConfirmPending && kg < TEJ_SCALE_MIN_KG) {
+      // roll was removed before confirming → cancel prompt
+      _tejScaleHideConfirmPrompt();
+    }
+    _tejScaleRefreshLive();
+    return;
+  }
+
+  // Establish/refresh stability window
+  if (_tejScale.stableRefKg == null || Math.abs(kg - _tejScale.stableRefKg) > TEJ_SCALE_STABLE_TOL_KG) {
+    _tejScale.stableStart = now;
+    _tejScale.stableRefKg = kg;
+    _tejScaleHideConfirmPrompt();
+  } else {
+    // Same weight window continues. If stable for ≥ threshold, show confirm.
+    // If the scale reports ST explicitly, that shortcuts to ≥1.5s (still small window).
+    const elapsed = now - _tejScale.stableStart;
+    const threshold = _tejScale.lastStable ? Math.min(TEJ_SCALE_STABLE_MS, 1500) : TEJ_SCALE_STABLE_MS;
+    if (!_tejScale.autoConfirmPending && elapsed >= threshold) {
+      _tejScaleShowConfirmPrompt(kg);
+    }
+  }
+  _tejScaleRefreshLive();
+}
+
+async function _tejScaleReadLoop() {
+  const decoder = new TextDecoder();
+  try {
+    while (_tejScale.keepReading && _tejScale.reader) {
+      const { value, done } = await _tejScale.reader.read();
+      if (done) break;
+      if (!value || !value.length) continue;
+      const chunk = decoder.decode(value, { stream: true });
+      _tejScale.bufferText += chunk;
+      // Split on any newline or CR
+      const parts = _tejScale.bufferText.split(/[\r\n]+/);
+      _tejScale.bufferText = parts.pop() || '';
+      for (const line of parts) {
+        if (!line.trim()) continue;
+        _tejScaleDiag('⇐ ' + line.trim());
+        const parsed = _tejScaleParseLine(line);
+        if (parsed) _tejScaleOnReading(parsed.kg, parsed.stable);
+      }
+    }
+  } catch (e) {
+    console.warn('[Tej scale] read loop error', e);
+    _tejScaleDiag('ERROR: ' + (e?.message || e));
+  } finally {
+    try { _tejScale.reader?.releaseLock(); } catch(_) {}
+    _tejScale.reader = null;
+  }
+}
+
+async function _tejScaleConnect() {
+  if (!_tejScaleSupported()) {
+    toast('Este navegador no soporta Web Serial. Usa Chrome o Edge en el PC de Tejeduría.', true);
+    return;
+  }
+  if (_tejScale.connected) { await _tejScaleDisconnect(); return; }
+
+  try {
+    _tejScaleSetStatus('Solicitando puerto…', 'amber');
+    // Filter for FTDI VID (0x0403) but keep an open picker as fallback.
+    const port = await navigator.serial.requestPort({
+      filters: [
+        { usbVendorId: 0x0403 },        // FTDI
+        { usbVendorId: 0x10c4 },        // Silicon Labs CP210x (backup)
+        { usbVendorId: 0x1a86 },        // WCH CH340/CH341 (backup)
+      ],
+    }).catch(async (e) => {
+      // If the filtered picker was cancelled or nothing showed, offer full picker
+      if (e && e.name === 'NotFoundError') {
+        _tejScaleDiag('No se encontró FTDI/CP210x/CH34x — mostrando picker completo');
+        return await navigator.serial.requestPort();
+      }
+      throw e;
+    });
+    await port.open({
+      baudRate: 9600,
+      dataBits: 8,
+      stopBits: 1,
+      parity:   'none',
+      flowControl: 'none',
+      bufferSize: 4096,
+    });
+    _tejScale.port = port;
+    _tejScale.reader = port.readable.getReader();
+    _tejScale.keepReading = true;
+    _tejScale.connected = true;
+    _tejScale.bufferText = '';
+    _tejScale.diagLog = [];
+    _tejScaleDiag('Puerto abierto · 9600 8N1');
+
+    // Try to persist a friendly note (Web Serial itself remembers granted ports across sessions).
+    try { localStorage.setItem('tej_scale_granted', '1'); } catch(_){}
+
+    // Disconnection listener
+    _tejScale.onDisconnectBound = () => { _tejScaleHandleUnexpectedDisconnect(); };
+    navigator.serial.addEventListener('disconnect', _tejScale.onDisconnectBound);
+
+    // UI
+    _tejScaleSetStatus('Conectada · leyendo…', 'green');
+    const liveEl = document.getElementById('tejfScaleLive'); if (liveEl) liveEl.classList.remove('hidden');
+    const btn = document.getElementById('tejfScaleBtn'); if (btn) btn.textContent = 'Desconectar';
+    const diagBtn = document.getElementById('tejfScaleDiagBtn'); if (diagBtn) diagBtn.classList.remove('hidden');
+
+    // Live age refresh
+    if (_tejScale.liveTimer) clearInterval(_tejScale.liveTimer);
+    _tejScale.liveTimer = setInterval(_tejScaleRefreshLive, 500);
+
+    _tejScaleReadLoop();
+    toast('Báscula conectada · suelta un rollo y espera 3 s');
+  } catch (e) {
+    console.warn('[Tej scale] connect error', e);
+    _tejScaleSetStatus('Error al conectar: ' + (e?.message || e), 'red');
+    _tejScaleDiag('ERROR conectar: ' + (e?.message || e));
+    toast('No se pudo conectar la báscula: ' + (e?.message || e), true);
+  }
+}
+
+function _tejScaleHandleUnexpectedDisconnect() {
+  _tejScaleDiag('Puerto desconectado (evento navigator.serial.disconnect)');
+  _tejScale.keepReading = false;
+  _tejScale.connected = false;
+  try { _tejScale.reader?.cancel(); } catch(_){}
+  try { _tejScale.port?.close(); } catch(_){}
+  _tejScale.reader = null;
+  _tejScale.port = null;
+  _tejScaleSetStatus('Desconectada (cable USB retirado)', 'red');
+  const btn = document.getElementById('tejfScaleBtn'); if (btn) btn.textContent = 'Conectar báscula';
+  toast('La báscula se desconectó — revisa el cable USB', true);
+}
+
+async function _tejScaleDisconnect() {
+  _tejScale.keepReading = false;
+  try { _tejScale.reader?.cancel(); } catch(_){}
+  try { await _tejScale.port?.close(); } catch(_){}
+  if (_tejScale.onDisconnectBound) {
+    try { navigator.serial.removeEventListener('disconnect', _tejScale.onDisconnectBound); } catch(_){}
+    _tejScale.onDisconnectBound = null;
+  }
+  if (_tejScale.liveTimer) { clearInterval(_tejScale.liveTimer); _tejScale.liveTimer = null; }
+  _tejScale.reader = null;
+  _tejScale.port = null;
+  _tejScale.connected = false;
+  _tejScale.lastKg = null;
+  _tejScaleSetStatus('Desconectada', 'slate');
+  const liveEl = document.getElementById('tejfScaleLive'); if (liveEl) liveEl.classList.add('hidden');
+  const btn = document.getElementById('tejfScaleBtn'); if (btn) btn.textContent = 'Conectar báscula';
+  _tejScaleHideConfirmPrompt();
+  toast('Báscula desconectada');
+}
+
+function _tejScaleCaptureCurrent() {
+  if (!_tejScale.connected || _tejScale.lastKg == null) {
+    toast('Sin lectura de báscula todavía', true);
+    return;
+  }
+  _tejScaleCommitKg(_tejScale.lastKg);
+}
+
+function _tejScaleBindOnce() {
+  document.getElementById('tejfScaleBtn')?.addEventListener('click', () => {
+    if (_tejScale.connected) _tejScaleDisconnect();
+    else _tejScaleConnect();
+  });
+  document.getElementById('tejfScaleCaptureBtn')?.addEventListener('click', _tejScaleCaptureCurrent);
+  document.getElementById('tejfScaleConfirmYes')?.addEventListener('click', () => {
+    if (_tejScale._pendingKg != null) _tejScaleCommitKg(_tejScale._pendingKg);
+  });
+  document.getElementById('tejfScaleConfirmNo')?.addEventListener('click', () => {
+    _tejScaleHideConfirmPrompt();
+    // Reset stability tracker so the same weight doesn't re-fire immediately
+    _tejScale.stableStart = Date.now();
+  });
+  document.getElementById('tejfScaleDiagBtn')?.addEventListener('click', () => {
+    const d = document.getElementById('tejfScaleDiag');
+    if (d) d.classList.toggle('hidden');
+  });
+  document.getElementById('tejfScaleDiagClear')?.addEventListener('click', () => {
+    _tejScale.diagLog = [];
+    const el = document.getElementById('tejfScaleDiagLog');
+    if (el) el.textContent = '';
+  });
+
+  // Show a friendly warning if browser lacks Web Serial support (Safari/Firefox)
+  if (!_tejScaleSupported()) {
+    const s = document.getElementById('tejfScaleStatus');
+    if (s) s.textContent = 'Este navegador no soporta Web Serial — usa Chrome/Edge';
+    const btn = document.getElementById('tejfScaleBtn');
+    if (btn) { btn.disabled = true; btn.classList.add('opacity-40','cursor-not-allowed'); }
+  }
+}
+
 /* ---------------- Event bindings (once) ---------------- */
 
 function _tejBindEventsOnce() {
   if (_tejBinded) return;
   _tejBinded = true;
+  try { _tejScaleBindOnce(); } catch(e) { console.warn('scale bind', e); }
 
   // Session bar
   const turnoEl = document.getElementById('tejTurno');
