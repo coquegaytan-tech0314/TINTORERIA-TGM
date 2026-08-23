@@ -2486,10 +2486,10 @@
       </div>
 
       <!-- Monforts -->
-      <div class="card p-5 opacity-50">
+      <div class="card p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-black text-white text-base">🧵 Monforts</h3>
-          <span class="chip chip-warn">En montaje</span>
+          <span class="chip chip-ok">En trabajo</span>
         </div>
         <div class="grid grid-cols-3 gap-3 mb-3">
           <div>
@@ -2910,13 +2910,13 @@
           </div>
         </div>
         <!-- Monforts -->
-        <div class="card p-5 opacity-50">
+        <div class="card p-5">
           <div class="flex items-center justify-between mb-3">
             <div>
               <div class="text-xl font-black text-white">🧵 Monforts</div>
-              <div class="text-xs text-slate-500">En montaje — no disponible aún</div>
+              <div class="text-xs text-slate-500">En trabajo</div>
             </div>
-            <span class="chip chip-warn">En montaje</span>
+            <span class="chip chip-ok">En trabajo</span>
           </div>
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div>
@@ -3111,7 +3111,7 @@
               <label class="lbl">Rama</label>
               <select id="dtr_rama" class="field">
                 <option value="Bruckner">Bruckner</option>
-                <option value="Monforts">Monforts ⚠️ (en montaje)</option>
+                <option value="Monforts">Monforts</option>
               </select>
             </div>
             <div>
@@ -7267,6 +7267,7 @@ async function saveToCloud(collKey, record) {
     // Bloquear escrituras si el usuario no inició sesión correctamente
     if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) {
       console.warn('[FB] saveToCloud: sin sesión válida, descartando');
+      if (typeof toast === 'function') toast('La ficha quedó en este aparato · no se registró en la nube (sesión)', true);
       return;
     }
     fbPendingWrites++;
@@ -7276,6 +7277,7 @@ async function saveToCloud(collKey, record) {
   } catch (e) {
     fbLastError = e;
     console.warn('[FB] saveToCloud error', e);
+    if (typeof toast === 'function') toast('La ficha no se registró en la nube · reintenta', true);
   } finally {
     fbPendingWrites = Math.max(0, fbPendingWrites - 1);
     updateCloudUI();
@@ -7618,6 +7620,42 @@ const todayISO = () => {
   const day = String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 };
+
+/** Fecha de producción YYYY-MM-DD de una ficha/registro.
+ *  Acepta string ISO, Date, o Timestamp de Firestore.
+ *  Las fechas "YYYY-MM-DD" se toman tal cual (sin pasar por Date(),
+ *  que en México UTC-6 las mueve al día anterior). */
+function recFechaISO(r) {
+  if (!r) return '';
+  const raw = r.fecha;
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  }
+  if (raw && typeof raw.toDate === 'function') {
+    try { return recFechaISO({ fecha: raw.toDate() }); } catch (e) { /* fall through */ }
+  }
+  if (raw && typeof raw.seconds === 'number') {
+    const d = new Date(raw.seconds * 1000);
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+  }
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    return `${raw.getFullYear()}-${String(raw.getMonth()+1).padStart(2,'0')}-${String(raw.getDate()).padStart(2,'0')}`;
+  }
+  const ts = r.ts;
+  if (ts && typeof ts.toDate === 'function') {
+    try { return recFechaISO({ fecha: ts.toDate() }); } catch (e) { /* fall through */ }
+  }
+  if (typeof ts === 'number' || (typeof ts === 'string' && ts)) {
+    const d = new Date(ts);
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+  }
+  return '';
+}
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 /** Duración en minutos entre "HH:MM" y "HH:MM", soporta cruzar medianoche */
@@ -11349,7 +11387,7 @@ function renderReport() {
   if (reportMode === 'range') return renderReportRange();
   if (reportMode === 'year')  return renderReportYear();
   const date = $('#reportDate').value || todayISO();
-  const rows = state.prod.filter(r => r.fecha === date);
+  const rows = state.prod.filter(r => recFechaISO(r) === date);
 
   const totalK = rows.reduce((a,r)=>a+r.kilos, 0);
   const totalCostQ = rows.reduce((a,r)=>a + (r.kilos||0)*(r.apq||0), 0);
@@ -11360,8 +11398,8 @@ function renderReport() {
     : `Sin fichas para esta fecha`;
 
   // Rama cards (always rendered regardless of prod rows)
-  const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && r.fecha === date);
-  const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && r.fecha === date);
+  const bruckRows = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Bruckner' && recFechaISO(r) === date);
+  const monfRows  = state.bruck.filter(r => (r.rama || 'Bruckner') === 'Monforts'  && recFechaISO(r) === date);
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   const bruckKg = bruckRows.reduce((a,r)=>a+r.kilos,0);
   // Empacado real (producción terminada) — Bruckner
@@ -11403,7 +11441,7 @@ function renderReport() {
   desgloseChip(bruckRows, 'rep_bruck_emp', 'rep_bruck_term', 'rep_bruck_suav');
 
   // === Compactadora · Ruta Tubular ===
-  const compRows = (state.compact || []).filter(r => r.fecha === date);
+  const compRows = (state.compact || []).filter(r => recFechaISO(r) === date);
   const compKg = compRows.reduce((a,r) => a + (parseFloat(r.kilos)||0), 0);
   const compM  = compRows.reduce((a,r) => a + (parseFloat(r.metros)||0), 0);
   // Empacado real Compactadora
@@ -11534,7 +11572,7 @@ function renderReportMonth() {
   })();
   if (monthInp && !monthInp.value) monthInp.value = ym;
 
-  const rows = state.prod.filter(r => (r.fecha || '').startsWith(ym));
+  const rows = state.prod.filter(r => recFechaISO(r).startsWith(ym));
   const totalK = rows.reduce((a,r)=>a+(r.kilos||0), 0);
   const totalCQ = rows.reduce((a,r)=>a+((r.kilos||0)*(r.apq||0)), 0);
   const daysWithData = new Set(rows.map(r => r.fecha)).size;
@@ -13479,7 +13517,7 @@ function renderRamaDowntime() {
     if (em) em.classList.add('hidden');
     tb.innerHTML = rows.map(r => {
       const isMonforts = r.rama === 'Monforts';
-      const ramaBadge = isMonforts ? ` <span class="chip chip-warn" style="font-size:9px">Monforts (prep)</span>` : '';
+      const ramaBadge = isMonforts ? ` <span class="chip chip-ok" style="font-size:9px">Monforts</span>` : '';
       const catColor = { 'Mecánico':'chip-bad','Eléctrico':'chip-warn','Programación':'chip-info','Operación':'chip-ok' }[r.categoria] || 'chip-info';
       return `<tr>
         <td><b class="text-emer-accent">${r.rama||'Bruckner'}</b>${ramaBadge}</td>
@@ -18947,7 +18985,7 @@ function _esReprocesoRec(r) {
  *  Devuelve tanto totales BRUTOS (incluyen re-pases) como NETOS (los excluyen),
  *  además de un desglose de kilos reprocesados por motivo. */
 function _resumenComputeBruck(fecha) {
-  const rows = (state.bruck||[]).filter(r => r.fecha === fecha && (r.rama||'Bruckner') === 'Bruckner');
+  const rows = (state.bruck||[]).filter(r => recFechaISO(r) === fecha && (r.rama||'Bruckner') === 'Bruckner');
   const totals = {
     // Bruto (incluye reprocesos) — retro-compat: campos existentes se mantienen como BRUTO
     suavizado: 0, termofijado: 0, empacado: 0, otros: 0, total: 0,
@@ -18995,7 +19033,7 @@ function _resumenComputeComp(fecha) {
   const arr = Array.isArray(state.compact) ? state.compact : (Array.isArray(state.comp) ? state.comp : []);
   if (arr.length === 0) return 0;
   return arr
-    .filter(r => r.fecha === fecha)
+    .filter(r => recFechaISO(r) === fecha)
     .filter(r => String(r.proceso || '').toLowerCase().includes('empac'))
     .reduce((a, r) => a + (parseFloat(r.kilos) || 0), 0);
 }
@@ -19004,16 +19042,24 @@ function _resumenComputeComp(fecha) {
 function _resumenComputeCompBruto(fecha) {
   const arr = Array.isArray(state.compact) ? state.compact : [];
   return arr
-    .filter(r => r.fecha === fecha)
+    .filter(r => recFechaISO(r) === fecha)
     .reduce((a, r) => a + (parseFloat(r.kilos) || 0), 0);
+}
+
+/** Terminado = kilos netos menos Suavizado (paso intermedio, no es producto terminado). */
+function _resumenTerminadoKg(br, comp) {
+  const suav = Number(br && br.suavizadoNeto) || 0;
+  const ramaAll = Number(br && br.totalNeto) || 0;
+  const rama = Math.max(0, ramaAll - suav);
+  const c = Number(comp) || 0;
+  return { rama, total: rama + c, suav };
 }
 
 /** Construye el texto exacto del mensaje al jefe */
 function _resumenBuildMessage(fecha, br, comp) {
   const titulo = _resumenFechaTitulo(fecha);
-  // Terminado del día usa NETO (sin re-pases) para empatar con el reporte final.
-  const ramaNeto = (br.totalNeto||0);
-  const total    = ramaNeto + (comp||0);
+  // Terminado del día: neto (sin re-pases) y sin Suavizado (no es acabado).
+  const { rama: ramaNeto, total } = _resumenTerminadoKg(br, comp);
   // Solo incluir líneas con valor; el formato original a veces omite procesos sin actividad.
   const lines = [];
   lines.push(titulo);
@@ -19098,8 +19144,7 @@ function _resumenComputeSemana(refFecha) {
 /** Construye el mensaje semanal (mismo formato del jefe, cabecera + totales acumulados + detalle por día) */
 function _resumenBuildMessageSemana(refFecha, agg) {
   const titulo = _resumenSemanaTitulo(refFecha);
-  const ramaNeto = agg.br.totalNeto || 0;
-  const total    = ramaNeto + (agg.comp || 0);
+  const { rama: ramaNeto, total } = _resumenTerminadoKg(agg.br, agg.comp);
   const lines = [];
   lines.push(titulo);
   lines.push('PRODUCCION DE TERMINADO · SEMANA');
@@ -19121,7 +19166,7 @@ function _resumenBuildMessageSemana(refFecha, agg) {
   agg.dates.forEach(f => {
     const br = _resumenComputeBruck(f);
     const c = _resumenComputeComp(f);
-    const t = (br.totalNeto||0) + (c||0);
+    const t = _resumenTerminadoKg(br, c).total;
     const dow = new Date(f+'T12:00:00').getDay();
     const dowShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][dow];
     lines.push(`  ${dowShort} ${f.slice(8,10)}: ${_resumenFmt(t)} kg`);
@@ -19161,8 +19206,7 @@ function renderResumenTerminado() {
     if (scopeHintEl)  scopeHintEl.textContent  = `Semana ISO ${agg.dates[0]} → ${agg.dates[6]} (Lun→Dom) — mismo formato al jefe.`;
     if (ramaHintEl)   ramaHintEl.textContent   = 'kilos de la semana';
     if (compHintEl)   compHintEl.textContent   = 'kilos de la semana';
-    const ramaNeto = agg.br.totalNeto || 0;
-    const totalNeto = ramaNeto + agg.comp;
+    const { rama: ramaNeto, total: totalNeto } = _resumenTerminadoKg(agg.br, agg.comp);
     setEl('res_total',       _resumenFmt(totalNeto));
     setEl('res_rama',        _resumenFmt(ramaNeto));
     setEl('res_comp',        _resumenFmt(agg.comp));
@@ -19183,9 +19227,8 @@ function renderResumenTerminado() {
   if (ramaHintEl)   ramaHintEl.textContent   = 'kilos del día';
   if (compHintEl)   compHintEl.textContent   = 'kilos del día';
 
-  // Usar NETO en las tarjetas visibles (sin re-pases) para consistencia con el mensaje al jefe.
-  const ramaNeto = br.totalNeto || 0;
-  const totalNeto = ramaNeto + comp;
+  // NETO (sin re-pases) y sin Suavizado — Suavizado se muestra aparte, no es terminado.
+  const { rama: ramaNeto, total: totalNeto } = _resumenTerminadoKg(br, comp);
   setEl('res_total',       _resumenFmt(totalNeto));
   setEl('res_rama',        _resumenFmt(ramaNeto));
   setEl('res_comp',        _resumenFmt(comp));
@@ -24800,7 +24843,7 @@ function _estSaveOverrides(obj) {
 }
 function _estFechaISO() {
   const inp = document.getElementById('estFecha');
-  return inp && inp.value ? inp.value : new Date().toISOString().slice(0,10);
+  return inp && inp.value ? inp.value : todayISO();
 }
 function _estFmt(v, d=1) {
   const n = Number(v);
@@ -24813,9 +24856,18 @@ function _estFmtCap(v, d=1) {
   return isFinite(n) && n > 0 ? n.toFixed(d) : '';
 }
 function _estIsSameDay(ts, iso) {
-  if (!ts) return false;
+  if (!ts || !iso) return false;
   try {
-    const d = new Date(ts);
+    // YYYY-MM-DD (y Firestore date-only strings) — no usar Date(): en México
+    // UTC-6 `new Date('2026-08-23')` cae en el día anterior.
+    if (typeof ts === 'string') {
+      const s = ts.trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10) === iso;
+    }
+    if (ts && typeof ts.toDate === 'function') ts = ts.toDate();
+    else if (ts && typeof ts.seconds === 'number') ts = new Date(ts.seconds * 1000);
+    const d = (ts instanceof Date) ? ts : new Date(ts);
+    if (isNaN(d.getTime())) return false;
     const isoOf = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     return isoOf === iso;
   } catch(e) { return false; }
@@ -24851,8 +24903,10 @@ function _estBuildRows(dateISO) {
   // Tintorería → sólo se usa para completar metadatos (Tela / Color / N.Pedido / Turno) del lote.
   // ⚠ C.B. NO se autocalcula desde state.prod: C.B. = kilos Clase B reportados por CALIDAD (defectos).
   // El campo permanece 0 hasta que Estadística (o eventualmente el tab Calidad) capture el valor.
-  (state.prod || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
-    const row = ensureRow(String(r.lote).trim());
+  // Match por fecha de ficha (la que capturó el operador), no sólo por ts de guardado.
+  (state.prod || []).filter(r => (_estIsSameDay(r.fecha, dateISO) || _estIsSameDay(r.ts, dateISO))).forEach(r => {
+    const loteKey = String(r.lote || '').trim() || ('sin-lote-' + (r.id || 'x'));
+    const row = ensureRow(loteKey);
     if (!row.tela)   row.tela = r.tela || r.diseno || '';
     if (!row.color)  row.color = r.color || '';
     if (!row.pedido) row.pedido = r.pedido || '';
@@ -24861,8 +24915,8 @@ function _estBuildRows(dateISO) {
   });
 
   // RAMA (Bruckner + Monforts) → columnas BRU / Monforts + PLA si proceso es "planchado"
-  (state.bruck || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
-    const row = ensureRow(String(r.lote).trim());
+  (state.bruck || []).filter(r => (_estIsSameDay(r.fecha, dateISO) || _estIsSameDay(r.ts, dateISO))).forEach(r => {
+    const row = ensureRow(String(r.lote || '').trim() || ('sin-lote-' + (r.id || 'x')));
     const kg = Number(r.kilos) || 0;
     const rama = (r.rama || 'Bruckner').toLowerCase();
     const proceso = String(r.proceso || '').toLowerCase();
@@ -24876,8 +24930,8 @@ function _estBuildRows(dateISO) {
   });
 
   // Compactadora → COM (compactado). REV se asigna si el proceso es "empacado" o "revisado" (legacy).
-  (state.compact || []).filter(r => _estIsSameDay(r.ts, dateISO) && r.lote).forEach(r => {
-    const row = ensureRow(String(r.lote).trim());
+  (state.compact || []).filter(r => (_estIsSameDay(r.fecha, dateISO) || _estIsSameDay(r.ts, dateISO))).forEach(r => {
+    const row = ensureRow(String(r.lote || '').trim() || ('sin-lote-' + (r.id || 'x')));
     const kg = Number(r.kilos) || 0;
     const proceso = String(r.proceso || '').toLowerCase();
     if (proceso.includes('empac') || proceso.includes('revis')) {
@@ -24957,6 +25011,19 @@ function _estBuildRows(dateISO) {
   return arr;
 }
 
+/** Kilos de Suavizado del día (Bruckner/Monforts + Compactadora). No es producto terminado. */
+function _estKgSuavizado(dateISO) {
+  let bruck = 0, compact = 0;
+  const hit = (r) => _estIsSameDay(r.fecha, dateISO) || _estIsSameDay(r.ts, dateISO);
+  (state.bruck || []).filter(hit).forEach(r => {
+    if (String(r.proceso || '').toLowerCase().includes('suav')) bruck += Number(r.kilos) || 0;
+  });
+  (state.compact || []).filter(hit).forEach(r => {
+    if (String(r.proceso || '').toLowerCase().includes('suav')) compact += Number(r.kilos) || 0;
+  });
+  return { bruck, compact, total: bruck + compact };
+}
+
 // Construye el mensaje resumen (WhatsApp-style) desde totales
 function _estBuildMensaje(dateISO, totals, calidad) {
   const dias = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
@@ -24967,15 +25034,12 @@ function _estBuildMensaje(dateISO, totals, calidad) {
   const mesN = meses[d.getMonth()];
 
   // Contar suavizado y termofijado desde state.compact / state.bruck
-  let suavizado = 0, termofijado = 0;
-  (state.compact || []).filter(r => _estIsSameDay(r.ts, dateISO)).forEach(r => {
-    const p = String(r.proceso || '').toLowerCase();
-    if (p.includes('suav')) suavizado += Number(r.kilos) || 0;
-  });
-  (state.bruck || []).filter(r => _estIsSameDay(r.ts, dateISO)).forEach(r => {
+  const suavParts = _estKgSuavizado(dateISO);
+  let suavizado = suavParts.total, termofijado = 0;
+  const hitEst = (r) => _estIsSameDay(r.fecha, dateISO) || _estIsSameDay(r.ts, dateISO);
+  (state.bruck || []).filter(hitEst).forEach(r => {
     const p = String(r.proceso || '').toLowerCase();
     if (p.includes('termof')) termofijado += Number(r.kilos) || 0;
-    if (p.includes('suav'))   suavizado   += Number(r.kilos) || 0;
   });
 
   const fmt = (n) => (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -26388,8 +26452,10 @@ function renderEstadistica() {
   });
   T.faltante = T.prog - T.aprev;
   T.pct = T.prog > 0 ? (T.aprev / T.prog) : 0;
-  const terminado = T.monforts + T.bru + T.com; // producto terminado real
-  const rama = T.monforts + T.bru;
+  const suav = _estKgSuavizado(dateISO);
+  // Suavizado no es producto terminado: se resta del total y de RAMA; se sigue mostrando aparte.
+  const terminado = Math.max(0, T.monforts + T.bru + T.com - suav.total);
+  const rama = Math.max(0, T.monforts + T.bru - suav.bruck);
 
   // KPIs
   const kpiHtml = [
