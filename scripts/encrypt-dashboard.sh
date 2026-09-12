@@ -64,4 +64,20 @@ if ! grep -q 'class="staticrypt-html"' "$OUT"; then
   exit 1
 fi
 
+# Live v24 defaults Remember to on (30 days). StatiCrypt's template does not.
+python3 - <<'PY'
+from pathlib import Path
+p = Path("index.html")
+t = p.read_text(encoding="utf-8")
+old = '<input id="staticrypt-remember" type="checkbox" name="remember" />'
+new = '<input id="staticrypt-remember" type="checkbox" name="remember" checked />'
+if old in t:
+    p.write_text(t.replace(old, new, 1), encoding="utf-8")
+    print("remember checkbox defaulted to checked")
+elif new in t:
+    print("remember checkbox already checked")
+else:
+    print("WARN: remember checkbox not found")
+PY
+
 echo "Wrote gated $OUT (salt $SALT). Safe to merge to main / Pages."
