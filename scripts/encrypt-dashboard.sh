@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Re-encrypt src/dashboard.html → index.html (StatiCrypt gate for GitHub Pages).
-# NEVER commit a plaintext dashboard as index.html on main.
+# NEVER copy src/dashboard.html over index.html on main. Never put passwords in source.
 #
 # Required:
 #   STATICRYPT_PASSWORD   same production curtain password already used on Pages

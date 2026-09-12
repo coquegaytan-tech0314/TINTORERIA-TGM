@@ -10357,10 +10357,10 @@ window.TG_WHATSNEW = (function(){
       date: '2026-08-02',
       icon: '🔐',
       title: 'Panel de novedades · Recordatorio de contraseña',
-      summary: 'Este mismo pop-up es nuevo. Además, agregamos un recordatorio permanente sobre la contraseña de la cortina en la parte de arriba.',
+      summary: 'Este mismo pop-up es nuevo. Recuerda que hay cortina de acceso + candado interno; las claves no se imprimen en el dashboard.',
       bullets: [
         'El botón “Novedades” en la barra superior te deja reabrir este panel cuando quieras.',
-        'La contraseña de la cortina de acceso quedó arriba para que la tengas siempre a la mano.',
+        'Si no tienes la cortina, pídesela al supervisor. Nunca se muestra en esta pantalla.',
         'Cada vez que agreguemos algo nuevo al dashboard, este panel aparecerá una vez para avisarte.',
         'Puedes cerrarlo con la X, con ESC, o con el botón “Entendido”.'
       ],
@@ -10399,7 +10399,7 @@ window.TG_WHATSNEW = (function(){
       date: '2026-08-02',
       icon: '📅',
       title: 'Importador de Estadística',
-      summary: 'Ahora puedes cargar tus archivos mensuales de Estadística (los xlsx protegidos con contraseña INICIAR) directamente al dashboard.',
+      summary: 'Ahora puedes cargar tus archivos mensuales de Estadística (xlsx, incluso protegidos) directamente al dashboard.',
       bullets: [
         'Botón de importación en la pestaña Estadística (drag & drop múltiples archivos).',
         'Historial 2026 completo pre-cargado (Ene → Jul, 177 días, 4,709 registros).',
@@ -10469,17 +10469,13 @@ window.TG_WHATSNEW = (function(){
               '</div>' +
             '</div>' +
             '<div class="wn-alert-body">' +
-              '<p><b>1ª capa · Cortina de acceso (nueva):</b> antes de entrar al dashboard, te va a pedir una contraseña global.</p>' +
-              '<div class="wn-pwd-box">' +
-                '<span class="wn-pwd-label">Contraseña de la cortina:</span>' +
-                '<code class="wn-pwd-value">Pr@duccion2026</code>' +
-              '</div>' +
+              '<p><b>1ª capa · Cortina de acceso:</b> antes de entrar al dashboard, la URL pide una contraseña global. Pídesela al supervisor si no la tienes. <b>No se imprime en esta pantalla ni en el código del dashboard.</b></p>' +
               '<p><b>2ª capa · Candado interno:</b> después de la cortina, sigue funcionando el candado de siempre <i>(el que ya conoces)</i>.</p>' +
               '<div class="wn-tips">' +
                 '<div class="wn-tip"><span class="wn-tip-icon">✅</span><span><b>Marca “Recordarme por 30 días”</b> en la pantalla de la cortina para no volver a escribirla cada vez.</span></div>' +
-                '<div class="wn-tip"><span class="wn-tip-icon">📝</span><span><b>Guarda esta contraseña</b> en un lugar seguro (post-it privado, notas de tu teléfono, gestor de contraseñas).</span></div>' +
+                '<div class="wn-tip"><span class="wn-tip-icon">📝</span><span><b>Guarda la contraseña</b> en un lugar seguro (notas privadas del equipo). No la pegues en el dashboard.</span></div>' +
                 '<div class="wn-tip"><span class="wn-tip-icon">🔒</span><span><b>No la compartas</b> fuera del equipo. Es información interna de Tintorería TGM.</span></div>' +
-                '<div class="wn-tip"><span class="wn-tip-icon">🔄</span><span>Si te sale de nuevo la pantalla morada de la cortina, no te asustes — volvió a expirar después de 30 días o cerraste sesión. Solo escríbela otra vez.</span></div>' +
+                '<div class="wn-tip"><span class="wn-tip-icon">🔄</span><span>Si vuelve a salir la cortina, expiró el recordatorio de 30 días o se cerró sesión. Escríbela otra vez; no aparece aquí.</span></div>' +
               '</div>' +
             '</div>' +
           '</div>' +
