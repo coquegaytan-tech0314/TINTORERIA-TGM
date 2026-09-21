@@ -7024,6 +7024,13 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
       <span class="flex-1">Revisado</span>
       <span id="moreItemBadgeRvs" class="hidden min-w-[20px] h-[20px] px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center leading-none">0</span>
     </button>
+    <!-- Phase 1 · Preguntar al día (solo lectura; no es un tab) -->
+    <div class="border-t border-ink-800 my-1"></div>
+    <div class="text-[10px] text-slate-500 uppercase tracking-wider px-2 py-1 font-bold">Consultar</div>
+    <button type="button" id="askDayOpenBtn" class="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm" title="Preguntar al día · solo lectura, no guarda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.2 2.4c-.7.3-1.2.9-1.2 1.6V14"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
+      <span class="flex-1">Preguntar al día</span>
+    </button>
     <!-- v20 · Ambiente (día/noche + estación) -->
     <div class="border-t border-ink-800 my-1"></div>
     <button type="button" id="ambienceOpenBtn" class="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg hover:bg-ink-800 text-slate-200 text-sm">
@@ -7099,6 +7106,68 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
     </div>
 
     <p class="text-[11px] mt-4" style="color: var(--tg-text-3);">Se guarda solo en este tablet. No sube a Firebase.</p>
+  </div>
+</div>
+
+<!-- Phase 1 · Preguntar al día (borrador de solo lectura) -->
+<style>
+  #askDayModal .ask-chip {
+    border: 1px solid #253149;
+    background: #111826;
+    color: #e2e8f0;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    min-height: 40px;
+  }
+  #askDayModal .ask-chip:hover,
+  #askDayModal .ask-chip:focus {
+    border-color: #38bdf8;
+    color: #fff;
+    outline: none;
+  }
+  #askDayDraft {
+    background: rgba(7, 9, 13, 0.82);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    position: relative;
+    z-index: 1;
+  }
+  #askDayCard { position: relative; }
+  #askDayScroll { position: relative; z-index: 1; }
+  #askDayAccept:disabled { opacity: 0.45; cursor: not-allowed; }
+</style>
+<div id="askDayModal" class="hidden fixed inset-0 z-[126] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3" data-ask-readonly="1" role="dialog" aria-modal="true" aria-labelledby="askDayTitle">
+  <div id="askDayCard" class="card tg-glass w-full max-w-lg max-h-[92vh] flex flex-col">
+    <div id="askDayScroll" class="overflow-y-auto min-h-0 flex-1 p-5">
+      <div class="flex items-start justify-between gap-3 mb-1">
+        <h3 id="askDayTitle" class="text-lg font-bold text-white">Preguntar al día</h3>
+        <button type="button" id="askDayX" class="btn btn-secondary !min-h-0 !py-1 !px-3 text-sm" aria-label="Cerrar">Cerrar</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-3">Borrador de solo lectura con lo que esta pantalla ya tiene cargado. <b class="text-slate-300">Aceptar no escribe en Firebase</b> ni en el tablet.</p>
+      <label class="lbl" for="askDayInput">Pregunta</label>
+      <input id="askDayInput" type="text" class="field !text-base !py-3" placeholder="Ej. resumen del día" autocomplete="off" enterkeyhint="send" />
+      <div id="askDayChips" class="flex flex-wrap gap-2 mt-3">
+        <button type="button" class="ask-chip" data-ask="resumen del día">Resumen del día</button>
+        <button type="button" class="ask-chip" data-ask="lotes en proceso">Lotes en proceso</button>
+        <button type="button" class="ask-chip" data-ask="tiempos muertos hoy">Tiempos muertos hoy</button>
+        <button type="button" class="ask-chip" data-ask="eficiencia por máquina">Eficiencia por máquina</button>
+      </div>
+      <button type="button" id="askDayGo" class="btn btn-sky w-full mt-3 !py-3">Preguntar</button>
+      <div id="askDayDraft" class="hidden mt-3 rounded-xl p-3">
+        <div class="text-[10px] uppercase tracking-wider text-sky-300/80 font-bold mb-1">Borrador · solo lectura</div>
+        <div id="askDayDraftTitle" class="font-bold text-white mb-2"></div>
+        <div id="askDayDraftBody" class="text-sm text-slate-200 leading-relaxed"></div>
+        <p class="text-[11px] text-slate-500 mt-3">Aceptar solo cierra este borrador. No guarda la respuesta.</p>
+      </div>
+    </div>
+    <div class="relative z-[1] px-5 pb-5 pt-2">
+      <p id="askDayAck" class="hidden text-sm text-emerald-300 mb-2"></p>
+      <div class="flex gap-2">
+        <button type="button" id="askDayClose" class="btn btn-secondary flex-1 !py-3">Cerrar</button>
+        <button type="button" id="askDayAccept" class="btn btn-secondary flex-1 !py-3" disabled>Aceptar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -28515,6 +28584,672 @@ init();
     now: function(){ forceResync(true); },
     lastSnapshotAt: function(){ return lastSnapshotAt; }
   };
+})();
+</script>
+<!-- Phase 1 · Preguntar al día — heuristic, ephemeral, no Firebase writes. See AI_CONTEXT.md -->
+<script>
+(function () {
+  'use strict';
+  // PHASE1_NO_WRITE: do not call save, saveToCloud, logChange, localStorage, sessionStorage, or Firebase.
+
+  function byId(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  function norm(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function arr(key) {
+    try {
+      var a = state[key];
+      return Array.isArray(a) ? a : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function hoy() {
+    try { return (typeof todayISO === 'function') ? todayISO() : ''; }
+    catch (e) { return ''; }
+  }
+
+  function fechaHoy(r) {
+    return !!(r && r.fecha && r.fecha === hoy());
+  }
+
+  function tejHoy(r) {
+    if (!r) return false;
+    return (r.fechaProd || r.fecha) === hoy();
+  }
+
+  function kgText(v) {
+    if (v === null || v === undefined || v === '') return 'sin kg';
+    var n = Number(v);
+    if (!isFinite(n)) return 'sin kg';
+    var fmt = (typeof fmtKg === 'function') ? fmtKg(n) : String(Math.round(n * 10) / 10);
+    return fmt + ' kg';
+  }
+
+  function sumField(rows, field) {
+    var any = false;
+    var s = 0;
+    (rows || []).forEach(function (r) {
+      if (!r || r[field] === null || r[field] === undefined || r[field] === '') return;
+      var n = Number(r[field]);
+      if (!isFinite(n)) return;
+      any = true;
+      s += n;
+    });
+    return { any: any, n: s };
+  }
+
+  function sumLabel(rows, field) {
+    var s = sumField(rows, field);
+    return s.any ? kgText(s.n) : 'sin kg';
+  }
+
+  function minLabel(mins) {
+    var m = Math.round(Number(mins) || 0);
+    if (!isFinite(m) || m <= 0) return '0 min';
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60);
+    var r = m % 60;
+    return h + ' h' + (r ? ' ' + r + ' min' : '');
+  }
+
+  function openFichas() {
+    try {
+      if (typeof getFichasAbiertas === 'function') return getFichasAbiertas() || [];
+    } catch (e) {}
+    return arr('prod').filter(function (r) { return r && r.estado === 'abierta'; });
+  }
+
+  function ul(items) {
+    if (!items.length) return '';
+    return '<ul class="list-disc pl-4 mt-1 space-y-1">' + items.map(function (li) {
+      return '<li>' + li + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  function moreLine(total, shown) {
+    if (total <= shown) return '';
+    return '<p class="text-slate-400 mt-1">y ' + (total - shown) + ' más.</p>';
+  }
+
+  function scanLine() {
+    var t = hoy();
+    var prod = arr('prod');
+    var down = arr('down');
+    var bruck = arr('bruck');
+    var comp = arr('compact');
+    var tej = arr('tejeduria');
+    return 'Leído en esta pantalla (fecha ' + esc(t || '—') + '): ' +
+      prod.filter(fechaHoy).length + ' fichas de tintorería hoy (' + prod.length + ' en memoria) · ' +
+      openFichas().length + ' abiertas · ' +
+      down.filter(fechaHoy).length + ' paros de máquina hoy · ' +
+      bruck.filter(fechaHoy).length + ' Bruckner/Monforts hoy · ' +
+      comp.filter(fechaHoy).length + ' compactadora hoy · ' +
+      tej.filter(tejHoy).length + ' tejeduría hoy. Nada se escribió.';
+  }
+
+  function foot() {
+    return '<p class="text-[11px] text-slate-500 mt-3">' + scanLine() + '</p>';
+  }
+
+  function lineFicha(r, withEstado) {
+    var ageHtml = '';
+    if (typeof fichaAging === 'function') {
+      try {
+        var a = fichaAging(r);
+        if (a && a.label) {
+          var h = '';
+          if (typeof a.hours === 'number' && isFinite(a.hours)) {
+            h = ' (' + (a.hours < 10 ? a.hours.toFixed(1) : String(Math.round(a.hours))) + ' h)';
+          }
+          ageHtml = ' · ' + esc(a.label) + esc(h);
+        }
+      } catch (e) {}
+    }
+    var estado = withEstado ? (' · ' + esc(r.estado || 'sin estado')) : '';
+    return esc(r.machine || 'sin máquina') +
+      ' · lote ' + esc(r.lote || 'sin lote') +
+      ' · ' + esc(r.tela || 'sin tela') +
+      ' · ' + esc(kgText(r.kilos)) +
+      ' · ' + esc(r.proceso || 'sin proceso') +
+      ' · ' + esc(r.fecha || 'sin fecha') +
+      ' · entrada ' + esc(r.hEntrada || '—') +
+      estado + ageHtml;
+  }
+
+  function answerOpen() {
+    var rows = openFichas();
+    var title = 'Lotes en proceso';
+    if (!rows.length) {
+      return { intent: 'open', title: title, html: '<p>No hay fichas con estado abierta en lo que esta tablet tiene cargado.</p>' + foot() };
+    }
+    var shown = rows.slice(0, 8).map(function (r) { return lineFicha(r, false); });
+    return {
+      intent: 'open',
+      title: title,
+      html: '<p>' + rows.length + (rows.length === 1 ? ' ficha abierta' : ' fichas abiertas') +
+        ' (en proceso, de cualquier fecha). No son solo las de hoy.</p>' +
+        ul(shown) + moreLine(rows.length, 8) + foot()
+    };
+  }
+
+  function answerDown() {
+    var rows = arr('down').filter(fechaHoy);
+    var mins = rows.reduce(function (a, r) { return a + (Number(r.duracionMin) || 0); }, 0);
+    var title = 'Tiempos muertos hoy';
+    var html = '';
+    if (!rows.length) {
+      html += '<p>No hay paros de máquina con fecha de hoy (' + esc(hoy() || '—') + ').</p>';
+    } else {
+      html += '<p>' + rows.length + (rows.length === 1 ? ' paro' : ' paros') + ' · ' + esc(minLabel(mins)) + ' en total.</p>';
+      var lines = rows.slice(0, 8).map(function (r) {
+        return esc(r.machine || 'sin máquina') + ' · ' + esc(minLabel(r.duracionMin)) +
+          ' · ' + esc(r.categoria || 'sin categoría') + ' · ' + esc(r.motivo || 'sin motivo') +
+          ' · ' + esc((r.hIni || '—') + '–' + (r.hFin || '—'));
+      });
+      html += ul(lines) + moreLine(rows.length, 8);
+    }
+    var sinFecha = arr('down').filter(function (r) { return r && !r.fecha; }).length;
+    if (sinFecha) {
+      html += '<p class="text-slate-400 mt-2">' + sinFecha + (sinFecha === 1 ? ' paro' : ' paros') +
+        ' de máquina sin fecha. No los conté como hoy.</p>';
+    }
+    var rd = arr('rd').filter(fechaHoy);
+    if (!rd.length) {
+      html += '<p class="mt-2">Paros de rama (Bruckner/Monforts) de hoy en este tablet: ninguno.</p>';
+    } else {
+      var rdMin = rd.reduce(function (a, r) { return a + (Number(r.duracionMin) || 0); }, 0);
+      html += '<p class="mt-2">Paros de rama en este tablet (no están en la colección de la nube): ' +
+        rd.length + ' · ' + esc(minLabel(rdMin)) + '.</p>';
+      html += ul(rd.slice(0, 6).map(function (r) {
+        return esc(r.rama || 'Bruckner') + ' · ' + esc(minLabel(r.duracionMin)) +
+          ' · ' + esc(r.categoria || 'sin categoría') + ' · ' + esc(r.motivo || 'sin motivo');
+      })) + moreLine(rd.length, 6);
+    }
+    return { intent: 'down', title: title, html: html + foot() };
+  }
+
+  function answerEff() {
+    var title = 'Eficiencia por máquina';
+    var rows = arr('prod').filter(fechaHoy);
+    var downs = arr('down').filter(fechaHoy);
+    if (!rows.length && !downs.length) {
+      return {
+        intent: 'eff',
+        title: title,
+        html: '<p>No hay fichas de tintorería ni paros con fecha de hoy (' + esc(hoy() || '—') +
+          '), así que no hay desempeño que calcular.</p>' + foot()
+      };
+    }
+    if (typeof MACHINES === 'undefined' || typeof cargaEsperada !== 'function') {
+      return {
+        intent: 'eff',
+        title: title,
+        html: '<p>Hay datos de hoy, pero no encuentro la tabla de carga de las máquinas en esta pantalla. No calculo porcentajes.</p>' + foot()
+      };
+    }
+    var ids = {};
+    rows.forEach(function (r) { if (r && r.machine) ids[r.machine] = true; });
+    downs.forEach(function (r) { if (r && r.machine) ids[r.machine] = true; });
+    var machines = MACHINES.filter(function (m) { return ids[m.id]; });
+    var unknown = Object.keys(ids).filter(function (id) {
+      return !MACHINES.some(function (m) { return m.id === id; });
+    });
+    var totalReal = 0;
+    var totalEstim = 0;
+    var anyEstim = false;
+    var lines = machines.map(function (m) {
+      var mine = rows.filter(function (r) { return r.machine === m.id; });
+      var dmine = downs.filter(function (r) { return r.machine === m.id; });
+      var kilos = 0;
+      var estim = 0;
+      var estimAny = false;
+      mine.forEach(function (r) {
+        var k = Number(r.kilos);
+        if (isFinite(k)) kilos += k;
+        var est = r.cargaEstim || cargaEsperada(r.machine, r.proceso);
+        var en = Number(est);
+        if (isFinite(en) && en > 0) { estim += en; estimAny = true; anyEstim = true; }
+      });
+      totalReal += kilos;
+      totalEstim += estim;
+      var downMin = dmine.reduce(function (a, r) { return a + (Number(r.duracionMin) || 0); }, 0);
+      var des = estimAny ? (Math.round((kilos / estim) * 100) + '%') : 'sin % (no hay carga estimada)';
+      return esc(m.id) + ' · ' + esc(kgText(kilos)) + ' reales · desempeño ' + esc(des) +
+        ' · paros ' + esc(minLabel(downMin)) + ' · ' + mine.length + (mine.length === 1 ? ' ficha' : ' fichas');
+    });
+    var globalDes = anyEstim ? (Math.round((totalReal / totalEstim) * 100) + '%') : 'sin %';
+    var html = '<p>Solo fichas y paros con fecha de hoy. Desempeño = kilos reales / carga estimada (la misma relación que la pestaña Eficiencia). No cambia esa pestaña.</p>' +
+      '<p class="mt-2">Global: ' + esc(kgText(totalReal)) + ' reales' +
+      (anyEstim ? (' / ' + esc(kgText(totalEstim)) + ' estimados · ' + esc(globalDes)) : (' · ' + esc(globalDes))) + '.</p>' +
+      ul(lines);
+    if (unknown.length) {
+      html += '<p class="text-slate-400 mt-2">Máquinas de hoy que no están en el catálogo de jets (no les calculo %): ' +
+        esc(unknown.join(', ')) + '.</p>';
+    }
+    return { intent: 'eff', title: title, html: html + foot() };
+  }
+
+  function ramaGroups(rows) {
+    var br = [], mo = [], ot = [];
+    rows.forEach(function (r) {
+      var rama = (r && r.rama) || 'Bruckner';
+      if (rama === 'Monforts') mo.push(r);
+      else if (rama === 'Bruckner') br.push(r);
+      else ot.push(r);
+    });
+    return { br: br, mo: mo, ot: ot };
+  }
+
+  function lineAcabado(r) {
+    return esc(r.lote || 'sin lote') + ' · ' + esc(r.tela || 'sin tela') +
+      ' · ' + esc(kgText(r.kilos)) + ' · ' + esc(r.proceso || 'sin proceso') +
+      ' · turno ' + esc(r.turno || '—');
+  }
+
+  function answerBruck(q) {
+    var title = 'Bruckner / RAMA hoy';
+    var rows = arr('bruck').filter(fechaHoy);
+    var html = '';
+    if (q && /eficiencia|desempeno/.test(q)) {
+      html += '<p>Esto es kilos y fichas de RAMA con fecha de hoy, no el % de las máquinas de teñido.</p>';
+    }
+    if (!rows.length) {
+      html += '<p>No hay fichas de Bruckner ni Monforts con fecha de hoy (' + esc(hoy() || '—') + ').</p>';
+      return { intent: 'bruck', title: title, html: html + foot() };
+    }
+    var g = ramaGroups(rows);
+    function bloque(nombre, list) {
+      if (!list.length) return '<p class="mt-2">' + esc(nombre) + ': ninguna ficha hoy.</p>';
+      return '<p class="mt-2">' + esc(nombre) + ': ' + list.length + (list.length === 1 ? ' ficha' : ' fichas') +
+        ' · ' + esc(sumLabel(list, 'kilos')) + '.</p>' +
+        ul(list.slice(0, 6).map(lineAcabado)) + moreLine(list.length, 6);
+    }
+    html += bloque('Bruckner', g.br) + bloque('Monforts', g.mo);
+    if (g.ot.length) html += bloque('Otra rama', g.ot);
+    return { intent: 'bruck', title: title, html: html + foot() };
+  }
+
+  function answerCompact() {
+    var title = 'Compactadora hoy';
+    var rows = arr('compact').filter(fechaHoy);
+    if (!rows.length) {
+      return { intent: 'compact', title: title, html: '<p>No hay fichas de compactadora con fecha de hoy (' + esc(hoy() || '—') + ').</p>' + foot() };
+    }
+    return {
+      intent: 'compact',
+      title: title,
+      html: '<p>' + rows.length + (rows.length === 1 ? ' ficha' : ' fichas') + ' · ' + esc(sumLabel(rows, 'kilos')) + '.</p>' +
+        ul(rows.slice(0, 8).map(lineAcabado)) + moreLine(rows.length, 8) + foot()
+    };
+  }
+
+  function tejKg(r) {
+    if (!r) return null;
+    if (r.total !== null && r.total !== undefined && r.total !== '') {
+      var n = Number(r.total);
+      return isFinite(n) ? n : null;
+    }
+    if (Array.isArray(r.rollos) && r.rollos.length) {
+      return r.rollos.reduce(function (a, w) { return a + (Number(w) || 0); }, 0);
+    }
+    return null;
+  }
+
+  function answerTej() {
+    var title = 'Tejeduría hoy';
+    var rows = arr('tejeduria').filter(tejHoy);
+    if (!rows.length) {
+      return {
+        intent: 'tej',
+        title: title,
+        html: '<p>No hay rollos de tejeduría con fecha de producción de hoy (' + esc(hoy() || '—') + ').</p>' + foot()
+      };
+    }
+    var kg = 0;
+    var any = false;
+    var rollos = 0;
+    rows.forEach(function (r) {
+      var k = tejKg(r);
+      if (k !== null) { kg += k; any = true; }
+      var c = Number(r.count);
+      if (isFinite(c)) rollos += c;
+      else if (Array.isArray(r.rollos)) rollos += r.rollos.length;
+    });
+    var lines = rows.slice(0, 8).map(function (r) {
+      var k = tejKg(r);
+      var c = Number(r.count);
+      var nRoll = isFinite(c) ? c : (Array.isArray(r.rollos) ? r.rollos.length : 0);
+      return esc(r.maquina || 'sin máquina') + ' · ' + esc(r.tela || 'sin tela') +
+        ' · lote ' + esc(r.lote || 'sin lote') +
+        ' · ' + nRoll + (nRoll === 1 ? ' rollo' : ' rollos') +
+        ' · ' + esc(k === null ? 'sin kg' : kgText(k));
+    });
+    return {
+      intent: 'tej',
+      title: title,
+      html: '<p>' + rows.length + (rows.length === 1 ? ' captura' : ' capturas') +
+        ' · ' + rollos + (rollos === 1 ? ' rollo' : ' rollos') +
+        ' · ' + esc(any ? kgText(kg) : 'sin kg') +
+        '. Uso fecha de producción cuando viene; si no, la fecha de captura.</p>' +
+        ul(lines) + moreLine(rows.length, 8) + foot()
+    };
+  }
+
+  function planStateOf(name) {
+    try {
+      var st = (name === 'compact') ? PLAN_COMPACT_STATE : PLAN_STATE;
+      if (!st || typeof st !== 'object') return null;
+      return st;
+    } catch (e) { return null; }
+  }
+
+  function answerPlan() {
+    var title = 'Plan del día';
+    var rama = planStateOf('rama');
+    var comp = planStateOf('compact');
+    function bloque(nombre, st) {
+      if (!st || st.fecha !== hoy() || !Array.isArray(st.items) || !st.items.length) {
+        var loaded = (st && st.fecha) ? (' Lo último en memoria es del ' + esc(st.fecha) + '.') : '';
+        return '<p class="mt-2">' + esc(nombre) + ': no hay líneas para hoy.' + loaded + '</p>';
+      }
+      var meta = sumField(st.items, 'kg');
+      var lines = st.items.slice(0, 8).map(function (it) {
+        return 'lote ' + esc(it.lote || 'sin lote') + ' · ' + esc(it.tela || 'sin tela') +
+          ' · ' + esc(it.proceso || 'sin proceso') + ' · meta ' + esc(kgText(it.kg));
+      });
+      return '<p class="mt-2">' + esc(nombre) + ': ' + st.items.length +
+        (st.items.length === 1 ? ' línea' : ' líneas') +
+        ' · meta ' + esc(meta.any ? kgText(meta.n) : 'sin kg') +
+        ' (suma de metas ya guardadas, no es lo producido).</p>' +
+        ul(lines) + moreLine(st.items.length, 8);
+    }
+    var html = '<p>No recalculo el avance. Eso sigue en la pestaña de Bruckner o Compactadora.</p>' +
+      bloque('RAMA (plan del día)', rama) +
+      bloque('Compactadora', comp) + foot();
+    return { intent: 'plan', title: title, html: html };
+  }
+
+  function pronoSentence() {
+    var t = hoy();
+    var cache = null;
+    try {
+      if (typeof _pronoCache !== 'undefined' && _pronoCache && typeof _pronoCache.has === 'function') cache = _pronoCache;
+    } catch (e) {}
+    if (!cache || !t || !cache.has(t)) {
+      return 'Pronóstico del día: no está en memoria. No lo consulto de nuevo.';
+    }
+    var rec = cache.get(t) || {};
+    var n = Number(rec.pronostico);
+    var extra = rec.causaExtra ? (' · ' + String(rec.causaExtra)) : '';
+    return 'Pronóstico ya cargado: ' + (isFinite(n) ? kgText(n) : 'sin número') + extra + '.';
+  }
+
+  function answerResumen() {
+    var title = 'Resumen del día';
+    var prod = arr('prod').filter(fechaHoy);
+    var abiertas = openFichas();
+    var html = '<p>Cifras de lo ya cargado en esta tablet para el ' + esc(hoy() || '—') + '. No es una consulta nueva a la nube.</p>';
+    html += '<p class="mt-2"><b>Tintorería.</b> ' + prod.length + (prod.length === 1 ? ' ficha' : ' fichas') +
+      ' con fecha de hoy · ' + esc(sumLabel(prod, 'kilos')) + '.</p>';
+    if (!prod.length && arr('prod').length) {
+      html += '<p class="text-slate-400">Hay ' + arr('prod').length + ' fichas en memoria, ninguna con la fecha de hoy.</p>';
+    }
+    html += '<p class="mt-2"><b>En proceso.</b> ' + abiertas.length +
+      (abiertas.length === 1 ? ' ficha abierta' : ' fichas abiertas') + '.</p>';
+    if (abiertas.length) {
+      html += ul(abiertas.slice(0, 5).map(function (r) { return lineFicha(r, false); })) + moreLine(abiertas.length, 5);
+    }
+    var downs = arr('down').filter(fechaHoy);
+    var dmin = downs.reduce(function (a, r) { return a + (Number(r.duracionMin) || 0); }, 0);
+    html += '<p class="mt-2"><b>Tiempos muertos de máquina.</b> ' + downs.length +
+      (downs.length === 1 ? ' paro' : ' paros') + ' hoy · ' + esc(minLabel(dmin)) + '.</p>';
+    var br = arr('bruck').filter(fechaHoy);
+    var g = ramaGroups(br);
+    html += '<p class="mt-2"><b>Bruckner / RAMA.</b> Bruckner ' + g.br.length + ' · ' + esc(sumLabel(g.br, 'kilos')) +
+      '. Monforts ' + g.mo.length + ' · ' + esc(sumLabel(g.mo, 'kilos')) + '.</p>';
+    var comp = arr('compact').filter(fechaHoy);
+    html += '<p class="mt-2"><b>Compactadora.</b> ' + comp.length +
+      (comp.length === 1 ? ' ficha' : ' fichas') + ' · ' + esc(sumLabel(comp, 'kilos')) + '.</p>';
+    var tej = arr('tejeduria').filter(tejHoy);
+    var tejSum = 0, tejAny = false, tejRoll = 0;
+    tej.forEach(function (r) {
+      var k = tejKg(r);
+      if (k !== null) { tejSum += k; tejAny = true; }
+      var c = Number(r.count);
+      if (isFinite(c)) tejRoll += c;
+      else if (Array.isArray(r.rollos)) tejRoll += r.rollos.length;
+    });
+    html += '<p class="mt-2"><b>Tejeduría.</b> ' + tej.length +
+      (tej.length === 1 ? ' captura' : ' capturas') + ' · ' + tejRoll +
+      (tejRoll === 1 ? ' rollo' : ' rollos') + ' · ' + esc(tejAny ? kgText(tejSum) : 'sin kg') + '.</p>';
+    var ramaPlan = planStateOf('rama');
+    if (ramaPlan && ramaPlan.fecha === hoy() && Array.isArray(ramaPlan.items) && ramaPlan.items.length) {
+      var meta = sumField(ramaPlan.items, 'kg');
+      html += '<p class="mt-2"><b>Plan RAMA.</b> ' + ramaPlan.items.length + ' líneas · meta ' +
+        esc(meta.any ? kgText(meta.n) : 'sin kg') + '.</p>';
+    }
+    html += '<p class="mt-2 text-slate-400">' + esc(pronoSentence()) + '</p>';
+    return { intent: 'resumen', title: title, html: html + foot() };
+  }
+
+  function sameLote(a, b) {
+    return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  }
+
+  function answerLote(lote) {
+    var title = 'Lote ' + lote;
+    var prod = arr('prod').filter(function (r) { return sameLote(r.lote, lote); });
+    var br = arr('bruck').filter(function (r) { return sameLote(r.lote, lote); });
+    var comp = arr('compact').filter(function (r) { return sameLote(r.lote, lote); });
+    var tej = arr('tejeduria').filter(function (r) { return sameLote(r.lote, lote); });
+    var planHits = [];
+    ['rama', 'compact'].forEach(function (which) {
+      var st = planStateOf(which);
+      var items = (st && Array.isArray(st.items)) ? st.items : [];
+      items.forEach(function (it) {
+        if (sameLote(it.lote, lote)) planHits.push({ which: which, fecha: st.fecha || '', it: it });
+      });
+    });
+    if (!prod.length && !br.length && !comp.length && !tej.length && !planHits.length) {
+      return {
+        intent: 'lote',
+        title: title,
+        html: '<p>No encuentro el lote ' + esc(lote) +
+          ' en tintorería, Bruckner, compactadora, tejeduría ni en el plan que esta pantalla tiene cargado.</p>' + foot()
+      };
+    }
+    var html = '<p>Coincidencias exactas del lote ' + esc(lote) + ' en memoria. No completo datos que no estén.</p>';
+    if (prod.length) {
+      html += '<p class="mt-2"><b>Tintorería.</b> ' + prod.length + '.</p>' +
+        ul(prod.slice(0, 8).map(function (r) { return lineFicha(r, true); })) + moreLine(prod.length, 8);
+    } else html += '<p class="mt-2"><b>Tintorería.</b> no aparece.</p>';
+    if (br.length) {
+      html += '<p class="mt-2"><b>Bruckner / Monforts.</b> ' + br.length + ' · ' + esc(sumLabel(br, 'kilos')) + '.</p>' +
+        ul(br.slice(0, 6).map(function (r) {
+          return esc((r.rama || 'Bruckner')) + ' · ' + esc(r.fecha || 'sin fecha') + ' · ' + lineAcabado(r);
+        })) + moreLine(br.length, 6);
+    } else html += '<p class="mt-2"><b>Bruckner / Monforts.</b> no aparece.</p>';
+    if (comp.length) {
+      html += '<p class="mt-2"><b>Compactadora.</b> ' + comp.length + ' · ' + esc(sumLabel(comp, 'kilos')) + '.</p>' +
+        ul(comp.slice(0, 6).map(function (r) {
+          return esc(r.fecha || 'sin fecha') + ' · ' + lineAcabado(r);
+        })) + moreLine(comp.length, 6);
+    } else html += '<p class="mt-2"><b>Compactadora.</b> no aparece.</p>';
+    if (tej.length) {
+      html += '<p class="mt-2"><b>Tejeduría.</b> ' + tej.length + '.</p>' +
+        ul(tej.slice(0, 6).map(function (r) {
+          var k = tejKg(r);
+          return esc(r.maquina || 'sin máquina') + ' · ' + esc(r.tela || 'sin tela') +
+            ' · ' + esc((r.fechaProd || r.fecha || 'sin fecha')) +
+            ' · ' + esc(k === null ? 'sin kg' : kgText(k));
+        })) + moreLine(tej.length, 6);
+    } else html += '<p class="mt-2"><b>Tejeduría.</b> no aparece.</p>';
+    if (planHits.length) {
+      html += '<p class="mt-2"><b>Plan.</b></p>' + ul(planHits.slice(0, 6).map(function (h) {
+        var nombre = h.which === 'compact' ? 'Compactadora' : 'RAMA';
+        return esc(nombre) + ' · ' + esc(h.fecha || 'sin fecha') + ' · meta ' + esc(kgText(h.it.kg)) +
+          ' · ' + esc(h.it.tela || 'sin tela') + ' · ' + esc(h.it.proceso || 'sin proceso');
+      }));
+    }
+    return { intent: 'lote', title: title, html: html + foot() };
+  }
+
+  function loteToken(q) {
+    var m = q.match(/\blote\s*[:#]?\s*([a-z0-9]+(?:[-/][a-z0-9]+)*)/);
+    if (!m) return '';
+    if (!/\d/.test(m[1])) return '';
+    return m[1];
+  }
+
+  function answer(raw) {
+    try {
+      var q = norm(raw);
+      if (!q) {
+        return { intent: 'empty', title: 'Falta la pregunta', html: '<p>Escribe una pregunta corta o toca una sugerencia.</p>' };
+      }
+      var lote = loteToken(q);
+      if (lote) return answerLote(lote);
+      if (/tiempo muerto|tiempos muertos|\bparos?\b/.test(q)) return answerDown();
+      if (/en proceso|ficha abierta|fichas abiertas|abiertas/.test(q)) return answerOpen();
+      if (/bruckner|monforts|\brama\b/.test(q)) return answerBruck(q);
+      if (/eficiencia|desempeno|por maquina/.test(q)) return answerEff();
+      if (/tejedur|rollo crudo|rollos crudo/.test(q)) return answerTej();
+      if (/compactadora|\btubular\b/.test(q)) return answerCompact();
+      if (/\bplan\b/.test(q)) return answerPlan();
+      if (/resumen|como va|del dia|\bhoy\b|kilos|cuanto/.test(q) || /^lotes?\b/.test(q)) {
+        if (/^lotes?\b/.test(q) && !/resumen|hoy|kilos/.test(q)) return answerOpen();
+        return answerResumen();
+      }
+      return {
+        intent: 'unknown',
+        title: 'Sin respuesta con estos datos',
+        html: '<p>No puedo responder eso con lo que esta pantalla ya tiene cargado. No invento kilos, lotes ni máquinas.</p>' +
+          '<p class="mt-2">Prueba una sugerencia, o pregunta por Bruckner, compactadora, tejeduría, el plan del día, o un lote con su número.</p>' +
+          foot()
+      };
+    } catch (e) {
+      console.warn('[ask-day]', e);
+      return {
+        intent: 'error',
+        title: 'No pude armar la respuesta',
+        html: '<p>Hubo un error al leer los datos ya cargados. No se escribió nada.</p>'
+      };
+    }
+  }
+
+  function hideMore() {
+    var pop = byId('tabMorePopover');
+    if (!pop) return;
+    pop.style.display = 'none';
+    pop.classList.add('hidden');
+  }
+
+  function openModal() {
+    hideMore();
+    var m = byId('askDayModal');
+    if (!m) return;
+    m.classList.remove('hidden');
+    var inp = byId('askDayInput');
+    if (inp) setTimeout(function () { inp.focus(); }, 40);
+  }
+
+  function closeModal() {
+    var m = byId('askDayModal');
+    if (m) m.classList.add('hidden');
+  }
+
+  function showDraft(res) {
+    var box = byId('askDayDraft');
+    var title = byId('askDayDraftTitle');
+    var body = byId('askDayDraftBody');
+    var ack = byId('askDayAck');
+    var acc = byId('askDayAccept');
+    if (ack) { ack.classList.add('hidden'); ack.textContent = ''; }
+    if (title) title.textContent = res.title || 'Borrador';
+    if (body) body.innerHTML = res.html || '';
+    if (box) {
+      box.classList.remove('hidden');
+      box.dataset.intent = res.intent || '';
+    }
+    if (acc) acc.disabled = false;
+    window.TG_ASK_DAY.last = { intent: res.intent || '', title: res.title || '', at: Date.now() };
+  }
+
+  function acceptDraft() {
+    var box = byId('askDayDraft');
+    var ack = byId('askDayAck');
+    var acc = byId('askDayAccept');
+    if (!box || box.classList.contains('hidden')) return;
+    box.classList.add('hidden');
+    if (ack) {
+      ack.textContent = 'Borrador cerrado. No se guardó nada en la nube ni en este tablet.';
+      ack.classList.remove('hidden');
+    }
+    if (acc) acc.disabled = true;
+    window.TG_ASK_DAY.accepted = (window.TG_ASK_DAY.accepted || 0) + 1;
+  }
+
+  function askFrom(text) {
+    showDraft(answer(text));
+  }
+
+  function bind() {
+    var openBtn = byId('askDayOpenBtn');
+    if (openBtn) openBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openModal();
+    });
+    ['askDayClose', 'askDayX'].forEach(function (id) {
+      var b = byId(id);
+      if (b) b.addEventListener('click', closeModal);
+    });
+    var modal = byId('askDayModal');
+    if (modal) modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    var go = byId('askDayGo');
+    if (go) go.addEventListener('click', function () {
+      askFrom((byId('askDayInput') || {}).value || '');
+    });
+    var inp = byId('askDayInput');
+    if (inp) inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        askFrom(inp.value || '');
+      }
+    });
+    var chips = byId('askDayChips');
+    if (chips) chips.addEventListener('click', function (e) {
+      var b = e.target.closest('.ask-chip');
+      if (!b) return;
+      var q = b.getAttribute('data-ask') || '';
+      if (inp) inp.value = q;
+      askFrom(q);
+    });
+    var acc = byId('askDayAccept');
+    if (acc) acc.addEventListener('click', acceptDraft);
+  }
+
+  window.TG_ASK_DAY = { answer: answer, open: openModal, accept: acceptDraft, accepted: 0, last: null };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
 })();
 </script>
 </body>
