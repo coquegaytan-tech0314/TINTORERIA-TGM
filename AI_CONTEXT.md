@@ -148,7 +148,7 @@ READ (allowed):
 
 - `state.prod`, `state.down`, `state.bruck`, `state.compact`, `state.tejeduria`, `state.rd`
 - `PLAN_STATE.fecha` / `PLAN_STATE.items` and `PLAN_COMPACT_STATE` (already subscribed or cached)
-- `_pronoCache` **only if that date is already cached** — do not `getDoc` to fill it
+- `_pronoCache` **only if that date is already cached** — do not `getDoc` to fill it. A cached `{ pronostico: 0, causaExtra: '' }` is also what `_pronoLoad` stores when the document is missing or the read fails, so Phase 1 must not state that as a confirmed forecast of 0 kg.
 - Helpers already used by the UI: `todayISO`, `fmtKg`, `getFichasAbiertas`, `fichaAging`, `MACHINES`, `cargaEsperada`
 
 “Hoy” means `fecha === todayISO()` (local date, same helper as the fichas). Tejeduría uses `fechaProd` when present, otherwise `fecha`. Fichas **en proceso** are `estado === 'abierta'` at any date (`getFichasAbiertas`), not “opened today” only.

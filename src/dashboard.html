@@ -28995,8 +28995,13 @@ init();
     }
     var rec = cache.get(t) || {};
     var n = Number(rec.pronostico);
-    var extra = rec.causaExtra ? (' · ' + String(rec.causaExtra)) : '';
-    return 'Pronóstico ya cargado: ' + (isFinite(n) ? kgText(n) : 'sin número') + extra + '.';
+    var extra = rec.causaExtra ? String(rec.causaExtra) : '';
+    // _pronoLoad stores {pronostico:0, causaExtra:''} when the doc is missing or the read fails.
+    // Do not present that sentinel as a confirmed forecast of 0 kg.
+    if ((!isFinite(n) || n === 0) && !extra) {
+      return 'Pronóstico del día: no hay un número confirmado en memoria (puede no estar capturado). No lo consulto de nuevo.';
+    }
+    return 'Pronóstico ya cargado: ' + (isFinite(n) ? kgText(n) : 'sin número') + (extra ? (' · ' + extra) : '') + '.';
   }
 
   function answerResumen() {
