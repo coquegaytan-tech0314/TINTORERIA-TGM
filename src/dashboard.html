@@ -7600,7 +7600,8 @@ const LS_KEYS = {
   estadi:  'tg_tint_estadi_v1',  // Estadística: overrides manuales por día (calidad A/B, prog, aprev, logística)
   empacado: 'tg_tint_empacado_v1', // Fase 3 · Empacado: ficha por lote con rollos Primera + rollos-sospechosos
   revisado: 'tg_tint_revisado_v1', // Fase 3 · Revisado (Calidad): decisión final sobre rollos sospechosos
-  tejeduria: 'tg_tint_tejeduria_v1' // Fase 4 · Tejeduría: rollos crudo (kg) por operador/máquina/tela, antes de teñido
+  tejeduria: 'tg_tint_tejeduria_v1', // Fase 4 · Tejeduría: rollos crudo (kg) por operador/máquina/tela, antes de teñido
+  onboarding: 'tg_tint_onboarding_v2' // tour de bienvenida; subir el sufijo (_v3…) para volver a mostrarlo
 };
 const SS_KEYS = {
   user:    'tg_tint_user_session',  // nombre del usuario (sesión)
@@ -19488,13 +19489,16 @@ function bindInicio() {
   }, 60000);
 }
 
-/* ---------------- ONBOARDING (una sola vez por dispositivo) ---------------- */
+/* ---------------- ONBOARDING (una sola vez por dispositivo y versión) ---------------- */
+/* Clave: LS_KEYS.onboarding. forceResync conserva el prefijo tg_tint_onboarding
+   para que el auto-refresh del piso no borre el "ya visto". Sube el sufijo (_v3)
+   solo cuando haya un tour nuevo de verdad. */
 
-const ONBOARDING_KEY = 'tg_tint_onboarding_v2';
+const ONBOARDING_KEY = LS_KEYS.onboarding;
 const ONBOARDING_SLIDES = [
   {
     titulo: '¡Bienvenido a la nueva versión!',
-    subtitulo: 'Tintorería TGM · Fase 2',
+    subtitulo: 'Tintorería TGM',
     icon: '🎉',
     texto: 'Agregamos nuevas herramientas para que tu día a día sea más fácil. Todo lo que ya usabas sigue funcionando igual — solo hay cosas nuevas para ayudarte.',
     color: '#38bdf8'
@@ -19547,14 +19551,34 @@ function _onboardingRender(idx) {
         ${idx > 0 ? `<button id="onbPrev" class="btn !py-2 !px-4 text-sm" style="background:rgba(148,163,184,0.12); border:1px solid rgba(148,163,184,0.3); color:#cbd5e1">← Anterior</button>` : ''}
         <button id="onbNext" class="btn btn-primary !py-2 !px-6 text-sm">${esUltimo ? '✅ Entendido, entrar' : 'Siguiente →'}</button>
       </div>
-      <div class="text-[10px] text-slate-500 mt-4">Paso ${idx+1} de ${total}</div>
+      <button type="button" id="onbSkip" class="mt-3 text-[11px] font-semibold text-slate-400 hover:text-white underline underline-offset-2">No mostrar de nuevo</button>
+      <div class="text-[10px] text-slate-500 mt-2">Paso ${idx+1} de ${total}</div>
     </div>
   `;
 }
 
+function _onboardingSeen() {
+  try { return !!localStorage.getItem(ONBOARDING_KEY); } catch (e) { return false; }
+}
+
+function _onboardingMarkSeen() {
+  try { localStorage.setItem(ONBOARDING_KEY, new Date().toISOString()); } catch (e) {}
+}
+
+function _onboardingClose(goInicio) {
+  _onboardingMarkSeen();
+  const overlay = document.getElementById('onboardingOverlay');
+  if (overlay) overlay.remove();
+  if (goInicio) {
+    const btn = document.querySelector('.tab-btn[data-tab="tab-inicio"]');
+    if (btn) btn.click();
+  }
+}
+
 function _onboardingShow() {
-  // No mostrar si ya se vio en este dispositivo
-  if (localStorage.getItem(ONBOARDING_KEY)) return;
+  // No mostrar si ya se completó o se descartó en este navegador
+  if (_onboardingSeen()) return;
+  if (document.getElementById('onboardingOverlay')) return;
   // No mostrar si el usuario todavía no se identificó
   const nowUser = (typeof state !== 'undefined' && state.user) || (typeof TG_USER !== 'undefined' && TG_USER.name);
   if (!nowUser) return;
@@ -19563,7 +19587,6 @@ function _onboardingShow() {
   const overlay = document.createElement('div');
   overlay.id = 'onboardingOverlay';
   overlay.className = 'fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4';
-  overlay.innerHTML = _onboardingRender(idx);
   document.body.appendChild(overlay);
 
   const rewire = () => {
@@ -19571,20 +19594,17 @@ function _onboardingShow() {
     document.getElementById('onbPrev')?.addEventListener('click', () => { if (idx > 0) { idx--; rewire(); } });
     document.getElementById('onbNext')?.addEventListener('click', () => {
       if (idx < ONBOARDING_SLIDES.length - 1) { idx++; rewire(); }
-      else {
-        localStorage.setItem(ONBOARDING_KEY, new Date().toISOString());
-        overlay.remove();
-        // Enviar al usuario a Mi Inicio
-        const btn = document.querySelector('.tab-btn[data-tab="tab-inicio"]');
-        if (btn) btn.click();
-      }
+      else _onboardingClose(true);
     });
+    document.getElementById('onbSkip')?.addEventListener('click', () => _onboardingClose(false));
   };
   rewire();
 }
 
 /** Punto de entrada del onboarding: se llama después de identificar al usuario */
 function _onboardingMaybeShow() {
+  if (_onboardingSeen()) return;
+  if (document.getElementById('onboardingOverlay')) return;
   // Retrasar un poco para no chocar con el login modal
   setTimeout(_onboardingShow, 800);
 }
@@ -28421,7 +28441,9 @@ init();
       // v24 (fix crítico): NO borrar tokens de acceso (curtain in-app) ni el
       // nombre de sesión, ni las llaves de "Recordar 30 días" de StatiCrypt.
       // Antes v23 los borraba → auto-refresh sacaba al operador al lock.
-      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|staticrypt_)/;
+      // tg_onboarding no coincide con la clave real (tg_tint_onboarding_v2).
+      // Sin el prefijo correcto, cada Sincronizar/auto-refresh borra el tour y vuelve a salir.
+      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|staticrypt_)/;
       var keys = [];
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
@@ -28495,6 +28517,8 @@ init();
       var m = modals[i];
       if (!m.classList.contains('hidden') && m.offsetParent !== null) return false;
     }
+    // Tour de bienvenida abierto: no recargar encima del operador
+    if (document.getElementById('onboardingOverlay')) return false;
     // Popover "Más" abierto?
     var pop = document.getElementById('tabMorePopover');
     if (pop && !pop.classList.contains('hidden') && pop.offsetParent !== null) return false;
