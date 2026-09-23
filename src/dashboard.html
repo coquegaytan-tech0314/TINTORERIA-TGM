@@ -7144,11 +7144,14 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
         <h3 id="askDayTitle" class="text-lg font-bold text-white">Preguntar al día</h3>
         <button type="button" id="askDayX" class="btn btn-secondary !min-h-0 !py-1 !px-3 text-sm" aria-label="Cerrar">Cerrar</button>
       </div>
-      <p class="text-xs text-slate-400 mb-3">Borrador de solo lectura con lo que esta pantalla ya tiene cargado. <b class="text-slate-300">Aceptar no escribe en Firebase</b> ni en el tablet.</p>
+      <p class="text-xs text-slate-400 mb-3">Borrador de solo lectura con lo que esta pantalla ya tiene cargado. Ayer, la semana pasada (lun→dom ya cerrada) y el mes pasado (mes calendario anterior) salen de esa misma memoria. <b class="text-slate-300">Aceptar no escribe en Firebase</b> ni en el tablet.</p>
       <label class="lbl" for="askDayInput">Pregunta</label>
-      <input id="askDayInput" type="text" class="field !text-base !py-3" placeholder="Ej. resumen del día" autocomplete="off" enterkeyhint="send" />
+      <input id="askDayInput" type="text" class="field !text-base !py-3" placeholder="Ej. resumen de ayer" autocomplete="off" enterkeyhint="send" />
       <div id="askDayChips" class="flex flex-wrap gap-2 mt-3">
         <button type="button" class="ask-chip" data-ask="resumen del día">Resumen del día</button>
+        <button type="button" class="ask-chip" data-ask="resumen de ayer">Resumen de ayer</button>
+        <button type="button" class="ask-chip" data-ask="resumen semana pasada">Resumen semana pasada</button>
+        <button type="button" class="ask-chip" data-ask="resumen mes pasado">Resumen mes pasado</button>
         <button type="button" class="ask-chip" data-ask="lotes en proceso">Lotes en proceso</button>
         <button type="button" class="ask-chip" data-ask="tiempos muertos hoy">Tiempos muertos hoy</button>
         <button type="button" class="ask-chip" data-ask="eficiencia por máquina">Eficiencia por máquina</button>
@@ -28656,6 +28659,102 @@ init();
     return (r.fechaProd || r.fecha) === hoy();
   }
 
+  function isoOf(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function parseLocalISO(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  }
+
+  function addDaysISO(iso, days) {
+    var d = parseLocalISO(iso);
+    if (!d) return '';
+    d.setDate(d.getDate() + days);
+    return isoOf(d);
+  }
+
+  // Closed local windows (not rolling "last N days"):
+  // ayer = todayISO − 1 calendar day.
+  // semana = last completed Mon–Sun ISO week before the week that contains today
+  //          (same Lun→Dom as the jefe resumen). Excludes the week in progress.
+  // mes = previous calendar month, day 1 through the last day.
+  function rangeAyer() {
+    var y = addDaysISO(hoy(), -1);
+    return { kind: 'ayer', start: y, end: y };
+  }
+
+  function rangeSemanaPasada() {
+    var d = parseLocalISO(hoy());
+    if (!d) return { kind: 'semana', start: '', end: '' };
+    var dow = d.getDay();
+    var daysFromMon = dow === 0 ? 6 : dow - 1;
+    var thisMon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
+    thisMon.setDate(thisMon.getDate() - daysFromMon);
+    var lastMon = new Date(thisMon.getFullYear(), thisMon.getMonth(), thisMon.getDate(), 12, 0, 0, 0);
+    lastMon.setDate(lastMon.getDate() - 7);
+    var lastSun = new Date(lastMon.getFullYear(), lastMon.getMonth(), lastMon.getDate(), 12, 0, 0, 0);
+    lastSun.setDate(lastSun.getDate() + 6);
+    return { kind: 'semana', start: isoOf(lastMon), end: isoOf(lastSun) };
+  }
+
+  function rangeMesPasado() {
+    var d = parseLocalISO(hoy());
+    if (!d) return { kind: 'mes', start: '', end: '' };
+    var lastPrev = new Date(d.getFullYear(), d.getMonth(), 1, 12, 0, 0, 0);
+    lastPrev.setDate(0);
+    var firstPrev = new Date(lastPrev.getFullYear(), lastPrev.getMonth(), 1, 12, 0, 0, 0);
+    return { kind: 'mes', start: isoOf(firstPrev), end: isoOf(lastPrev) };
+  }
+
+  function detectPeriod(q) {
+    if (!q) return null;
+    if (/mes pasado|ultimo mes|ultimos 30 dias|ultimos treinta dias|mes anterior/.test(q)) return rangeMesPasado();
+    if (/semana pasada|ultima semana|ultimos 7 dias|ultimos siete dias|semana anterior/.test(q)) return rangeSemanaPasada();
+    if (/anteayer|antier|antes de ayer/.test(q)) return { kind: 'unsupported', start: '', end: '' };
+    if (/\bayer\b|dia anterior/.test(q)) return rangeAyer();
+    return null;
+  }
+
+  function enFecha(fecha, range) {
+    if (!fecha || !range || !range.start || !range.end) return false;
+    return fecha >= range.start && fecha <= range.end;
+  }
+
+  function fechaEn(r, range) {
+    return !!(r && enFecha(r.fecha, range));
+  }
+
+  function tejEn(r, range) {
+    if (!r) return false;
+    return enFecha(r.fechaProd || r.fecha, range);
+  }
+
+  function rangeLabel(range) {
+    if (!range || !range.start) return '—';
+    if (range.start === range.end) return range.start;
+    return range.start + ' → ' + range.end;
+  }
+
+  function cuandoVacio(range) {
+    if (!range || !range.start) return 'ese periodo';
+    if (range.start === range.end) return 'la fecha ' + range.start;
+    return 'fechas del ' + range.start + ' al ' + range.end;
+  }
+
+  function vacioLine(total, one, many, fem, range) {
+    if (!total) return '';
+    var noun = total === 1 ? one : many;
+    var ninguno = fem ? 'ninguna' : 'ninguno';
+    return '<p class="text-slate-400">Hay ' + total + ' ' + noun + ' en memoria, ' + ninguno +
+      ' con ' + esc(cuandoVacio(range)) + '.</p>';
+  }
+
   function kgText(v) {
     if (v === null || v === undefined || v === '') return 'sin kg';
     var n = Number(v);
@@ -28728,6 +28827,34 @@ init();
 
   function foot() {
     return '<p class="text-[11px] text-slate-500 mt-3">' + scanLine() + '</p>';
+  }
+
+  function cuenta(n, uno, varios) {
+    return n + ' ' + (n === 1 ? uno : varios);
+  }
+
+  function scanLineRange(range) {
+    var prod = arr('prod');
+    var down = arr('down');
+    var bruck = arr('bruck');
+    var comp = arr('compact');
+    var tej = arr('tejeduria');
+    var nProd = prod.filter(function (r) { return fechaEn(r, range); }).length;
+    var nDown = down.filter(function (r) { return fechaEn(r, range); }).length;
+    var nBr = bruck.filter(function (r) { return fechaEn(r, range); }).length;
+    var nComp = comp.filter(function (r) { return fechaEn(r, range); }).length;
+    var nTej = tej.filter(function (r) { return tejEn(r, range); }).length;
+    return 'Leído en esta pantalla (' + esc(rangeLabel(range)) + '): ' +
+      cuenta(nProd, 'ficha de tintorería', 'fichas de tintorería') + ' en el periodo (' + prod.length + ' en memoria) · ' +
+      cuenta(openFichas().length, 'abierta ahora (cualquier fecha)', 'abiertas ahora (cualquier fecha)') + ' · ' +
+      cuenta(nDown, 'paro de máquina', 'paros de máquina') + ' en el periodo · ' +
+      cuenta(nBr, 'Bruckner/Monforts', 'Bruckner/Monforts') + ' en el periodo · ' +
+      cuenta(nComp, 'compactadora', 'compactadora') + ' en el periodo · ' +
+      cuenta(nTej, 'tejeduría', 'tejeduría') + ' en el periodo. Nada se escribió.';
+  }
+
+  function footRange(range) {
+    return '<p class="text-[11px] text-slate-500 mt-3">' + scanLineRange(range) + '</p>';
   }
 
   function lineFicha(r, withEstado) {
@@ -29028,7 +29155,8 @@ init();
     return 'Pronóstico ya cargado: ' + (isFinite(n) ? kgText(n) : 'sin número') + (extra ? (' · ' + extra) : '') + '.';
   }
 
-  function answerResumen() {
+  function answerResumen(period) {
+    if (period) return answerResumenRango(period);
     var title = 'Resumen del día';
     var prod = arr('prod').filter(fechaHoy);
     var abiertas = openFichas();
@@ -29074,6 +29202,75 @@ init();
     }
     html += '<p class="mt-2 text-slate-400">' + esc(pronoSentence()) + '</p>';
     return { intent: 'resumen', title: title, html: html + foot() };
+  }
+
+  function answerResumenRango(range) {
+    var isoTxt = rangeLabel(range);
+    var title = 'Resumen';
+    var intro = '';
+    if (range.kind === 'ayer') {
+      title = 'Resumen de ayer · ' + (range.start || '—');
+      intro = '<p>Cifras de lo ya cargado en esta tablet para <b>ayer</b>, ' + esc(isoTxt) +
+        ' (el día local anterior). No es una consulta nueva a la nube.</p>';
+    } else if (range.kind === 'semana') {
+      title = 'Resumen semana pasada · ' + isoTxt;
+      intro = '<p>Cifras de lo ya cargado en esta tablet para la <b>semana pasada</b>: lunes a domingo ya cerrado, ' + esc(isoTxt) +
+        '. No incluye la semana en curso ni hoy. Si preguntaste «últimos 7 días» o «última semana», es esta misma semana cerrada, no siete días corridos.</p>';
+    } else {
+      title = 'Resumen mes pasado · ' + isoTxt;
+      intro = '<p>Cifras de lo ya cargado en esta tablet para el <b>mes pasado</b>: mes calendario anterior completo, ' + esc(isoTxt) +
+        '. Si preguntaste «últimos 30 días» o «último mes», es este mismo mes cerrado, no treinta días corridos.</p>';
+    }
+    var cuandoCorto = (range.start && range.start === range.end)
+      ? ('con fecha ' + esc(range.start))
+      : ('entre ' + esc(range.start || '—') + ' y ' + esc(range.end || '—'));
+    var prod = arr('prod').filter(function (r) { return fechaEn(r, range); });
+    var abiertas = openFichas();
+    var html = intro;
+    if (range.kind === 'semana' || range.kind === 'mes') {
+      html += '<p class="mt-2 text-slate-400">Solo cuenta lo que esta tablet ya tiene cargado. La memoria guarda las fichas más recientes (tope de unas 2000 por tipo) y puede no traer ' +
+        (range.kind === 'mes' ? 'el mes completo' : 'la semana completa') +
+        ' de la nube. No invento kilos.</p>';
+    }
+    html += '<p class="mt-2"><b>Tintorería.</b> ' + prod.length + (prod.length === 1 ? ' ficha' : ' fichas') +
+      ' ' + cuandoCorto + ' · ' + esc(sumLabel(prod, 'kilos')) + '.</p>';
+    if (!prod.length) html += vacioLine(arr('prod').length, 'ficha de tintorería', 'fichas de tintorería', true, range);
+    html += '<p class="mt-2"><b>En proceso (ahora).</b> ' + abiertas.length +
+      (abiertas.length === 1 ? ' ficha abierta' : ' fichas abiertas') +
+      ' de cualquier fecha: siguen abiertas ahora, no son un filtro de este periodo.</p>';
+    if (abiertas.length) {
+      html += ul(abiertas.slice(0, 5).map(function (r) { return lineFicha(r, false); })) + moreLine(abiertas.length, 5);
+    }
+    var downs = arr('down').filter(function (r) { return fechaEn(r, range); });
+    var dmin = downs.reduce(function (a, r) { return a + (Number(r.duracionMin) || 0); }, 0);
+    html += '<p class="mt-2"><b>Tiempos muertos de máquina.</b> ' + downs.length +
+      (downs.length === 1 ? ' paro' : ' paros') + ' ' + cuandoCorto + ' · ' + esc(minLabel(dmin)) + '.</p>';
+    if (!downs.length) html += vacioLine(arr('down').length, 'paro de máquina', 'paros de máquina', false, range);
+    var br = arr('bruck').filter(function (r) { return fechaEn(r, range); });
+    var g = ramaGroups(br);
+    html += '<p class="mt-2"><b>Bruckner / RAMA.</b> Bruckner ' + g.br.length + ' · ' + esc(sumLabel(g.br, 'kilos')) +
+      '. Monforts ' + g.mo.length + ' · ' + esc(sumLabel(g.mo, 'kilos')) + '.</p>';
+    if (!br.length) html += vacioLine(arr('bruck').length, 'ficha de Bruckner/Monforts', 'fichas de Bruckner/Monforts', true, range);
+    var comp = arr('compact').filter(function (r) { return fechaEn(r, range); });
+    html += '<p class="mt-2"><b>Compactadora.</b> ' + comp.length +
+      (comp.length === 1 ? ' ficha' : ' fichas') + ' ' + cuandoCorto + ' · ' + esc(sumLabel(comp, 'kilos')) + '.</p>';
+    if (!comp.length) html += vacioLine(arr('compact').length, 'ficha de compactadora', 'fichas de compactadora', true, range);
+    var tej = arr('tejeduria').filter(function (r) { return tejEn(r, range); });
+    var tejSum = 0, tejAny = false, tejRoll = 0;
+    tej.forEach(function (r) {
+      var k = tejKg(r);
+      if (k !== null) { tejSum += k; tejAny = true; }
+      var c = Number(r.count);
+      if (isFinite(c)) tejRoll += c;
+      else if (Array.isArray(r.rollos)) tejRoll += r.rollos.length;
+    });
+    html += '<p class="mt-2"><b>Tejeduría.</b> ' + tej.length +
+      (tej.length === 1 ? ' captura' : ' capturas') + ' ' + cuandoCorto + ' · ' + tejRoll +
+      (tejRoll === 1 ? ' rollo' : ' rollos') + ' · ' + esc(tejAny ? kgText(tejSum) : 'sin kg') +
+      '. Fecha de producción si viene; si no, la fecha de captura.</p>';
+    if (!tej.length) html += vacioLine(arr('tejeduria').length, 'captura de tejeduría', 'capturas de tejeduría', true, range);
+    html += '<p class="mt-2 text-slate-400">El plan del día y el pronóstico son de hoy. No los mezclo con este periodo.</p>';
+    return { intent: 'resumen-' + (range.kind || 'rango'), title: title, html: html + footRange(range) };
   }
 
   function sameLote(a, b) {
@@ -29153,6 +29350,15 @@ init();
       }
       var lote = loteToken(q);
       if (lote) return answerLote(lote);
+      var period = detectPeriod(q);
+      if (period && period.kind === 'unsupported') {
+        return {
+          intent: 'unknown',
+          title: 'Ese día no está en el resumen',
+          html: '<p>Puedo armar el resumen de <b>ayer</b>, de la <b>semana pasada</b> (lunes a domingo ya cerrado) o del <b>mes pasado</b> (mes calendario anterior), con lo que esta tablet ya tiene cargado. No calculo el anteayer por separado.</p>' + foot()
+        };
+      }
+      if (period) return answerResumen(period);
       if (/tiempo muerto|tiempos muertos|\bparos?\b/.test(q)) return answerDown();
       if (/en proceso|ficha abierta|fichas abiertas|abiertas/.test(q)) return answerOpen();
       if (/bruckner|monforts|\brama\b/.test(q)) return answerBruck(q);
