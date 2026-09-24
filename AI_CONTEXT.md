@@ -151,7 +151,9 @@ READ (allowed):
 - `_pronoCache` **only if that date is already cached** — do not `getDoc` to fill it. A cached `{ pronostico: 0, causaExtra: '' }` is also what `_pronoLoad` stores when the document is missing or the read fails, so Phase 1 must not state that as a confirmed forecast of 0 kg.
 - Helpers already used by the UI: `todayISO`, `fmtKg`, `getFichasAbiertas`, `fichaAging`, `MACHINES`, `cargaEsperada`
 
-“Hoy” means `fecha === todayISO()` (local date, same helper as the fichas). Tejeduría uses `fechaProd` when present, otherwise `fecha`. Fichas **en proceso** are `estado === 'abierta'` at any date (`getFichasAbiertas`), not “opened today” only.
+“Hoy” means `fecha === todayISO()` (local date, same helper as the fichas). Tejeduría uses `fechaProd` when present, otherwise `fecha`. Fichas **en proceso** are `estado === 'abierta'` at any date (`getFichasAbiertas`), not “opened today” only. A resumen for another period still lists those open fichas, labeled as abiertas actuales (any date), so they are not read as production of that period.
+
+**Resumen de ayer** is the previous local calendar day (`todayISO` minus one day). **Resumen semana pasada** is the last completed Monday–Sunday week before the week that contains today (same Lun→Dom week as the jefe resumen). It is not a rolling 7 days and it does not include the week in progress. **Resumen mes pasado** is the previous calendar month (day 1 through the last day), not a rolling 30 days. Free text such as «día anterior», «última semana» / «últimos 7 días» / «semana anterior», and «último mes» / «últimos 30 días» / «mes anterior» maps onto those same closed windows. The draft title and body name the concrete ISO range. Filters stay on data already in memory. Week and month answers say the counts are only what this tablet has loaded (local cache caps, about 2000 recent fichas per collection) and are not a full cloud period. No Firestore read is added to fill gaps. Plan del día and pronóstico stay on hoy and are not mixed into ayer / semana / mes. Other hoy-only chips (tiempos muertos hoy, eficiencia) stay on today unless the free text itself names ayer, semana, or mes — then the answer is the ranged resumen.
 
 Desempeño in an answer uses the Eficiencia formula for **today’s fichas only**: sum of `kilos` / sum of `cargaEstim` (or `cargaEsperada` when the stored estimate is missing). It does not change the chart.
 
@@ -171,7 +173,7 @@ Phase 1 does not answer from `state.empacado`, `state.revisado`, `state.telas`, 
 | Phase | What | Status |
 | --- | --- | --- |
 | 0 | This file | Done in the Phase 0+1 change |
-| 1 | **Preguntar al día** — Spanish, read-only, template/heuristic answers, ephemeral UI. Entry: **Más → Preguntar al día**. Chips: resumen del día, lotes en proceso, tiempos muertos hoy, eficiencia por máquina. Free text can also ask Bruckner/RAMA, compactadora, tejeduría, plan del día, or a lote id. | Done as UI only. Not on Pages until re-encrypt. |
+| 1 | **Preguntar al día** — Spanish, read-only, template/heuristic answers, ephemeral UI. Entry: **Más → Preguntar al día**. Chips: resumen del día, resumen de ayer, resumen semana pasada (lun→dom ya cerrada), resumen mes pasado (mes calendario anterior), lotes en proceso, tiempos muertos hoy, eficiencia por máquina. Free text can also ask Bruckner/RAMA, compactadora, tejeduría, plan del día, or a lote id. Ayer / semana / mes change the resumen window only from memory already loaded. | Done as UI only. Not on Pages until re-encrypt. |
 | 2 | Natural language → **draft actions** (drafts-until-GO). Operator must confirm before any Firebase write. | Not implemented |
 | 3 | RAG / SOPs over procedures | Not implemented |
 
