@@ -117,7 +117,7 @@ Dye-house standard minutes live in `PROCESOS_CATALOGO` / `minutosProceso()`.
 - **Baños** — number of baths on the ficha (`banos`).
 - **Químico / kg** — the ficha field `apq` (MXN per kg on the form). Do not rename it casually.
 - **Tiempos muertos** — machine downtime (`tiempos_muertos`). Categories used in the form include Mecánico, Eléctrico, Programación, Operación, Limpieza.
-- **Bruckner / RAMA** — finishing stenter. Records live in `bruckner` with `rama: 'Bruckner'`. **Monforts** is the other frame stored in the same collection (`rama: 'Monforts'`).
+- **Bruckner / RAMA** — finishing stenter. Records live in `bruckner` with `rama: 'Bruckner'`. **Monforts** is the other frame stored in the same collection (`rama: 'Monforts'`). As of 2026-09-25 Monforts is in production: Reporte and Eficiencia show it **Activa** (no “En montaje”), the bottom-nav label is **Rama** (`data-tab="tab-bruckner"` unchanged), `#br_rama` defaults to Monforts, and Señales predictivas include a Monforts group. Bruckner stays selectable. Both ramas can have fichas on the same date. This note is source-only; Pages still serves the encrypted `index.html` until someone re-encrypts.
 - **Compactadora** — tubular route for narrow fabrics (piqué, interlock, rib, etc.), collection `compactadora`.
 - **Eficiencia / desempeño** — real kg vs expected load for that machine and process. Not OEE unless the Eficiencia tab’s own columns say so.
 - **Disponibilidad** — actual minutes vs planned process minutes (Eficiencia tab).
