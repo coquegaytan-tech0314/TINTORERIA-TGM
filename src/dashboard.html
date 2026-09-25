@@ -3181,30 +3181,42 @@
       </div>
 
       <!-- Monforts -->
-      <div class="card p-5 opacity-50">
+      <div class="card p-5" title="Producción real terminada (Empacado) arriba · Total incluye Termofijado + Suavizado como pasos intermedios">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-black text-white text-base">🧵 Monforts</h3>
-          <span class="chip chip-warn">En montaje</span>
+          <span class="chip chip-ok">Activa</span>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-3">
+        <!-- EMPACADO hero (producción real terminada) -->
+        <div class="mb-2">
+          <div class="flex items-baseline justify-between gap-2 flex-wrap">
+            <div class="kpi-lbl flex items-center gap-1">
+              <span>✅ Empacado</span>
+              <span class="text-[9px] px-1 rounded" style="background:rgba(16,185,129,0.15);color:#6ee7b7">PRODUCCIÓN REAL</span>
+            </div>
+            <span id="rep_monf_emp_pct" class="text-[10px] text-slate-500">0% del total</span>
+          </div>
+          <div id="rep_monf_emp_hero" class="text-3xl font-black leading-none" style="color:#10b981">0</div>
+          <div class="text-[10px] text-slate-500">kg terminados hoy</div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 my-3 pt-2 border-t border-ink-800">
           <div>
-            <div class="kpi-lbl">Kilos</div>
-            <div id="rep_monf_k" class="text-xl font-black text-slate-500">0</div>
+            <div class="kpi-lbl" title="Total = Empacado + Termofijado + Suavizado (todos los procesos de RAMA)">Total (kg)</div>
+            <div id="rep_monf_k" class="text-lg font-black text-sky-accent">0</div>
           </div>
           <div>
             <div class="kpi-lbl">Metros</div>
-            <div id="rep_monf_m" class="text-xl font-black text-slate-500">0</div>
+            <div id="rep_monf_m" class="text-lg font-black text-emer-accent">0</div>
           </div>
           <div>
             <div class="kpi-lbl">Fichas</div>
-            <div id="rep_monf_f" class="text-xl font-black text-slate-500">0</div>
+            <div id="rep_monf_f" class="text-lg font-black text-white">0</div>
           </div>
         </div>
         <!-- Desglose por proceso Monforts -->
         <div class="flex flex-wrap gap-1 mt-2">
-          <span id="rep_monf_emp"  class="chip text-xs" style="background:#1e293b;color:#94a3b8">Empacado: — kg</span>
-          <span id="rep_monf_term" class="chip text-xs" style="background:#1e293b;color:#94a3b8">Termofijado: — kg</span>
-          <span id="rep_monf_suav" class="chip text-xs" style="background:#1e293b;color:#94a3b8">Suavizado: — kg</span>
+          <span id="rep_monf_emp"  class="chip text-xs" style="background:#064e3b;color:#6ee7b7;border:1px solid rgba(16,185,129,0.4)" title="Producción real terminada">Empacado: — kg</span>
+          <span id="rep_monf_term" class="chip text-xs" style="background:#451a03;color:#fcd34d" title="Intermedio: la tela regresa a Empacado">Termofijado: — kg</span>
+          <span id="rep_monf_suav" class="chip text-xs" style="background:#0c4a6e;color:#7dd3fc" title="Intermedio: la tela regresa a Empacado">Suavizado: — kg</span>
         </div>
       </div>
     </div>
@@ -3605,30 +3617,30 @@
           </div>
         </div>
         <!-- Monforts -->
-        <div class="card p-5 opacity-50">
+        <div class="card p-5">
           <div class="flex items-center justify-between mb-3">
             <div>
               <div class="text-xl font-black text-white">🧵 Monforts</div>
-              <div class="text-xs text-slate-500">En montaje — no disponible aún</div>
+              <div class="text-xs text-slate-500">Rama en operación</div>
             </div>
-            <span class="chip chip-warn">En montaje</span>
+            <span class="chip chip-ok">Activa</span>
           </div>
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div>
               <div class="kpi-lbl">Kilos</div>
-              <div id="eff_monf_k" class="text-xl font-black text-slate-500">0</div>
+              <div id="eff_monf_k" class="text-xl font-black text-sky-accent">0</div>
             </div>
             <div>
               <div class="kpi-lbl">Metros</div>
-              <div id="eff_monf_m" class="text-xl font-black text-slate-500">0</div>
+              <div id="eff_monf_m" class="text-xl font-black text-emer-accent">0</div>
             </div>
             <div>
               <div class="kpi-lbl">Fichas</div>
-              <div id="eff_monf_f" class="text-xl font-black text-slate-500">0</div>
+              <div id="eff_monf_f" class="text-xl font-black text-white">0</div>
             </div>
             <div>
               <div class="kpi-lbl">Vel. prom.</div>
-              <div id="eff_monf_v" class="text-xl font-black text-slate-500">— m/min</div>
+              <div id="eff_monf_v" class="text-xl font-black text-warn">— m/min</div>
             </div>
           </div>
         </div>
@@ -3806,7 +3818,7 @@
               <label class="lbl">Rama</label>
               <select id="dtr_rama" class="field">
                 <option value="Bruckner">Bruckner</option>
-                <option value="Monforts">Monforts ⚠️ (en montaje)</option>
+                <option value="Monforts">Monforts</option>
               </select>
             </div>
             <div>
@@ -3996,7 +4008,7 @@
           <label class="lbl">Rama</label>
           <select id="br_rama" class="field">
             <option value="Bruckner">Bruckner</option>
-            <option value="Monforts">Monforts</option>
+            <option value="Monforts" selected>Monforts</option>
           </select>
         </div>
         <div>
@@ -4532,7 +4544,7 @@
 
       <!-- Help / tip -->
       <p class="text-[11px] text-slate-500 mb-3">
-        💡 Este plan recibe automáticamente las filas <b>sin REND ni VEL</b> cuando pegas desde el Excel en la pestaña Bruckner. También puedes pegar aquí directamente sólo las filas tubulares.
+        💡 Este plan recibe automáticamente las filas <b>sin REND ni VEL</b> cuando pegas desde el Excel en la pestaña Rama. También puedes pegar aquí directamente sólo las filas tubulares.
       </p>
 
       <!-- Banner con KPIs del plan -->
@@ -6961,9 +6973,9 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
       <span>Análisis</span>
     </button>
-    <button class="tab-btn" data-tab="tab-bruckner">
+    <button class="tab-btn" data-tab="tab-bruckner" title="Rama · Acabados (Bruckner + Monforts)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-      <span>Bruckner</span>
+      <span>Rama</span>
     </button>
     <button class="tab-btn" data-tab="tab-compact" title="Compactadora · Ruta tubular para telas angostas (PIQUE 1F/2F, INTERLOCK, RIB, CARDIGAN, CHIFON, CUELLOS, PUÑOS)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="10" rx="1"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="12" y1="11" x2="12" y2="13"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
@@ -10231,9 +10243,25 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 17;
+  const CURRENT_VERSION = 18;
 
   const CHANGELOG = [
+    {
+      v: 18,
+      date: '2026-09-25',
+      icon: '🧵',
+      title: 'Monforts activa · pestaña Rama',
+      summary: 'Monforts ya está en producción. Reporte y Eficiencia la muestran Activa, la barra inferior dice Rama, la captura abre en Monforts y las señales predictivas la incluyen. Bruckner sigue disponible y ambas ramas pueden tener fichas el mismo día.',
+      bullets: [
+        'Barra inferior: el botón ahora dice “Rama” (la misma pestaña de captura Bruckner + Monforts).',
+        'Reporte Diario: tarjeta Monforts con Empacado real, total, metros, fichas y desglose por proceso.',
+        'Eficiencia: tarjeta Monforts activa, con los mismos colores de KPI que Bruckner.',
+        'Captura: el selector de Rama abre en Monforts. Bruckner se puede elegir.',
+        'Señales predictivas: Monforts entra con la misma proyección que Bruckner y Compactadora.',
+        'Bruckner y Monforts pueden tener fichas el mismo día.'
+      ],
+      where: 'Barra inferior → Rama · Reporte Diario · Eficiencia · Señales predictivas.'
+    },
     {
       v: 17,
       date: '2026-08-17',
@@ -10740,21 +10768,25 @@ window.TG_PREDICTIVE = (function(){
   }
 
   function ramaByGroup(){
-    // Bruckner + Compactadora del día
+    // Bruckner + Monforts + Compactadora del día
     const today = todayIso();
-    const result = { Bruckner: { kilos: 0, earliestMs: Infinity }, Compactadora: { kilos: 0, earliestMs: Infinity } };
+    const result = {
+      Bruckner: { kilos: 0, earliestMs: Infinity },
+      Monforts: { kilos: 0, earliestMs: Infinity },
+      Compactadora: { kilos: 0, earliestMs: Infinity }
+    };
 
-    // Bruckner · state.bruck (excluye Monforts)
+    // Rama · state.bruck (Bruckner y Monforts por separado; misma colección)
     if (Array.isArray(state.bruck)) {
       state.bruck.forEach(r => {
         if ((r.fecha||'') !== today) return;
         const rama = r.rama || 'Bruckner';
-        if (rama !== 'Bruckner') return;
+        if (rama !== 'Bruckner' && rama !== 'Monforts') return;
         const k = parseFloat(r.kilos) || 0;
         if (k <= 0) return;
-        result.Bruckner.kilos += k;
+        result[rama].kilos += k;
         const ts = Number(r.ts) || 0;
-        if (ts > 0 && ts < result.Bruckner.earliestMs) result.Bruckner.earliestMs = ts;
+        if (ts > 0 && ts < result[rama].earliestMs) result[rama].earliestMs = ts;
       });
     }
 
@@ -10910,6 +10942,12 @@ window.TG_PREDICTIVE = (function(){
     if (rama.Bruckner.kilos > 0) {
       const p = computeProjection(rama.Bruckner.kilos, rama.Bruckner.earliestMs, metas['RAMA-Bruckner']);
       cards.push(renderCard('🧵 Bruckner', p, metas['RAMA-Bruckner']));
+    }
+
+    // Monforts · mismas reglas de proyección que Bruckner (meta propia si existe)
+    if (rama.Monforts.kilos > 0) {
+      const p = computeProjection(rama.Monforts.kilos, rama.Monforts.earliestMs, metas['RAMA-Monforts']);
+      cards.push(renderCard('🧵 Monforts', p, metas['RAMA-Monforts']));
     }
 
     // Compactadora (prioritaria)
@@ -12433,6 +12471,10 @@ function renderReport() {
   })();
 
   const monfKg = monfRows.reduce((a,r)=>a+r.kilos,0);
+  const monfEmpKg = monfRows.filter(r => (r.proceso||'').trim() === 'Empacado').reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_monf_emp_hero', fmtKg(monfEmpKg));
+  const monfEmpPctEl = document.getElementById('rep_monf_emp_pct');
+  if (monfEmpPctEl) monfEmpPctEl.textContent = monfKg > 0 ? Math.round(monfEmpKg*100/monfKg) + '% del total' : '—';
   setEl('rep_monf_k',  fmtKg(monfKg));
   setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+r.metros,0)));
   setEl('rep_monf_f',  monfRows.length);
@@ -12617,7 +12659,12 @@ function renderReportMonth() {
     setChip('rep_comp_tdry',   ['tubular', 'dry'], 'Tubular Dry');
   })();
 
-  setEl('rep_monf_k', fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
+  const monfKgM = monfRows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const monfEmpKgM = monfRows.filter(r => (r.proceso||'').trim() === 'Empacado').reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_monf_emp_hero', fmtKg(monfEmpKgM));
+  const monfEmpPctElM = document.getElementById('rep_monf_emp_pct');
+  if (monfEmpPctElM) monfEmpPctElM.textContent = monfKgM > 0 ? Math.round(monfEmpKgM*100/monfKgM) + '% del total' : '—';
+  setEl('rep_monf_k', fmtKg(monfKgM));
   setEl('rep_monf_m', fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_monf_f', monfRows.length);
   desgloseChip(monfRows, 'rep_monf_emp', 'rep_monf_term', 'rep_monf_suav');
@@ -12799,9 +12846,28 @@ function renderReportRange() {
     setChip('rep_comp_tdry',   ['tubular', 'dry'], 'Tubular Dry');
   })();
 
-  setEl('rep_monf_k',  fmtKg(monfRows.reduce((a,r)=>a+(r.kilos||0), 0)));
+  const monfKgR = monfRows.reduce((a,r)=>a+(r.kilos||0), 0);
+  const monfEmpKgR = monfRows.filter(r => (r.proceso||'').trim() === 'Empacado').reduce((a,r)=>a+(r.kilos||0), 0);
+  setEl('rep_monf_emp_hero', fmtKg(monfEmpKgR));
+  const monfEmpPctElR = document.getElementById('rep_monf_emp_pct');
+  if (monfEmpPctElR) monfEmpPctElR.textContent = monfKgR > 0 ? Math.round(monfEmpKgR*100/monfKgR) + '% del total' : '—';
+  setEl('rep_monf_k',  fmtKg(monfKgR));
   setEl('rep_monf_m',  fmtKg(monfRows.reduce((a,r)=>a+(r.metros||0), 0)));
   setEl('rep_monf_f',  monfRows.length);
+  (function(){
+    const byP = {};
+    monfRows.forEach(r => { const p = (r.proceso||'Otro').trim(); byP[p] = (byP[p]||0) + (r.kilos||0); });
+    const totKg = monfKgR;
+    const fmt = (id, key, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      const kg = byP[key] || 0;
+      const pct = totKg > 0 ? Math.round(kg*100/totKg) : 0;
+      el.textContent = label + ': ' + (kg > 0 ? fmtKg(kg)+' kg ('+pct+'%)' : '—');
+    };
+    fmt('rep_monf_emp',  'Empacado',   'Empacado');
+    fmt('rep_monf_term', 'Termofijado','Termofijado');
+    fmt('rep_monf_suav', 'Suavizado',  'Suavizado');
+  })();
 
   // Per-machine groups (mismo formato que mes, agregando por día)
   const container = $('#reportGroups');
@@ -14476,7 +14542,7 @@ function renderRamaDowntime() {
     if (em) em.classList.add('hidden');
     tb.innerHTML = rows.map(r => {
       const isMonforts = r.rama === 'Monforts';
-      const ramaBadge = isMonforts ? ` <span class="chip chip-warn" style="font-size:9px">Monforts (prep)</span>` : '';
+      const ramaBadge = isMonforts ? ` <span class="chip chip-info" style="font-size:9px">Monforts</span>` : '';
       const catColor = { 'Mecánico':'chip-bad','Eléctrico':'chip-warn','Programación':'chip-info','Operación':'chip-ok' }[r.categoria] || 'chip-info';
       return `<tr>
         <td><b class="text-emer-accent">${r.rama||'Bruckner'}</b>${ramaBadge}</td>
@@ -15129,6 +15195,7 @@ function clearBrForm() {
   const tk = $('#br_costoTotalKg'); if (tk) tk.textContent = '$0.80';
   const tl = $('#br_costoTotalLote'); if (tl) tl.textContent = '$0';
   $('#br_fecha').value = todayISO();
+  const ramaSel = $('#br_rama'); if (ramaSel) ramaSel.value = 'Monforts';
   // Reset proceso chips — SIN default (el operador debe elegir).
   // Antes se pre-seleccionaba "Empacado" y eso causó errores en Estadística.
   $$('#brProcesoChips .br-proc-btn').forEach(b => {
@@ -15394,7 +15461,7 @@ function renderBruckner() {
       <tr style="${rowStyle}">
         <td>${r.fecha}</td>
         <td class="text-slate-500 text-xs" title="${fmtFechaHora(r.ts)}">${fmtHora(r.ts)}</td>
-        <td><span class="chip ${(r.rama||'Bruckner')==='Monforts'?'chip-warn':'chip-info'}">${r.rama||'Bruckner'}</span></td>
+        <td><span class="chip chip-info">${r.rama||'Bruckner'}</span></td>
         <td>${r.turno}</td>
         <td>${r.lote||'—'}</td>
         <td>${r.tela||'—'}</td>
