@@ -2354,7 +2354,7 @@
       <input id="lockPwInput" type="password" inputmode="text" autocomplete="current-password" placeholder="••••••••" />
       <button id="lockSubmit" type="button">Entrar</button>
       <div id="lockMsg"></div>
-      <div id="lockFooter">Este dispositivo recordará tu sesión. Solo necesitas ingresar la contraseña una vez.</div>
+      <div id="lockFooter" data-lock-footer>Este dispositivo recordará la sesión 7 días. Ciérrala con «Cerrar sesión». Nunca se guarda la contraseña.</div>
     </div>
 
     <!-- PASO 2: nombre del usuario -->
@@ -2368,7 +2368,7 @@
       <input id="lockNameInput" type="text" inputmode="text" autocomplete="name" autocapitalize="words" placeholder="Ej. Juan Pérez" style="width:100%; background:#07090d; border:2px solid #253149; color:#fff; border-radius:12px; padding:14px 16px; font-size:18px; font-weight:600; text-align:center;" />
       <button id="lockNameSubmit" type="button" style="width:100%; margin-top:12px; background:linear-gradient(180deg,#FF2E4D 0%,#c7001e 100%); color:#fff; font-weight:800; font-size:16px; border:none; border-radius:12px; padding:14px; cursor:pointer;">Continuar al dashboard</button>
       <div id="lockNameMsg" style="margin-top:14px; min-height:22px; font-size:14px; font-weight:600; text-align:center; color:#fca5a5;"></div>
-      <div id="lockFooter" style="margin-top:18px; padding-top:14px; border-top:1px solid #1e293b; text-align:center; font-size:11px; color:#64748b; line-height:1.5;">Puedes cambiarlo después desde el chip de usuario en el header.</div>
+      <div id="lockFooterName" data-lock-footer style="margin-top:18px; padding-top:14px; border-top:1px solid #1e293b; text-align:center; font-size:11px; color:#64748b; line-height:1.5;">Este dispositivo recordará la sesión 7 días. Ciérrala con «Cerrar sesión». Nunca se guarda la contraseña.</div>
     </div>
   </div>
 </div>
@@ -2377,13 +2377,19 @@
   // ============================================================
   //  AUTH · contraseña compartida del equipo
   //  - Hasta 5 intentos. Aviso al 3°. Bloqueo de 5 min al 5°.
-  //  - Sesión persistente en localStorage (no caduca hasta cerrar sesión).
+  //  - La sesión del candado dura LOCK_REMEMBER_DAYS (default 7) por equipo.
+  //    Solo se guarda el vencimiento (timestamp). La contraseña no se guarda.
+  //    La comparación sigue siendo sha256 === PW_HASH.
+  //  - La cortina StatiCrypt (Recordar 30 días) es aparte y se hornea al cifrar.
   // ============================================================
   (function(){
     const PW_HASH = '5ae770242d3a41112163262b59baf33f595cd54af8d5046bbe1600d944325280';
     const LS_AUTH_TOKEN = 'tg_tint_auth_v1';
+    const LS_AUTH_EXP = 'tg_tint_auth_exp_v1';
     const LS_AUTH_ATTEMPTS = 'tg_tint_auth_attempts_v1';
     const LS_AUTH_LOCKED_UNTIL = 'tg_tint_auth_locked_until_v1';
+    const LOCK_REMEMBER_DAYS = (typeof window.TG_LOCK_REMEMBER_DAYS === 'number' && window.TG_LOCK_REMEMBER_DAYS > 0)
+      ? window.TG_LOCK_REMEMBER_DAYS : 7;
     const MAX_ATTEMPTS = 5;
     const WARN_AT_ATTEMPT = 3;
     const LOCKOUT_MS = 5 * 60 * 1000;
@@ -2420,6 +2426,7 @@
       } catch(e){}
       // Borrar credenciales y sesión
       localStorage.removeItem(LS_AUTH_TOKEN);
+      localStorage.removeItem(LS_AUTH_EXP);
       localStorage.removeItem('tg_tint_user_session');
       localStorage.removeItem('tg_tint_auth_attempts_v1');
       localStorage.removeItem('tg_tint_auth_locked_until_v1');
@@ -2471,10 +2478,32 @@
     nameBtn.addEventListener('click', finishLogin);
     nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') finishLogin(); });
 
-    // Si ya hay sesión válida...
+    function rememberMs(){ return LOCK_REMEMBER_DAYS * 24 * 60 * 60 * 1000; }
+    function stampAuthExpiry(){
+      try { localStorage.setItem(LS_AUTH_EXP, String(Date.now() + rememberMs())); } catch(e){}
+    }
+    function authStillValid(){
+      const exp = parseInt(localStorage.getItem(LS_AUTH_EXP) || '0', 10);
+      return exp > Date.now();
+    }
+    document.querySelectorAll('[data-lock-footer]').forEach(el => {
+      el.textContent = 'Este dispositivo recordará la sesión ' + LOCK_REMEMBER_DAYS + ' días. Ciérrala con «Cerrar sesión». Nunca se guarda la contraseña.';
+    });
+
+    // Si ya hay sesión válida (hash igual y vencimiento a futuro)...
     const existingToken = localStorage.getItem(LS_AUTH_TOKEN);
     if (existingToken === PW_HASH) {
-      window.TG_AUTH_TOKEN = existingToken;
+      const expRaw = localStorage.getItem(LS_AUTH_EXP);
+      if (expRaw == null || expRaw === '') {
+        // Sesiones de antes de la caducidad: el plazo de 7 días empieza ahora.
+        stampAuthExpiry();
+      } else if (!authStillValid()) {
+        localStorage.removeItem(LS_AUTH_TOKEN);
+        localStorage.removeItem(LS_AUTH_EXP);
+      }
+    }
+    if (localStorage.getItem(LS_AUTH_TOKEN) === PW_HASH && authStillValid()) {
+      window.TG_AUTH_TOKEN = PW_HASH;
       // ...pero aún así necesitamos un nombre asignado a este dispositivo
       const existingName = (localStorage.getItem(LS_USER) || '').trim();
       if (existingName && existingName !== 'Invitado') {
@@ -2523,6 +2552,7 @@
       const h = await sha256(val);
       if (h === PW_HASH){
         localStorage.setItem(LS_AUTH_TOKEN, PW_HASH);
+        stampAuthExpiry();
         localStorage.setItem(LS_AUTH_ATTEMPTS, '0');
         localStorage.removeItem(LS_AUTH_LOCKED_UNTIL);
         window.TG_AUTH_TOKEN = PW_HASH;
@@ -2558,6 +2588,27 @@
   })();
 </script>
 
+<div id="shiftOpModal" class="hidden fixed inset-0 z-[110] bg-black/70 flex items-end sm:items-center justify-center p-3">
+  <div class="card p-5 w-full max-w-md">
+    <h3 class="text-xl font-black text-white">Operador de este turno</h3>
+    <p class="text-sm text-slate-400 mt-1">Se recuerda solo en este equipo hasta que cambie el turno o pasen 12 horas. No bloquea la captura si lo omites.</p>
+    <label class="lbl mt-4">Operador</label>
+    <select id="shiftOpSelect" class="field"></select>
+    <input id="shiftOpOtro" type="text" class="field hidden mt-2" placeholder="Nombre del operador" autocomplete="name" />
+    <label class="lbl mt-3">Turno</label>
+    <div class="grid grid-cols-3 gap-2">
+      <button type="button" class="btn btn-secondary shift-op-turno" data-shift="1°">1°</button>
+      <button type="button" class="btn btn-secondary shift-op-turno" data-shift="2°">2°</button>
+      <button type="button" class="btn btn-secondary shift-op-turno" data-shift="3°">3°</button>
+    </div>
+    <p id="shiftOpMsg" class="text-sm text-rose-300 min-h-[1.25rem] mt-2"></p>
+    <div class="grid grid-cols-2 gap-3 mt-2">
+      <button type="button" id="shiftOpSkip" class="btn btn-secondary touch-xl">Ahora no</button>
+      <button type="button" id="shiftOpSave" class="btn btn-primary touch-xl">Listo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================================================= -->
 <!-- HEADER                                                        -->
 <!-- ============================================================= -->
@@ -2587,6 +2638,11 @@
       <button id="userPill" class="flex items-center gap-2 bg-ink-800 border border-ink-600 hover:border-sky-accent transition-colors rounded-full py-1.5 px-3 text-sm" title="Usuario de sesión (clic para cambiar)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="w-4 h-4 text-sky-accent"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span id="userPillName" class="text-slate-300 font-semibold">Invitado</span>
+      </button>
+
+      <button type="button" id="shiftOpChip" class="flex items-center gap-2 bg-ink-800 border border-ink-600 hover:border-emer-accent transition-colors rounded-full py-1.5 px-3 text-sm" title="Operador y turno de esta jornada">
+        <span class="text-emer-accent font-black text-xs">OP</span>
+        <span id="shiftOpChipText" class="text-slate-200 font-semibold max-w-[9rem] truncate">Operador</span>
       </button>
 
       <!-- Botón sincronizar con Firebase (baja lo más reciente de otros dispositivos) -->
@@ -2649,7 +2705,7 @@
 
       <button id="signOutBtn" class="btn btn-secondary !py-2 !px-3 text-sm" title="Cerrar sesión en este dispositivo" onclick="window.tgSignOut && window.tgSignOut()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-5 h-5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="hidden sm:inline">Salir</span>
+        <span class="hidden sm:inline">Cerrar sesión</span>
       </button>
     </div>
   </div>
@@ -2671,6 +2727,11 @@
 <!-- MAIN                                                          -->
 <!-- ============================================================= -->
 <main class="max-w-7xl mx-auto px-4 pt-5">
+
+  <div id="draftBanner" class="hidden mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+    <span id="draftBannerText" class="font-semibold">Borrador recuperado</span>
+    <button type="button" id="draftBannerDiscard" class="btn btn-secondary !py-1 !px-3 text-xs">Descartar</button>
+  </div>
 
   <!-- =========================================== -->
   <!-- TAB: FICHA DE PRODUCCIÓN (captura operador) -->
@@ -10252,9 +10313,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 19;
+  const CURRENT_VERSION = 20;
 
   const CHANGELOG = [
+    {
+      v: 20,
+      date: '2026-09-30',
+      icon: '👷',
+      title: 'Operador del turno, sesión y borradores',
+      summary: 'El operador del turno se recuerda en este equipo, el candado dura 7 días y un borrador se recupera si la página se recarga.',
+      bullets: [
+        'Elige operador y turno. Queda en la pastilla del encabezado hasta que cambie el turno o pasen 12 horas. Si lo omites, igual puedes guardar.',
+        'El candado recuerda este dispositivo 7 días (solo la fecha de vencimiento, nunca la contraseña). «Cerrar sesión» lo borra.',
+        'Si recargas a medias, la ficha, Rama, tiempos muertos, compactadora o tejeduría vuelven con un aviso para descartar el borrador.'
+      ],
+      where: 'Encabezado · Ficha · Rama · Tiempos Muertos · Compactadora · Tejeduría'
+    },
     {
       v: 19,
       date: '2026-09-30',
@@ -11896,7 +11970,7 @@ function saveProd(andNew) {
     ts: Date.now(),
     machine:  state.selectedMachine,
     shift:    state.selectedShift,
-    operador: $('#f_operador').value.trim(),
+    operador: $('#f_operador').value.trim() || (window.tgShiftOperador ? window.tgShiftOperador() : ''),
     fecha:    $('#f_fecha').value || todayISO(),
     lote:     $('#f_lote').value.trim(),
     tela:     $('#f_tela').value.trim(),
@@ -11937,6 +12011,7 @@ function saveProd(andNew) {
         .forEach(s => $(s).value = '');
       $('#f_banos').value = '1';
       $$('.proceso-btn').forEach(x => x.classList.remove('active'));
+      try { if (window.clearCaptureDraft) window.clearCaptureDraft('prod'); } catch(e){}
       recalc();
       // 💡 Smart Defaults: pre-llenar sugerencias en la nueva ficha
       try { if (window.TG_SMART_DEFAULTS) window.TG_SMART_DEFAULTS.applyIfEmpty(); } catch(e){}
@@ -11974,6 +12049,7 @@ function clearProdForm() {
   // 💡 Smart Defaults: pre-llenar sugerencias después de limpiar
   try { if (window.TG_SMART_DEFAULTS) window.TG_SMART_DEFAULTS.applyIfEmpty(); } catch(e){}
   try { if (window.markCaptureClean) window.markCaptureClean('prod'); } catch(e){}
+  try { if (window.clearCaptureDraft) window.clearCaptureDraft('prod'); } catch(e){}
 }
 
 /* ================================================================
@@ -12043,7 +12119,7 @@ function saveFichaAbrir(){
     ts: Date.now(),
     machine:  state.selectedMachine,
     shift:    state.selectedShift,
-    operador: $('#f_operador').value.trim(),
+    operador: $('#f_operador').value.trim() || (window.tgShiftOperador ? window.tgShiftOperador() : ''),
     fecha:    $('#f_fecha').value || todayISO(),
     lote:     $('#f_lote').value.trim(),
     tela:     $('#f_tela').value.trim(),
@@ -14543,6 +14619,7 @@ function clearDtrForm() {
   const ct = $('#dtr_cat'); if (ct) ct.value = 'Mecánico';
   const mv = $('#dtr_motivo'); if (mv) mv.value = '';
   try { if (window.markCaptureClean) window.markCaptureClean('dtr'); } catch(e){}
+  try { if (window.clearCaptureDraft) window.clearCaptureDraft('dtr'); } catch(e){}
 }
 
 function renderRamaDowntime() {
@@ -14631,7 +14708,8 @@ function bindDowntimeForm() {
       duracionMin: mins,
       categoria: state.selectedDtCat,
       motivo: mot,
-      notas: $('#dt_notas').value.trim()
+      notas: $('#dt_notas').value.trim(),
+      operador: (window.tgShiftOperador ? window.tgShiftOperador() : '')
     };
     state.down.unshift(rec);
     save(LS_KEYS.down, state.down);
@@ -14649,6 +14727,7 @@ function clearDtForm() {
   ['#dt_machine','#dt_hIni','#dt_hFin','#dt_motivo','#dt_notas'].forEach(s => $(s).value = '');
   $('#dt_fecha').value = todayISO();
   try { if (window.markCaptureClean) window.markCaptureClean('dt'); } catch(e){}
+  try { if (window.clearCaptureDraft) window.clearCaptureDraft('dt'); } catch(e){}
 }
 function renderDowntime() {
   const today = todayISO();
@@ -15183,7 +15262,7 @@ function bindBrucknerForm() {
       rama:     $('#br_rama').value || 'Bruckner',
       fecha:    $('#br_fecha').value || todayISO(),
       turno:    $('#br_turno').value,
-      operador: $('#br_operador').value.trim(),
+      operador: $('#br_operador').value.trim() || (window.tgShiftOperador ? window.tgShiftOperador() : ''),
       lote:     $('#br_lote').value.trim(),
       tela:     $('#br_tela').value.trim(),
       color:    $('#br_color').value.trim(),
@@ -15239,6 +15318,7 @@ function clearBrForm() {
   const _hint = document.getElementById('brProcesoHint');
   if (_hint) _hint.classList.add('hidden');
   try { if (window.markCaptureClean) window.markCaptureClean('br'); } catch(e){}
+  try { if (window.clearCaptureDraft) window.clearCaptureDraft('br'); } catch(e){}
 }
 
 /* Auto-calc metros from kg × rend + auto-calc costo total */
@@ -22306,7 +22386,7 @@ function saveCompact() {
   if (typeof assertTelaOk === 'function' && !assertTelaOk(document.getElementById('cmp_tela'), { required: true })) return;
   const fecha  = document.getElementById('cmp_fecha').value || _cmpNowStr();
   const turno  = document.getElementById('cmp_turno').value || '1°';
-  const oper   = document.getElementById('cmp_operador').value.trim();
+  const oper   = document.getElementById('cmp_operador').value.trim() || (window.tgShiftOperador ? window.tgShiftOperador() : '');
   const lote   = document.getElementById('cmp_lote').value.trim();
   const tela   = document.getElementById('cmp_tela').value.trim();
   const color  = document.getElementById('cmp_color').value.trim();
@@ -22386,6 +22466,7 @@ function clearCompactForm(keepDate) {
   const mpHid = document.getElementById('cmp_motivoPase'); if (mpHid) mpHid.value = 'nuevo';
   _cmpUpdateCostoUI();
   try { if (window.markCaptureClean) window.markCaptureClean('cmp'); } catch(e){}
+  try { if (window.clearCaptureDraft) window.clearCaptureDraft('cmp'); } catch(e){}
 }
 
 function renderCompact() {
@@ -23134,10 +23215,14 @@ function _tejOpenModal(idOrNull) {
     del?.classList.remove('hidden');
   } else {
     // Reset for new
-    document.getElementById('tejfMaquina').value = '';
-    document.getElementById('tejfTela').value = '';
-    document.getElementById('tejfLote').value = '';
-    _tejCurrentRollos = [];
+    var _tejKeepDraft = false;
+    try { _tejKeepDraft = !!localStorage.getItem('tg_draft_tej_v1'); } catch(e){}
+    if (!_tejKeepDraft) {
+      document.getElementById('tejfMaquina').value = '';
+      document.getElementById('tejfTela').value = '';
+      document.getElementById('tejfLote').value = '';
+      _tejCurrentRollos = [];
+    }
     const ctx = _tejGetSessionCtx();
     title.textContent = 'Registrar rollo · Tejeduría';
     if (!ctx.operador) {
@@ -23162,6 +23247,7 @@ function _tejCloseModal() {
   _tejEditingId = null;
   _tejCurrentRollos = [];
   try { if (window.markCaptureClean) window.markCaptureClean('tej'); } catch(e){}
+  try { if (window.clearCaptureDraft) window.clearCaptureDraft('tej'); } catch(e){}
 }
 
 function _tejAddRolloFromInput() {
@@ -23186,11 +23272,7 @@ function _tejAddRolloFromInput() {
 
 async function _tejSaveRollo() {
   const ctx = _tejGetSessionCtx();
-  if (!ctx.operador) {
-    toast('Selecciona tu nombre en la barra de sesión antes de guardar', true);
-    document.getElementById('tejOperador')?.focus();
-    return;
-  }
+  if (!ctx.operador && window.tgShiftOperador) ctx.operador = window.tgShiftOperador() || '';
   const maquina = document.getElementById('tejfMaquina').value.trim();
   const tela = document.getElementById('tejfTela').value.trim();
   const lote = document.getElementById('tejfLote').value.trim();
@@ -28498,6 +28580,389 @@ init();
   window.isCaptureDirty = isCaptureDirty;
   window.markCaptureClean = markCaptureClean;
 
+  // Operador del turno (este equipo). Caduca al cambiar el turno del reloj o a las 12 h.
+  var LS_SHIFT_OP = 'tg_tint_shift_op_v1';
+  var SHIFT_OP_MAX_MS = 12 * 60 * 60 * 1000;
+  var DRAFT_MAX_MS = 12 * 60 * 60 * 1000;
+  var DRAFT_KEYS = {
+    prod: 'tg_draft_prod_v1',
+    br: 'tg_draft_br_v1',
+    dt: 'tg_draft_dt_v1',
+    dtr: 'tg_draft_dtr_v1',
+    cmp: 'tg_draft_cmp_v1',
+    tej: 'tg_draft_tej_v1'
+  };
+  var DRAFT_LABELS = {
+    prod: 'Ficha', br: 'Rama', dt: 'Tiempos muertos',
+    dtr: 'Paros de rama', cmp: 'Compactadora', tej: 'Tejeduría'
+  };
+  var _draftApplying = false;
+  var _draftTimers = {};
+  var _draftRestored = [];
+  var _shiftOpTurno = '';
+
+  function clockShift(){
+    var h = new Date().getHours();
+    if (h >= 6 && h < 14) return '1°';
+    if (h >= 14 && h < 22) return '2°';
+    return '3°';
+  }
+  function escOpt(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  }
+  function readShiftOp(){
+    var raw;
+    try { raw = localStorage.getItem(LS_SHIFT_OP); } catch(e) { return null; }
+    if (!raw) return null;
+    var o;
+    try { o = JSON.parse(raw); } catch(e) { return null; }
+    if (!o || !o.operador) {
+      try { localStorage.removeItem(LS_SHIFT_OP); } catch(e2){}
+      return null;
+    }
+    if ((Date.now() - (o.savedAt || 0)) > SHIFT_OP_MAX_MS || clockShift() !== o.shiftAtSave) {
+      try { localStorage.removeItem(LS_SHIFT_OP); } catch(e3){}
+      return null;
+    }
+    return o;
+  }
+  window.tgShiftOperador = function(){
+    var o = readShiftOp();
+    return o && o.operador ? String(o.operador) : '';
+  };
+  function paintShiftChip(){
+    var el = document.getElementById('shiftOpChipText');
+    if (!el) return;
+    var o = readShiftOp();
+    el.textContent = o ? (o.turno ? (o.operador + ' · ' + o.turno) : o.operador) : 'Operador';
+  }
+  function setIfEmpty(id, val){
+    if (!val) return;
+    var el = document.getElementById(id);
+    if (el && !String(el.value || '').trim()) el.value = val;
+  }
+  function applyShiftToEmptyFields(){
+    var o = readShiftOp();
+    if (!o) return;
+    setIfEmpty('f_operador', o.operador);
+    setIfEmpty('br_operador', o.operador);
+    setIfEmpty('cmp_operador', o.operador);
+    setIfEmpty('tejOperador', o.operador);
+    if (o.turno && typeof state !== 'undefined' && state && !state.selectedShift) {
+      state.selectedShift = o.turno;
+      var btns = document.querySelectorAll('.shift-btn');
+      for (var i = 0; i < btns.length; i++) {
+        if (btns[i].classList.contains('cf-shift-btn')) continue;
+        btns[i].classList.toggle('active', btns[i].dataset.shift === o.turno);
+      }
+    }
+  }
+  function collectOperadorNames(){
+    var set = {};
+    function add(n){
+      n = String(n || '').trim();
+      if (!n || n === '(sin operador)' || n === 'Invitado') return;
+      set[n] = true;
+    }
+    try {
+      if (typeof TEJ_OPERADORES_SEED !== 'undefined' && TEJ_OPERADORES_SEED) TEJ_OPERADORES_SEED.forEach(add);
+    } catch(e){}
+    try {
+      if (typeof EMP_STATE !== 'undefined' && EMP_STATE && EMP_STATE.list) {
+        EMP_STATE.list.forEach(function(emp){ if (emp && emp.activo !== false) add(emp.nombre); });
+      }
+    } catch(e2){}
+    try {
+      if (typeof state !== 'undefined' && state) {
+        ['prod','bruck','tejeduria'].forEach(function(k){
+          var arr = state[k];
+          if (!arr || !arr.slice) return;
+          arr.slice(0, 80).forEach(function(r){ if (r) add(r.operador); });
+        });
+      }
+    } catch(e3){}
+    return Object.keys(set).sort(function(a, b){ return a.localeCompare(b, 'es'); });
+  }
+  function openShiftOpModal(){
+    var modal = document.getElementById('shiftOpModal');
+    var sel = document.getElementById('shiftOpSelect');
+    var otro = document.getElementById('shiftOpOtro');
+    var msg = document.getElementById('shiftOpMsg');
+    if (!modal || !sel) return;
+    var names = collectOperadorNames();
+    var cur = readShiftOp();
+    sel.innerHTML = '<option value="">Selecciona…</option>' +
+      names.map(function(n){ return '<option value="' + escOpt(n) + '">' + escOpt(n) + '</option>'; }).join('') +
+      '<option value="__otro__">Otro</option>';
+    if (otro) { otro.value = ''; otro.classList.add('hidden'); }
+    if (cur && names.indexOf(cur.operador) >= 0) sel.value = cur.operador;
+    else if (cur && cur.operador) {
+      sel.value = '__otro__';
+      if (otro) { otro.classList.remove('hidden'); otro.value = cur.operador; }
+    }
+    _shiftOpTurno = (cur && cur.turno) || clockShift();
+    document.querySelectorAll('.shift-op-turno').forEach(function(b){
+      var on = b.getAttribute('data-shift') === _shiftOpTurno;
+      b.classList.toggle('btn-primary', on);
+      b.classList.toggle('btn-secondary', !on);
+    });
+    if (msg) msg.textContent = '';
+    modal.classList.remove('hidden');
+  }
+  function closeShiftOpModal(){
+    var modal = document.getElementById('shiftOpModal');
+    if (modal) modal.classList.add('hidden');
+  }
+  function saveShiftOpFromModal(){
+    var sel = document.getElementById('shiftOpSelect');
+    var otro = document.getElementById('shiftOpOtro');
+    var msg = document.getElementById('shiftOpMsg');
+    var name = '';
+    if (sel && sel.value === '__otro__') name = otro ? String(otro.value || '').trim() : '';
+    else name = sel ? String(sel.value || '').trim() : '';
+    if (!name) {
+      if (msg) msg.textContent = 'Elige un operador o escribe el nombre.';
+      return;
+    }
+    var rec = {
+      operador: name,
+      turno: _shiftOpTurno || clockShift(),
+      savedAt: Date.now(),
+      shiftAtSave: clockShift()
+    };
+    try { localStorage.setItem(LS_SHIFT_OP, JSON.stringify(rec)); } catch(e){}
+    try { sessionStorage.removeItem('tg_shift_op_skip'); } catch(e2){}
+    paintShiftChip();
+    applyShiftToEmptyFields();
+    closeShiftOpModal();
+  }
+  function maybePromptShiftOp(){
+    var overlay = document.getElementById('lockOverlay');
+    if (overlay && !overlay.classList.contains('hidden')) return;
+    var modal = document.getElementById('shiftOpModal');
+    if (modal && !modal.classList.contains('hidden')) return;
+    paintShiftChip();
+    if (readShiftOp()) { applyShiftToEmptyFields(); return; }
+    try { if (sessionStorage.getItem('tg_shift_op_skip') === '1') return; } catch(e){}
+    openShiftOpModal();
+  }
+  function installShiftOpUI(){
+    if (installShiftOpUI.done) return;
+    installShiftOpUI.done = true;
+    var chip = document.getElementById('shiftOpChip');
+    if (chip) chip.addEventListener('click', openShiftOpModal);
+    var sel = document.getElementById('shiftOpSelect');
+    if (sel) sel.addEventListener('change', function(){
+      var otro = document.getElementById('shiftOpOtro');
+      if (!otro) return;
+      if (sel.value === '__otro__') { otro.classList.remove('hidden'); otro.focus(); }
+      else otro.classList.add('hidden');
+    });
+    document.querySelectorAll('.shift-op-turno').forEach(function(b){
+      b.addEventListener('click', function(){
+        _shiftOpTurno = b.getAttribute('data-shift') || clockShift();
+        document.querySelectorAll('.shift-op-turno').forEach(function(x){
+          var on = x === b;
+          x.classList.toggle('btn-primary', on);
+          x.classList.toggle('btn-secondary', !on);
+        });
+      });
+    });
+    var skip = document.getElementById('shiftOpSkip');
+    if (skip) skip.addEventListener('click', function(){
+      try { sessionStorage.setItem('tg_shift_op_skip', '1'); } catch(e){}
+      closeShiftOpModal();
+    });
+    var saveBtn = document.getElementById('shiftOpSave');
+    if (saveBtn) saveBtn.addEventListener('click', saveShiftOpFromModal);
+    window.addEventListener('tg-auth-ready', function(){ maybePromptShiftOp(); });
+    setInterval(function(){
+      var had = false;
+      try { had = !!localStorage.getItem(LS_SHIFT_OP); } catch(e){}
+      var cur = readShiftOp();
+      paintShiftChip();
+      if (had && !cur) maybePromptShiftOp();
+    }, 60 * 1000);
+  }
+
+  function draftHasContent(d){
+    if (!d) return false;
+    var fields = d.fields || {};
+    for (var k in fields) {
+      if (fields[k] && String(fields[k]).trim()) return true;
+    }
+    var c = d.chips || {};
+    if (c.machine || c.shift || c.proceso || c.motivo || c.cat) return true;
+    if (c.rollos && c.rollos.length) return true;
+    return false;
+  }
+  function collectDraft(form){
+    var fields = {};
+    var inputs = document.querySelectorAll('input, textarea, select');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      if (!el.id || formKeyForCaptureId(el.id) !== form) continue;
+      fields[el.id] = el.value;
+    }
+    var chips = {};
+    if (form === 'prod' && typeof state !== 'undefined' && state) {
+      chips.machine = state.selectedMachine || '';
+      chips.shift = state.selectedShift || '';
+      var fp = document.getElementById('f_proceso');
+      chips.proceso = fp ? fp.value : '';
+    } else if (form === 'br') {
+      var bp = document.getElementById('br_proceso');
+      var bm = document.getElementById('br_motivoPase');
+      chips.proceso = bp ? bp.value : '';
+      chips.motivo = bm ? bm.value : '';
+    } else if (form === 'dt' && typeof state !== 'undefined' && state) {
+      chips.cat = state.selectedDtCat || '';
+    } else if (form === 'cmp') {
+      var cp = document.getElementById('cmp_proceso');
+      var cm = document.getElementById('cmp_motivoPase');
+      chips.proceso = cp ? cp.value : '';
+      chips.motivo = cm ? cm.value : '';
+    } else if (form === 'tej') {
+      chips.rollos = (typeof _tejCurrentRollos !== 'undefined' && _tejCurrentRollos) ? _tejCurrentRollos.slice() : [];
+    }
+    return { ts: Date.now(), fields: fields, chips: chips };
+  }
+  function scheduleDraft(form){
+    if (_draftApplying || !form || !DRAFT_KEYS[form]) return;
+    if (_draftTimers[form]) clearTimeout(_draftTimers[form]);
+    _draftTimers[form] = setTimeout(function(){
+      _draftTimers[form] = null;
+      try {
+        var d = collectDraft(form);
+        if (!draftHasContent(d)) { localStorage.removeItem(DRAFT_KEYS[form]); return; }
+        localStorage.setItem(DRAFT_KEYS[form], JSON.stringify(d));
+      } catch(e){}
+    }, 400);
+  }
+  function refreshDraftBanner(){
+    var banner = document.getElementById('draftBanner');
+    var text = document.getElementById('draftBannerText');
+    if (!banner || !text) return;
+    if (!_draftRestored.length) { banner.classList.add('hidden'); return; }
+    var labels = _draftRestored.map(function(k){ return DRAFT_LABELS[k] || k; });
+    text.textContent = 'Borrador recuperado · ' + labels.join(', ');
+    banner.classList.remove('hidden');
+  }
+  window.clearCaptureDraft = function(form){
+    if (!DRAFT_KEYS[form]) return;
+    try { localStorage.removeItem(DRAFT_KEYS[form]); } catch(e){}
+    var idx = _draftRestored.indexOf(form);
+    if (idx >= 0) _draftRestored.splice(idx, 1);
+    refreshDraftBanner();
+  };
+  function applyChipState(form, chips){
+    chips = chips || {};
+    if (form === 'prod') {
+      if (chips.machine && typeof state !== 'undefined' && state) {
+        state.selectedMachine = chips.machine;
+        document.querySelectorAll('.machine-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-machine') === chips.machine);
+        });
+      }
+      if (chips.shift && typeof state !== 'undefined' && state) {
+        state.selectedShift = chips.shift;
+        document.querySelectorAll('.shift-btn').forEach(function(b){
+          if (b.classList.contains('cf-shift-btn')) return;
+          b.classList.toggle('active', b.getAttribute('data-shift') === chips.shift);
+        });
+      }
+      if (chips.proceso) {
+        var fp = document.getElementById('f_proceso');
+        if (fp) fp.value = chips.proceso;
+        document.querySelectorAll('.proceso-btn').forEach(function(b){
+          if (b.closest && (b.closest('#cerrarFichaModal') || b.closest('#openFichasList'))) return;
+          b.classList.toggle('active', b.getAttribute('data-p') === chips.proceso);
+        });
+      }
+    } else if (form === 'br') {
+      if (chips.proceso) {
+        var bp = document.getElementById('br_proceso');
+        if (bp) bp.value = chips.proceso;
+        document.querySelectorAll('#brProcesoChips .br-proc-btn').forEach(function(b){
+          var on = b.getAttribute('data-p') === chips.proceso;
+          b.classList.toggle('active', on);
+          b.classList.toggle('chip-ok', on);
+          b.classList.toggle('chip-info', !on);
+        });
+      }
+      if (chips.motivo) {
+        var bm = document.getElementById('br_motivoPase');
+        if (bm) bm.value = chips.motivo;
+        document.querySelectorAll('#brMotivoPaseChips .br-motpase-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-mp') === chips.motivo);
+        });
+      }
+    } else if (form === 'dt' && chips.cat && typeof state !== 'undefined' && state) {
+      state.selectedDtCat = chips.cat;
+      document.querySelectorAll('.dt-cat-btn').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-cat') === chips.cat);
+      });
+    } else if (form === 'cmp') {
+      if (chips.proceso) {
+        var cp = document.getElementById('cmp_proceso');
+        if (cp) cp.value = chips.proceso;
+        document.querySelectorAll('.cmp-proc-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-p') === chips.proceso);
+        });
+      }
+      if (chips.motivo) {
+        var cm = document.getElementById('cmp_motivoPase');
+        if (cm) cm.value = chips.motivo;
+        document.querySelectorAll('.cmp-motpase-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-mp') === chips.motivo);
+        });
+      }
+    } else if (form === 'tej' && chips.rollos && chips.rollos.length && typeof _tejCurrentRollos !== 'undefined') {
+      _tejCurrentRollos = chips.rollos.slice();
+      try { if (typeof _tejUpdateModalSum === 'function') _tejUpdateModalSum(); } catch(e){}
+    }
+  }
+  function restoreDrafts(){
+    _draftApplying = true;
+    _draftRestored = [];
+    Object.keys(DRAFT_KEYS).forEach(function(form){
+      var raw;
+      try { raw = localStorage.getItem(DRAFT_KEYS[form]); } catch(e) { return; }
+      if (!raw) return;
+      var d;
+      try { d = JSON.parse(raw); } catch(e2) { return; }
+      if (!d || !d.ts || (Date.now() - d.ts) > DRAFT_MAX_MS) {
+        try { localStorage.removeItem(DRAFT_KEYS[form]); } catch(e3){}
+        return;
+      }
+      if (!draftHasContent(d)) return;
+      var fields = d.fields || {};
+      Object.keys(fields).forEach(function(id){
+        if (formKeyForCaptureId(id) !== form) return;
+        var el = document.getElementById(id);
+        if (el) el.value = fields[id];
+      });
+      applyChipState(form, d.chips);
+      markCaptureDirty(form);
+      _draftRestored.push(form);
+    });
+    _draftApplying = false;
+    refreshDraftBanner();
+  }
+  function discardRestoredDrafts(){
+    _draftRestored.slice().forEach(function(form){
+      try {
+        if (form === 'prod' && typeof clearProdForm === 'function') clearProdForm();
+        else if (form === 'br' && typeof clearBrForm === 'function') clearBrForm();
+        else if (form === 'dt' && typeof clearDtForm === 'function') clearDtForm();
+        else if (form === 'dtr' && typeof clearDtrForm === 'function') clearDtrForm();
+        else if (form === 'cmp' && typeof clearCompactForm === 'function') clearCompactForm(false);
+        else if (form === 'tej' && typeof _tejCloseModal === 'function') _tejCloseModal();
+      } catch(e){}
+      window.clearCaptureDraft(form);
+    });
+  }
+
   function installCaptureDirtyTracking(){
     if (installCaptureDirtyTracking.done) return;
     installCaptureDirtyTracking.done = true;
@@ -28506,7 +28971,9 @@ init();
       if (!t || !t.tagName) return;
       var tag = t.tagName;
       if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
-      markCaptureDirty(formKeyForCaptureId(t.id));
+      var key = formKeyForCaptureId(t.id);
+      markCaptureDirty(key);
+      if (key) scheduleDraft(key);
     }
     document.addEventListener('input', onField, true);
     document.addEventListener('change', onField, true);
@@ -28529,6 +28996,7 @@ init();
         if (!btn) continue;
         if (btn.classList.contains('cf-shift-btn') || btn.classList.contains('br-proc-filter')) return;
         markCaptureDirty(chips[i][1]);
+        scheduleDraft(chips[i][1]);
         return;
       }
     }, true);
@@ -28621,7 +29089,7 @@ init();
       // tg_onboarding no coincide con la clave real (tg_tint_onboarding_v2).
       // Sin el prefijo correcto, cada Sincronizar/auto-refresh borra el tour y vuelve a salir.
       // Local-only (no están en Firestore): metas, config Rama, overrides de Estadística, paros de Rama.
-      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|staticrypt_)/;
+      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_auth_exp_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|tg_tint_shift_op_v1|tg_draft_prod_v1|tg_draft_br_v1|tg_draft_dt_v1|tg_draft_dtr_v1|tg_draft_cmp_v1|tg_draft_tej_v1|staticrypt_)/;
       var keys = [];
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
@@ -28766,6 +29234,11 @@ init();
   // ======================================================================
   function boot(){
     installCaptureDirtyTracking();
+    installShiftOpUI();
+    restoreDrafts();
+    maybePromptShiftOp();
+    var disc = document.getElementById('draftBannerDiscard');
+    if (disc) disc.addEventListener('click', discardRestoredDrafts);
     installSyncChip();
     installMasButton();
     setInterval(tickSyncChip, 5 * 1000);
