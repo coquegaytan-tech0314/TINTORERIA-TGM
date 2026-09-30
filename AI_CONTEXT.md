@@ -80,7 +80,7 @@ Not a live read, despite a comment: `config/rama_bruckner`. RAMA limits in the r
 
 `saveToCloud('telas_solicitudes', …)` is called from the catálogo flow, but `telas_solicitudes` is **not** a key of `FB_COLLECTIONS`, so `saveToCloud` returns without writing. Do not “fix” that unless someone explicitly asks.
 
-Local-only (not in `FB_COLLECTIONS`): `state.rd` tiempos muertos de rama, `localStorage` `tg_tint_ramadown_v2`.
+Local-only (not in `FB_COLLECTIONS`): `state.rd` tiempos muertos de rama, `localStorage` `tg_tint_ramadown_v2`. The v23 watchdog must not full-reload while a capture form is dirty (ficha `f_`, Rama `br_`, tiempos muertos `dt_`/`dtr_`, compactadora `cmp_`, tejeduría `tejf`); `forceResync` also keeps `LS_KEYS.metas`, `cfgRama`, `estadi`, and `rd`.
 
 ### Fields the page actually stores (do not invent others)
 
