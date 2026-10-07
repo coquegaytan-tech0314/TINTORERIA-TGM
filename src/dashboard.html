@@ -4435,7 +4435,7 @@
           <!-- v13 · Roger: toggle Diario / Semanal -->
           <div class="inline-flex rounded-lg overflow-hidden border border-slate-700" role="tablist" aria-label="Alcance del resumen">
             <button id="resumenScopeDia"     class="px-3 py-2 text-xs font-bold transition" data-scope="dia"     type="button">Diario</button>
-            <button id="resumenScopeSemana"  class="px-3 py-2 text-xs font-bold transition" data-scope="semana" type="button">Semanal (Lun→Dom)</button>
+            <button id="resumenScopeSemana"  class="px-3 py-2 text-xs font-bold transition" data-scope="semana" type="button">Semanal (Lun–Sáb)</button>
           </div>
           <input type="date" id="resumen_fecha" class="field !py-2 !px-3 text-sm !w-auto" />
           <button id="resumenCopyBtn" class="btn btn-primary !py-2 !px-4 text-sm" title="Copiar el mensaje al portapapeles">📋 Copiar para WhatsApp</button>
@@ -7156,7 +7156,7 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
         <h3 id="askDayTitle" class="text-lg font-bold text-white">Preguntar al día</h3>
         <button type="button" id="askDayX" class="btn btn-secondary !min-h-0 !py-1 !px-3 text-sm" aria-label="Cerrar">Cerrar</button>
       </div>
-      <p class="text-xs text-slate-400 mb-3">Borrador de solo lectura con lo que esta pantalla ya tiene cargado. Ayer, la semana pasada (lun→dom ya cerrada) y el mes pasado (mes calendario anterior) salen de esa misma memoria. <b class="text-slate-300">Aceptar no escribe en Firebase</b> ni en el tablet.</p>
+      <p class="text-xs text-slate-400 mb-3">Borrador de solo lectura con lo que esta pantalla ya tiene cargado. Ayer, la semana pasada (lunes a sábado ya cerrado; el domingo se suma si hubo producción) y el mes pasado (mes calendario anterior) salen de esa misma memoria. <b class="text-slate-300">Aceptar no escribe en Firebase</b> ni en el tablet.</p>
       <label class="lbl" for="askDayInput">Pregunta</label>
       <input id="askDayInput" type="text" class="field !text-base !py-3" placeholder="Ej. resumen de ayer" autocomplete="off" enterkeyhint="send" />
       <div id="askDayChips" class="flex flex-wrap gap-2 mt-3">
@@ -8622,6 +8622,73 @@ const todayISO = () => {
   const day = String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 };
+
+/* Semana de producción TGM: lunes 00:00 – sábado 23:59, America/Mexico_City.
+   Tres turnos. El domingo (mantenimiento) se atribuye a la semana lun–sáb
+   que acaba de terminar. «Semana pasada» = ese lun–sáb ya cerrado + su domingo. */
+window.TGM_WEEK = (function () {
+  var TZ = 'America/Mexico_City';
+  var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  function todayISO(date) {
+    var fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    return fmt.format(date || new Date());
+  }
+  function addDaysISO(iso, days) {
+    var p = String(iso || '').split('-').map(Number);
+    if (p.length < 3 || !p[0]) return '';
+    var dt = new Date(Date.UTC(p[0], p[1] - 1, p[2] + days));
+    var y = dt.getUTCFullYear();
+    var m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    var d = String(dt.getUTCDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  function dowISO(iso) {
+    var p = String(iso || '').split('-').map(Number);
+    if (p.length < 3 || !p[0]) return -1;
+    return new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
+  }
+  function weekOf(iso) {
+    var dow = dowISO(iso);
+    if (dow < 0) return null;
+    var back = dow === 0 ? 6 : dow - 1;
+    var mon = addDaysISO(iso, -back);
+    var sat = addDaysISO(mon, 5);
+    var sun = addDaysISO(mon, 6);
+    var dates = [];
+    for (var i = 0; i < 7; i++) dates.push(addDaysISO(mon, i));
+    return { mon: mon, sat: sat, sun: sun, dates: dates };
+  }
+  function semanaPasada(today) {
+    var iso = today || todayISO();
+    if (dowISO(iso) === 0) return weekOf(iso);
+    var cur = weekOf(iso);
+    if (!cur) return null;
+    return weekOf(addDaysISO(cur.mon, -1));
+  }
+  function fmtDay(iso) {
+    var p = String(iso).split('-');
+    return String(Number(p[2])) + ' ' + MESES[Number(p[1]) - 1];
+  }
+  function label(w) {
+    if (!w) return '';
+    return 'Semana lun ' + fmtDay(w.mon) + ' – sáb ' + fmtDay(w.sat) + ' (incluye domingo si hubo producción)';
+  }
+  function mxMidnightMs(iso) {
+    return new Date(iso + 'T00:00:00-06:00').getTime();
+  }
+  return {
+    todayISO: todayISO,
+    addDaysISO: addDaysISO,
+    dowISO: dowISO,
+    weekOf: weekOf,
+    semanaPasada: semanaPasada,
+    label: label,
+    mxMidnightMs: mxMidnightMs
+  };
+})();
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 /** Duración en minutos entre "HH:MM" y "HH:MM", soporta cruzar medianoche */
@@ -10243,9 +10310,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 18;
+  const CURRENT_VERSION = 21;
 
   const CHANGELOG = [
+    {
+      v: 21,
+      date: '2026-10-07',
+      icon: '📅',
+      title: 'Semana de producción lun–sáb',
+      summary: 'La semana de TGM corre de lunes 00:00 a sábado 23:59. Si el domingo hubo producción, esos registros se suman a la semana que acaba de terminar.',
+      bullets: [
+        'Preguntar al día · «semana pasada» usa esa semana ya cerrada y dice el rango y cuántos registros leyó.',
+        'Si ayer fue domingo y no hay registros, lo dice claro.',
+        'El resumen al jefe, el reporte semanal y «esta semana» usan la misma regla.'
+      ],
+      where: 'Preguntar al día · Resumen al jefe · Reporte semanal'
+    },
     {
       v: 18,
       date: '2026-09-25',
@@ -13645,10 +13725,13 @@ function applyRangePreset(preset) {
   customWrap?.classList.add('hidden');
   if (customWrap) customWrap.style.display = 'none';
   if (preset === 'thisWeek') {
-    // Semana actual (lunes a hoy)
-    const dow = (today.getDay() + 6) % 7;
-    from = new Date(today); from.setDate(today.getDate() - dow);
-    to = today;
+    // Semana de producción en curso: lunes 00:00 (CDMX) hasta hoy.
+    // Si hoy es domingo, el lunes es el de la semana que acaba de terminar.
+    const iso = window.TGM_WEEK.todayISO();
+    const w = window.TGM_WEEK.weekOf(iso);
+    fromInp.value = w.mon;
+    toInp.value = iso;
+    return;
   } else if (preset === 'thisMonth') {
     from = new Date(today.getFullYear(), today.getMonth(), 1);
     to   = today;
@@ -13696,12 +13779,10 @@ function getDateRange(range) {
     return { from: d.getTime(), to: d.getTime() + 86400000 - 1, days: 1 };
   }
   if (range === 'week') {
-    const d = new Date();
-    const day = d.getDay(); // 0=Dom, 1=Lun...
-    const diffToMon = (day + 6) % 7;
-    d.setDate(d.getDate() - diffToMon);
-    d.setHours(0,0,0,0);
-    return { from: d.getTime(), to: now.getTime(), days: diffToMon + 1 };
+    const iso = window.TGM_WEEK.todayISO(now);
+    const w = window.TGM_WEEK.weekOf(iso);
+    const dow = window.TGM_WEEK.dowISO(iso);
+    return { from: window.TGM_WEEK.mxMidnightMs(w.mon), to: now.getTime(), days: dow === 0 ? 7 : dow };
   }
   if (range === 'month') {
     const d = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -14243,10 +14324,9 @@ function getDowntimeRange() {
     return { from: d.getTime(), to: d.getTime() + 86400000 - 1 };
   }
   if (rangeVal === 'week') {
-    const d = new Date();
-    const diff = (d.getDay() + 6) % 7;
-    d.setDate(d.getDate() - diff); d.setHours(0,0,0,0);
-    return { from: d.getTime(), to: Date.now() };
+    const iso = window.TGM_WEEK.todayISO();
+    const w = window.TGM_WEEK.weekOf(iso);
+    return { from: window.TGM_WEEK.mxMidnightMs(w.mon), to: Date.now() };
   }
   if (rangeVal === 'month') {
     const d = new Date(); d.setDate(1); d.setHours(0,0,0,0);
@@ -20116,39 +20196,26 @@ function _resumenBuildMessage(fecha, br, comp) {
   return lines.join('\n');
 }
 
-/* v13 · Roger: alcance del resumen (día / semana ISO Lun→Dom) */
+/* v13 · Roger: alcance del resumen (día / semana de producción Lun–Sáb; domingo si hubo) */
 let _resumenScope = 'dia';  // 'dia' | 'semana'
 
-/** Devuelve las fechas ISO YYYY-MM-DD de la semana ISO (Lun→Dom) que contiene refFecha */
+/** Fechas ISO de la semana de producción (Lun…Dom) que contiene refFecha.
+ *  El domingo pertenece al lun–sáb anterior. dates[0]=lunes, dates[5]=sábado, dates[6]=domingo. */
 function _resumenSemanaISODates(refFecha) {
-  const d = new Date((refFecha || todayISO()) + 'T12:00:00');
-  // getDay(): 0=Dom, 1=Lun … 6=Sáb → desplazar al lunes
-  const dow = d.getDay();
-  const daysFromMon = dow === 0 ? 6 : dow - 1;
-  const mon = new Date(d);
-  mon.setDate(d.getDate() - daysFromMon);
-  const dates = [];
-  for (let i = 0; i < 7; i++) {
-    const x = new Date(mon);
-    x.setDate(mon.getDate() + i);
-    const yyyy = x.getFullYear();
-    const mm = String(x.getMonth()+1).padStart(2,'0');
-    const dd = String(x.getDate()).padStart(2,'0');
-    dates.push(`${yyyy}-${mm}-${dd}`);
-  }
-  return dates;  // [Lun…Dom]
+  const w = window.TGM_WEEK.weekOf(refFecha || todayISO());
+  return w ? w.dates.slice() : [];
 }
 
-/** Título humano de la semana ISO: "SEMANA 11–17 AGOSTO 2026" */
+/** Título humano de la semana de producción: "SEMANA 28 SEP – 3 OCT 2026" (lun–sáb). */
 function _resumenSemanaTitulo(refFecha) {
   const dates = _resumenSemanaISODates(refFecha);
   const dMon = new Date(dates[0] + 'T12:00:00');
-  const dDom = new Date(dates[6] + 'T12:00:00');
-  const sameMonth = dMon.getMonth() === dDom.getMonth();
+  const dSat = new Date(dates[5] + 'T12:00:00');
+  const sameMonth = dMon.getMonth() === dSat.getMonth();
   if (sameMonth) {
-    return `SEMANA ${dMon.getDate()}–${dDom.getDate()} ${MESES_ES[dMon.getMonth()]} ${dMon.getFullYear()}`;
+    return `SEMANA ${dMon.getDate()}–${dSat.getDate()} ${MESES_ES[dMon.getMonth()]} ${dMon.getFullYear()}`;
   }
-  return `SEMANA ${dMon.getDate()} ${MESES_ES[dMon.getMonth()]} – ${dDom.getDate()} ${MESES_ES[dDom.getMonth()]} ${dDom.getFullYear()}`;
+  return `SEMANA ${dMon.getDate()} ${MESES_ES[dMon.getMonth()]} – ${dSat.getDate()} ${MESES_ES[dSat.getMonth()]} ${dSat.getFullYear()}`;
 }
 
 /** Agrega los totales Bruckner + Compactadora de una semana ISO (Lun→Dom) */
@@ -20206,6 +20273,7 @@ function _resumenBuildMessageSemana(refFecha, agg) {
     const c = _resumenComputeComp(f);
     const t = (br.totalNeto||0) + (c||0);
     const dow = new Date(f+'T12:00:00').getDay();
+    if (dow === 0 && t <= 0) return;
     const dowShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][dow];
     lines.push(`  ${dowShort} ${f.slice(8,10)}: ${_resumenFmt(t)} kg`);
   });
@@ -20241,7 +20309,7 @@ function renderResumenTerminado() {
   if (_resumenScope === 'semana') {
     const agg = _resumenComputeSemana(fecha);
     if (scopeTitleEl) scopeTitleEl.textContent = '· Resumen semanal';
-    if (scopeHintEl)  scopeHintEl.textContent  = `Semana ISO ${agg.dates[0]} → ${agg.dates[6]} (Lun→Dom) — mismo formato al jefe.`;
+    if (scopeHintEl)  scopeHintEl.textContent  = window.TGM_WEEK.label(window.TGM_WEEK.weekOf(agg.dates[0])) + '.';
     if (ramaHintEl)   ramaHintEl.textContent   = 'kilos de la semana';
     if (compHintEl)   compHintEl.textContent   = 'kilos de la semana';
     const ramaNeto = agg.br.totalNeto || 0;
@@ -20444,7 +20512,7 @@ async function _resumenReloadPronostico() {
 }
 
 /* ===============================================================
-   REPORTE SEMANAL BRUCKNER · semana lunes→domingo
+   REPORTE SEMANAL BRUCKNER · semana de producción lun–sáb (domingo si hubo)
    - Pronóstico editable en línea (guarda en pronostico_dia/{fecha})
    - Causa automática (motivos de paros) + causaExtra del día
    - Charts: barras pronóstico-vs-terminado + línea de eficiencia
@@ -20453,30 +20521,17 @@ let _rsChartProd = null;
 let _rsChartEfi  = null;
 let _rsCurrentMonday = null; // 'YYYY-MM-DD'
 
-/** Devuelve el lunes (00:00) de la semana a la que pertenece la fecha ISO dada */
+/** Lunes de la semana de producción (lun–sáb) a la que pertenece la fecha. El domingo cae en el lunes anterior. */
 function _rsMondayOf(iso) {
-  const d = iso ? new Date(iso + 'T12:00:00') : new Date();
-  const day = d.getDay();           // 0=dom 1=lun ...
-  const diffToMon = (day + 6) % 7;  // domingo→6, lunes→0, ...
-  d.setDate(d.getDate() - diffToMon);
-  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`;
+  const w = window.TGM_WEEK.weekOf(iso || window.TGM_WEEK.todayISO());
+  return w ? w.mon : (iso || todayISO());
 }
 
-/** Devuelve array de 7 fechas ISO (lunes→domingo) a partir del lunes dado.
- *  Convención Roger (PRODUCCION-DIARIO.xlsx): la etiqueta dice "LUN–SÁB" pero el TOTAL
- *  incluye domingo cuando hay producción (a veces se trabaja domingo por demanda).
- *  Por eso pasamos 7 fechas pero el subtítulo muestra hasta el sábado (dates[5]). */
+/** Siete fechas ISO (lunes→domingo) de la semana de producción que empieza ese lunes.
+ *  El subtítulo muestra lun–sáb. El domingo entra en totales solo si esa fecha trae registros. */
 function _rsWeekDates(mondayIso) {
-  const out = [];
-  const base = new Date(mondayIso + 'T12:00:00');
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + i);
-    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-    out.push(`${y}-${m}-${dd}`);
-  }
-  return out;
+  const w = window.TGM_WEEK.weekOf(mondayIso);
+  return w ? w.dates.slice() : [];
 }
 
 /** Etiqueta corta: "LUN 11" para encabezados */
@@ -20486,18 +20541,18 @@ function _rsFechaShort(iso) {
   return `${dias[d.getDay()]} ${d.getDate()}`;
 }
 
-/** Para subtítulo: "Semana del 6 al 11 de julio 2026" (LUN–SÁB, formato Excel de Roger).
- *  Nota: el TOTAL/KPIs internamente sí suman domingo cuando hay lotes (Roger también). */
+/** Para subtítulo: "Semana del 6 al 11 de julio 2026" (lun–sáb).
+ *  El domingo siguiente se suma en los totales cuando esa fecha tiene lotes. */
 function _rsSubtitulo(mondayIso) {
   const dates = _rsWeekDates(mondayIso);
   const mon = new Date(dates[0] + 'T12:00:00');
   const sat = new Date(dates[5] + 'T12:00:00'); // sábado = 6º día (índice 5)
   const mesM = MESES_ES[mon.getMonth()].toLowerCase();
   const mesS = MESES_ES[sat.getMonth()].toLowerCase();
-  if (mon.getMonth() === sat.getMonth()) {
-    return `Semana del ${mon.getDate()} al ${sat.getDate()} de ${mesM} ${mon.getFullYear()}`;
-  }
-  return `Semana del ${mon.getDate()} de ${mesM} al ${sat.getDate()} de ${mesS} ${sat.getFullYear()}`;
+  const base = mon.getMonth() === sat.getMonth()
+    ? `Semana del ${mon.getDate()} al ${sat.getDate()} de ${mesM} ${mon.getFullYear()}`
+    : `Semana del ${mon.getDate()} de ${mesM} al ${sat.getDate()} de ${mesS} ${sat.getFullYear()}`;
+  return base + ' (incluye domingo si hubo producción)';
 }
 
 /** Causa automática: lista de motivos únicos de paros Bruckner en esa fecha + causaExtra */
@@ -26751,14 +26806,13 @@ function _estUpdateChips() {
     const chipDia = document.getElementById('estChipDia');
     if (chipDia) chipDia.textContent = diaKg > 0 ? (Math.round(diaKg).toLocaleString('es-MX') + ' kg') : '0 kg';
 
-    // Semanal: sumar los últimos 7 días de bruck+compact
-    const now = new Date(dateISO + 'T00:00:00');
-    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
+    // Semanal: semana de producción (lun–sáb; domingo si cae en esa semana y ya pasó)
+    const wProd = window.TGM_WEEK.weekOf(String(dateISO).slice(0, 10));
     let semKg = 0;
     const inWeek = (r) => {
-      if (!r || !r.fecha) return false;
-      const d = new Date(String(r.fecha).slice(0,10) + 'T00:00:00');
-      return !isNaN(d.getTime()) && d >= weekStart && d <= now;
+      if (!r || !wProd || !r.fecha) return false;
+      const f = String(r.fecha).slice(0, 10);
+      return f >= wProd.mon && f <= wProd.sun && f <= String(dateISO).slice(0, 10);
     };
     (state.bruck || []).forEach(r => { if (inWeek(r)) semKg += Number(r.kilos) || 0; });
     (state.compact || []).forEach(r => { if (inWeek(r)) semKg += Number(r.kilos) || 0; });
@@ -26769,6 +26823,7 @@ function _estUpdateChips() {
     // Aproximación: fichas de state.prod sin correspondencia en state.bruck/compact este mes
     let ptCount = 0;
     if (Array.isArray(state.prod)) {
+      const now = new Date(String(dateISO).slice(0, 10) + 'T12:00:00');
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const doneLotes = new Set([...(state.compact||[]), ...(state.bruck||[])]
         .filter(r => r && r.fecha && new Date(String(r.fecha).slice(0,10)+'T00:00:00') >= monthStart)
@@ -28746,32 +28801,28 @@ init();
     return isoOf(d);
   }
 
-  // Closed local windows (not rolling "last N days"):
-  // ayer = todayISO − 1 calendar day.
-  // semana = last completed Mon–Sun ISO week before the week that contains today
-  //          (same Lun→Dom as the jefe resumen). Excludes the week in progress.
-  // mes = previous calendar month, day 1 through the last day.
+  // Ventanas cerradas (no son “últimos N días” corridos):
+  // ayer = el día calendario anterior en America/Mexico_City.
+  // semana = lun–sáb de producción ya cerrado + el domingo siguiente
+  //          (esa producción, si existe, pertenece a esa semana).
+  // mes = mes calendario anterior, día 1 hasta el último día.
+  function mxHoy() {
+    return (window.TGM_WEEK && window.TGM_WEEK.todayISO) ? window.TGM_WEEK.todayISO() : hoy();
+  }
+
   function rangeAyer() {
-    var y = addDaysISO(hoy(), -1);
+    var y = (window.TGM_WEEK ? window.TGM_WEEK.addDaysISO(mxHoy(), -1) : addDaysISO(hoy(), -1));
     return { kind: 'ayer', start: y, end: y };
   }
 
   function rangeSemanaPasada() {
-    var d = parseLocalISO(hoy());
-    if (!d) return { kind: 'semana', start: '', end: '' };
-    var dow = d.getDay();
-    var daysFromMon = dow === 0 ? 6 : dow - 1;
-    var thisMon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
-    thisMon.setDate(thisMon.getDate() - daysFromMon);
-    var lastMon = new Date(thisMon.getFullYear(), thisMon.getMonth(), thisMon.getDate(), 12, 0, 0, 0);
-    lastMon.setDate(lastMon.getDate() - 7);
-    var lastSun = new Date(lastMon.getFullYear(), lastMon.getMonth(), lastMon.getDate(), 12, 0, 0, 0);
-    lastSun.setDate(lastSun.getDate() + 6);
-    return { kind: 'semana', start: isoOf(lastMon), end: isoOf(lastSun) };
+    var w = window.TGM_WEEK ? window.TGM_WEEK.semanaPasada(mxHoy()) : null;
+    if (!w) return { kind: 'semana', start: '', end: '' };
+    return { kind: 'semana', start: w.mon, end: w.sun, label: window.TGM_WEEK.label(w), sun: w.sun, mon: w.mon, sat: w.sat };
   }
 
   function rangeMesPasado() {
-    var d = parseLocalISO(hoy());
+    var d = parseLocalISO(mxHoy());
     if (!d) return { kind: 'mes', start: '', end: '' };
     var lastPrev = new Date(d.getFullYear(), d.getMonth(), 1, 12, 0, 0, 0);
     lastPrev.setDate(0);
@@ -28804,6 +28855,7 @@ init();
 
   function rangeLabel(range) {
     if (!range || !range.start) return '—';
+    if (range.label) return range.label;
     if (range.start === range.end) return range.start;
     return range.start + ' → ' + range.end;
   }
@@ -29272,17 +29324,32 @@ init();
   }
 
   function answerResumenRango(range) {
+    var prod = arr('prod').filter(function (r) { return fechaEn(r, range); });
+    var downs = arr('down').filter(function (r) { return fechaEn(r, range); });
+    var br = arr('bruck').filter(function (r) { return fechaEn(r, range); });
+    var comp = arr('compact').filter(function (r) { return fechaEn(r, range); });
+    var tej = arr('tejeduria').filter(function (r) { return tejEn(r, range); });
+    var nRows = prod.length + downs.length + br.length + comp.length + tej.length;
     var isoTxt = rangeLabel(range);
     var title = 'Resumen';
     var intro = '';
     if (range.kind === 'ayer') {
       title = 'Resumen de ayer · ' + (range.start || '—');
-      intro = '<p>Cifras de lo ya cargado en esta tablet para <b>ayer</b>, ' + esc(isoTxt) +
-        ' (el día local anterior). No es una consulta nueva a la nube.</p>';
+      var esDomingo = window.TGM_WEEK && window.TGM_WEEK.dowISO(range.start) === 0;
+      if (esDomingo && nRows === 0) {
+        intro = '<p><b>Ayer fue domingo</b> (' + esc(range.start) +
+          '), día de mantenimiento. No hay registros de ese día en esta pantalla.</p>';
+      } else {
+        intro = '<p>Cifras de lo ya cargado en esta tablet para <b>ayer</b>, ' + esc(isoTxt) +
+          ' (el día calendario anterior). No es una consulta nueva a la nube.</p>';
+      }
     } else if (range.kind === 'semana') {
       title = 'Resumen semana pasada · ' + isoTxt;
-      intro = '<p>Cifras de lo ya cargado en esta tablet para la <b>semana pasada</b>: lunes a domingo ya cerrado, ' + esc(isoTxt) +
-        '. No incluye la semana en curso ni hoy. Si preguntaste «últimos 7 días» o «última semana», es esta misma semana cerrada, no siete días corridos.</p>';
+      intro = '<p><b>' + esc(isoTxt) + '.</b> ' + nRows +
+        (nRows === 1 ? ' registro' : ' registros') + ' en el rango.</p>' +
+        '<p>Cifras de lo ya cargado en esta tablet para la <b>semana pasada</b>: lunes 00:00 a sábado 23:59, hora de la Ciudad de México. ' +
+        'El domingo siguiente entra si hubo producción. No incluye la semana en curso. ' +
+        'Si preguntaste «últimos 7 días» o «última semana», es esta misma semana cerrada, no siete días corridos.</p>';
     } else {
       title = 'Resumen mes pasado · ' + isoTxt;
       intro = '<p>Cifras de lo ya cargado en esta tablet para el <b>mes pasado</b>: mes calendario anterior completo, ' + esc(isoTxt) +
@@ -29291,7 +29358,6 @@ init();
     var cuandoCorto = (range.start && range.start === range.end)
       ? ('con fecha ' + esc(range.start))
       : ('entre ' + esc(range.start || '—') + ' y ' + esc(range.end || '—'));
-    var prod = arr('prod').filter(function (r) { return fechaEn(r, range); });
     var abiertas = openFichas();
     var html = intro;
     if (range.kind === 'semana' || range.kind === 'mes') {
@@ -29308,21 +29374,17 @@ init();
     if (abiertas.length) {
       html += ul(abiertas.slice(0, 5).map(function (r) { return lineFicha(r, false); })) + moreLine(abiertas.length, 5);
     }
-    var downs = arr('down').filter(function (r) { return fechaEn(r, range); });
     var dmin = downs.reduce(function (a, r) { return a + (Number(r.duracionMin) || 0); }, 0);
     html += '<p class="mt-2"><b>Tiempos muertos de máquina.</b> ' + downs.length +
       (downs.length === 1 ? ' paro' : ' paros') + ' ' + cuandoCorto + ' · ' + esc(minLabel(dmin)) + '.</p>';
     if (!downs.length) html += vacioLine(arr('down').length, 'paro de máquina', 'paros de máquina', false, range);
-    var br = arr('bruck').filter(function (r) { return fechaEn(r, range); });
     var g = ramaGroups(br);
     html += '<p class="mt-2"><b>Bruckner / RAMA.</b> Bruckner ' + g.br.length + ' · ' + esc(sumLabel(g.br, 'kilos')) +
       '. Monforts ' + g.mo.length + ' · ' + esc(sumLabel(g.mo, 'kilos')) + '.</p>';
     if (!br.length) html += vacioLine(arr('bruck').length, 'ficha de Bruckner/Monforts', 'fichas de Bruckner/Monforts', true, range);
-    var comp = arr('compact').filter(function (r) { return fechaEn(r, range); });
     html += '<p class="mt-2"><b>Compactadora.</b> ' + comp.length +
       (comp.length === 1 ? ' ficha' : ' fichas') + ' ' + cuandoCorto + ' · ' + esc(sumLabel(comp, 'kilos')) + '.</p>';
     if (!comp.length) html += vacioLine(arr('compact').length, 'ficha de compactadora', 'fichas de compactadora', true, range);
-    var tej = arr('tejeduria').filter(function (r) { return tejEn(r, range); });
     var tejSum = 0, tejAny = false, tejRoll = 0;
     tej.forEach(function (r) {
       var k = tejKg(r);
@@ -29422,7 +29484,7 @@ init();
         return {
           intent: 'unknown',
           title: 'Ese día no está en el resumen',
-          html: '<p>Puedo armar el resumen de <b>ayer</b>, de la <b>semana pasada</b> (lunes a domingo ya cerrado) o del <b>mes pasado</b> (mes calendario anterior), con lo que esta tablet ya tiene cargado. No calculo el anteayer por separado.</p>' + foot()
+          html: '<p>Puedo armar el resumen de <b>ayer</b>, de la <b>semana pasada</b> (lunes a sábado ya cerrado; el domingo se suma si hubo producción) o del <b>mes pasado</b> (mes calendario anterior), con lo que esta tablet ya tiene cargado. No calculo el anteayer por separado.</p>' + foot()
         };
       }
       if (period) return answerResumen(period);
