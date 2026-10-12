@@ -33,9 +33,9 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import {
-    getFirestore, collection, doc, setDoc, deleteDoc, getDocs,
+    getFirestore, collection, doc, setDoc, deleteDoc, getDocs, getDocsFromServer,
     query, orderBy, limit, writeBatch, serverTimestamp, enableIndexedDbPersistence,
-    onSnapshot, addDoc, where, getDoc, Timestamp
+    onSnapshot, addDoc, where, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -58,8 +58,8 @@
   // Exponer helpers al resto del script principal (que no es módulo)
   window.TG_FB = {
     db,
-    collection, doc, setDoc, deleteDoc, getDocs, query, orderBy, limit, writeBatch, serverTimestamp,
-    onSnapshot, addDoc, where, getDoc, Timestamp,
+    collection, doc, setDoc, deleteDoc, getDocs, getDocsFromServer, query, orderBy, limit, writeBatch, serverTimestamp,
+    onSnapshot, addDoc, where, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp,
     ready: true
   };
   // Avisar a la app principal que Firebase ya está listo
@@ -7638,38 +7638,51 @@ const LS_CAPS = {
   'tg_tint_tejeduria_v1':2500     // rollos crudo tejeduría
 };
 
+/** ms de un registro. ts numérico o ISO; si no hay, ts_creacion o fecha. */
+function recordTsMs(x) {
+  if (!x) return 0;
+  const raw = (x.ts != null && x.ts !== '') ? x.ts : (x.ts_creacion || x.fecha || 0);
+  if (typeof raw === 'number' && isFinite(raw)) return raw;
+  const asNum = Number(raw);
+  if (isFinite(asNum) && String(raw).length >= 12 && asNum > 1e11) return asNum;
+  const d = new Date(raw).getTime();
+  return isFinite(d) ? d : 0;
+}
+
+/** Los `cap` registros más nuevos. El arreglo de captura va más nuevo primero;
+ *  slice(-cap) se quedaría con los más viejos. */
+function trimNewestByTs(arr, cap) {
+  const n = Math.max(0, cap | 0);
+  return arr.slice().sort((a, b) => recordTsMs(b) - recordTsMs(a)).slice(0, n);
+}
+window.tgTrimNewestByTs = trimNewestByTs;
+
+/** Tope al reintentar por cuota: no más de ~1000, y nunca por encima del cap de la colección. */
+function quotaRetryCap(configured) {
+  const c = configured || 1000;
+  return Math.min(c, 1000);
+}
+window.tgQuotaRetryCap = quotaRetryCap;
+
 /**
  * save() con safety net:
- * 1) Aplica cap por colección para arrays largos (mantiene los más recientes por ts)
- * 2) Si falla por cuota, purga caches viejos y reintenta una vez
+ * 1) Aplica cap por colección para arrays largos (se queda con los más nuevos por ts)
+ * 2) Si falla por cuota, purga caches viejos y reintenta con un tope menor (~1000)
  * 3) Si sigue fallando, warn silencioso — no interrumpe la operación del dashboard
  */
 function save(k, v) {
   try {
-    // Cap arrays antes de serializar
     let toStore = v;
     if (Array.isArray(v) && LS_CAPS[k] && v.length > LS_CAPS[k]) {
-      // Ordenar por ts descendente si existe, sino tomar los últimos N por posición
-      const cap = LS_CAPS[k];
-      const withTs = v.filter(x => x && (x.ts || x.ts_creacion || x.fecha));
-      if (withTs.length >= v.length * 0.8) {
-        toStore = [...v].sort((a,b) => {
-          const ta = new Date(a.ts || a.ts_creacion || a.fecha || 0).getTime();
-          const tb = new Date(b.ts || b.ts_creacion || b.fecha || 0).getTime();
-          return tb - ta;
-        }).slice(0, cap);
-      } else {
-        toStore = v.slice(-cap);
-      }
+      toStore = trimNewestByTs(v, LS_CAPS[k]);
     }
     localStorage.setItem(k, JSON.stringify(toStore));
   } catch(e) {
     if (e && (e.name === 'QuotaExceededError' || String(e).includes('quota'))) {
-      // Purga caches legacy antes de reintentar
       try { _purgeLegacyCaches(); } catch(_){}
       try {
-        const cap = LS_CAPS[k] || 500;
-        const arr = Array.isArray(v) ? v.slice(-cap) : v;
+        const cap = quotaRetryCap(LS_CAPS[k]);
+        const arr = Array.isArray(v) ? trimNewestByTs(v, cap) : v;
         localStorage.setItem(k, JSON.stringify(arr));
       } catch(e2) {
         console.warn('[save] cuota excedida para', k, '· se omite cache local (Firestore mantiene los datos)');
@@ -8349,8 +8362,31 @@ function cancelSilentRetry() {
   fbConsecutiveFails = 0;
 }
 
+/** true si el snapshot salió de la caché offline. Eso no cuenta como sync. */
+function tgClassifyDocsSnap(snap) {
+  if (snap && snap.metadata && snap.metadata.fromCache) {
+    return { ok: false, code: 'from-cache', message: 'Sin conexión a la nube, mostrando datos guardados' };
+  }
+  return { ok: true, code: 'server', message: '' };
+}
+window.tgClassifyDocsSnap = tgClassifyDocsSnap;
+
+/** Lee la colección en el servidor. Solo si eso falla, usa getDocs (puede ser caché). */
+async function fetchCloudSnap(FB, colName) {
+  const ref = FB.collection(FB.db, colName);
+  if (typeof FB.getDocsFromServer === 'function') {
+    try {
+      return await FB.getDocsFromServer(ref);
+    } catch (serverErr) {
+      console.warn('[FB] getDocsFromServer falló, se intenta la copia local:', colName, serverErr && serverErr.code || serverErr);
+    }
+  }
+  return FB.getDocs(ref);
+}
+
 /** Baja todas las colecciones de Firestore, mezcla con estado local y re-renderiza.
  *  Tolerante a fallos: si una colección falla, las demás siguen.
+ *  Un snapshot fromCache no es éxito: el indicador avisa que son datos guardados.
  */
 async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
   const FB = await whenFbReady();
@@ -8364,7 +8400,7 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
 
     // Promise.allSettled: cada colección sucede/falla independiente
     const results = await Promise.allSettled(
-      keys.map(k => FB.getDocs(FB.collection(FB.db, FB_COLLECTIONS[k])))
+      keys.map(k => fetchCloudSnap(FB, FB_COLLECTIONS[k]))
     );
 
     let totalNew = 0;
@@ -8375,6 +8411,7 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
       const k = keys[i];
       const colName = FB_COLLECTIONS[k];
       if (res.status === 'fulfilled') {
+        const classified = tgClassifyDocsSnap(res.value);
         try {
           const cloudArr = [];
           res.value.forEach(d => cloudArr.push(d.data()));
@@ -8383,7 +8420,13 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
           totalNew += Math.max(0, merged.length - beforeCount);
           state[k] = merged;
           save(LS_KEYS[k], merged);
-          okCount++;
+          if (classified.ok) okCount++;
+          else failures.push({
+            key: k,
+            collection: colName,
+            code: classified.code,
+            message: classified.message
+          });
         } catch (mergeErr) {
           failures.push({
             key: k,
@@ -8435,7 +8478,15 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
     const isDuplicate = (sig === fbLastErrorSig);
     fbLastErrorSig = sig;
 
-    if (okCount > 0) {
+    const cacheFail = failures.some(f => f.code === 'from-cache');
+    if (cacheFail) {
+      const err = new Error('Sin conexión a la nube, mostrando datos guardados');
+      err.fromCache = true;
+      fbLastError = err;
+      console.warn('[FB] lectura desde caché, no se reporta al día:',
+        failures.map(f => `${f.collection}(${f.code})`).join(', '));
+      if (!silent && !isDuplicate) toast('Sin conexión a la nube, mostrando datos guardados', true);
+    } else if (okCount > 0) {
       // Éxito parcial — no marcamos el indicador como rojo persistente
       fbLastError = null;
       console.warn(`[FB] sync parcial: ${okCount}/${keys.length} colecciones OK, fallaron:`,
@@ -8458,7 +8509,7 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
     if (!fromRetry) scheduleSilentRetry();
 
     updateCloudUI();
-    return { ok: okCount > 0, newCount: totalNew, failures };
+    return { ok: okCount > 0 && !cacheFail, newCount: totalNew, failures };
   } catch (e) {
     // Error inesperado (fuera del per-collection settle)
     fbConsecutiveFails++;
@@ -8476,6 +8527,48 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
   }
 }
 
+/** Hora de Ciudad de México del ts más nuevo en state.prod, p. ej. "7 oct 14:05". */
+function newestProdMs() {
+  const rows = (typeof state !== 'undefined' && state && Array.isArray(state.prod)) ? state.prod : [];
+  let best = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const t = recordTsMs(rows[i]);
+    if (t > best) best = t;
+  }
+  return best;
+}
+function mxWeekday(date) {
+  const name = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City', weekday: 'short'
+  }).format(date || new Date());
+  return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[name];
+}
+function newestProdLabel() {
+  const ms = newestProdMs();
+  if (!ms) return '';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Mexico_City',
+    day: 'numeric', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date(ms));
+  const get = (t) => {
+    const p = parts.find(x => x.type === t);
+    return p ? p.value : '';
+  };
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const mon = months[(Number(get('month')) || 1) - 1] || '';
+  return get('day') + ' ' + mon + ' ' + get('hour') + ':' + get('minute');
+}
+/** Ámbar si el dato más nuevo tiene más de 24 h, solo de lunes a sábado (CDMX). */
+function prodDataIsStale() {
+  const ms = newestProdMs();
+  if (!ms) return false;
+  const dow = mxWeekday(new Date());
+  if (dow === 0) return false;
+  return (Date.now() - ms) > 24 * 60 * 60 * 1000;
+}
+window.tgNewestProdLabel = newestProdLabel;
+window.tgProdDataIsStale = prodDataIsStale;
+
 /** Actualiza indicador visual de nube (punto + texto) */
 function updateCloudUI() {
   const dot = document.getElementById('cloudDot');
@@ -8489,12 +8582,20 @@ function updateCloudUI() {
   } else if (fbPendingWrites > 0) {
     color = 'bg-warn';
     text  = `Sincronizando · ${fbPendingWrites} pendiente${fbPendingWrites===1?'':'s'}`;
+  } else if (fbLastError && fbLastError.fromCache) {
+    color = 'bg-warn';
+    const dato = newestProdLabel();
+    text  = 'Sin conexión a la nube, mostrando datos guardados' + (dato ? (' · último dato: ' + dato) : '');
   } else if (fbLastError) {
     color = 'bg-danger';
     text  = 'Error al sincronizar · reintentar';
   } else if (window.TG_FB && window.TG_FB.ready) {
-    color = 'bg-emer-accent';
-    text  = 'Conectado · datos compartidos con la nube';
+    const dato = newestProdLabel();
+    const viejo = prodDataIsStale();
+    color = viejo ? 'bg-warn' : 'bg-emer-accent';
+    text  = dato
+      ? ((viejo ? 'Dato viejo' : 'Conectado') + ' · último dato: ' + dato)
+      : 'Conectado · datos compartidos con la nube';
   } else {
     color = 'bg-slate-500';
     text  = 'Conectando con la nube…';
@@ -10252,9 +10353,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 19;
+  const CURRENT_VERSION = 20;
 
   const CHANGELOG = [
+    {
+      v: 20,
+      date: '2026-10-12',
+      icon: '☁️',
+      title: 'La nube ya no se finge al día',
+      summary: 'Si este equipo no llega al servidor, lo dice. El indicador muestra la fecha del dato más nuevo y Sincronizar ahora limpia la caché vieja del navegador.',
+      bullets: [
+        'Si solo hay datos guardados en el navegador, el punto se pone ámbar: «Sin conexión a la nube, mostrando datos guardados».',
+        'Junto al estado verás «último dato: 7 oct 14:05». Entre semana, si ese dato tiene más de 24 h, el indicador se pone ámbar.',
+        'Sincronizar ahora borra la caché offline antes de recargar. Si se llena la memoria del equipo, se conservan los registros más nuevos.'
+      ],
+      where: 'Indicador de nube · Sincronizar ahora'
+    },
     {
       v: 19,
       date: '2026-09-30',
@@ -28552,11 +28666,16 @@ init();
     var txt  = document.getElementById('tgSyncChipText');
     if (!chip || !txt) return;
     var age = lastSnapshotAt ? (Date.now() - lastSnapshotAt) : Infinity;
-    txt.textContent = formatAge(age);
+    var dato = (window.tgNewestProdLabel && window.tgNewestProdLabel()) || '';
+    txt.textContent = formatAge(age) + (dato ? (' · último dato: ' + dato) : '');
     chip.classList.remove('warn','stale');
     if (!lastSnapshotAt)          chip.classList.add('warn');
     else if (age > 5 * 60 * 1000) chip.classList.add('stale');
     else if (age > 60 * 1000)     chip.classList.add('warn');
+    if (window.tgProdDataIsStale && window.tgProdDataIsStale() && !chip.classList.contains('stale')) {
+      chip.classList.add('warn');
+    }
+    try { if (typeof updateCloudUI === 'function') updateCloudUI(); } catch(e){}
   }
 
   // ======================================================================
@@ -28572,26 +28691,26 @@ init();
     if (document.hidden) return;
     if (!navigator.onLine) return;
     var FB = window.TG_FB;
-    if (!FB || !FB.getDoc || !FB.doc || !FB.db) return;
+    var readServer = FB && FB.getDocFromServer;
+    if (!readServer || !FB.doc || !FB.db) return;
     pingBusy = true;
-    var t0 = Date.now();
     var timeoutId = setTimeout(function(){
-      // Si el getDoc tarda >8s, lo marcamos como no fresco (no tocamos lastSnapshotAt)
+      // Si el servidor no contesta en 8s, no tocamos lastSnapshotAt.
       pingBusy = false;
     }, 8000);
     try {
-      // Escribir presencia propia (ya lo hacía el chat, aquí solo lo leemos)
-      // Preferimos leer chat_presence del usuario actual si existe.
-      FB.getDoc(FB.doc(FB.db, 'chat_presence', '__v23_ping__'))
-        .then(function(){
+      readServer(FB.doc(FB.db, 'chat_presence', '__v23_ping__'))
+        .then(function(snap){
           clearTimeout(timeoutId);
+          if (snap && snap.metadata && snap.metadata.fromCache) {
+            pingBusy = false;
+            return;
+          }
           lastSnapshotAt = Date.now();
           pingBusy = false;
         })
         .catch(function(){
-          // Si el doc no existe o hay permisos, igual la conexión respondió
           clearTimeout(timeoutId);
-          if (Date.now() - t0 < 8000) lastSnapshotAt = Date.now();
           pingBusy = false;
         });
     } catch(e){
@@ -28621,23 +28740,56 @@ init();
       // tg_onboarding no coincide con la clave real (tg_tint_onboarding_v2).
       // Sin el prefijo correcto, cada Sincronizar/auto-refresh borra el tour y vuelve a salir.
       // Local-only (no están en Firestore): metas, config Rama, overrides de Estadística, paros de Rama.
-      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|staticrypt_)/;
+      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_auth_exp_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|tg_tint_shift_op_v1|tg_draft_|staticrypt_)/;
       var keys = [];
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
     } catch(e){}
 
-    // Reload con cache-bust
-    var url = new URL(location.href);
-    url.searchParams.set('v', Date.now().toString(36));
-    if (userTriggered) {
-      // recarga limpia
-      location.replace(url.toString());
-    } else {
-      // reload suave (auto): mismo query
+    function reloadNow() {
+      if (reloadNow.done) return;
+      reloadNow.done = true;
+      var url = new URL(location.href);
+      url.searchParams.set('v', Date.now().toString(36));
       location.replace(url.toString());
     }
+    if (userTriggered) {
+      clearFirestoreOfflineCache().finally(function(){ reloadNow(); });
+      setTimeout(reloadNow, 4000);
+    } else {
+      reloadNow();
+    }
     return true;
+  }
+
+  function deleteFirestoreIdb() {
+    if (!window.indexedDB || !indexedDB.databases) return Promise.resolve();
+    return indexedDB.databases().then(function(dbs) {
+      var names = (dbs || []).map(function(d){ return d && d.name; }).filter(function(n){
+        return n && String(n).toLowerCase().indexOf('firestore') !== -1;
+      });
+      return Promise.all(names.map(function(name) {
+        return new Promise(function(resolve) {
+          var req = indexedDB.deleteDatabase(name);
+          req.onsuccess = req.onerror = req.onblocked = function(){ resolve(); };
+        });
+      }));
+    }).catch(function(e) {
+      console.warn('[FB] borrar IndexedDB firestore', e);
+    });
+  }
+
+  function clearFirestoreOfflineCache() {
+    var FB = window.TG_FB;
+    if (FB && typeof FB.terminate === 'function' && typeof FB.clearIndexedDbPersistence === 'function' && FB.db) {
+      return FB.terminate(FB.db).then(function() {
+        return FB.clearIndexedDbPersistence(FB.db);
+      }).catch(function(e) {
+        console.warn('[FB] terminate/clearIndexedDbPersistence', e && e.code || e);
+        return deleteFirestoreIdb();
+      });
+    }
+    return deleteFirestoreIdb();
   }
 
   // ======================================================================
