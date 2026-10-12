@@ -26200,7 +26200,7 @@ function _estSaveOverrides(obj) {
 }
 function _estFechaISO() {
   const inp = document.getElementById('estFecha');
-  return inp && inp.value ? inp.value : new Date().toISOString().slice(0,10);
+  return inp && inp.value ? inp.value : todayISO();
 }
 function _estFmt(v, d=1) {
   const n = Number(v);
@@ -26213,9 +26213,13 @@ function _estFmtCap(v, d=1) {
   return isFinite(n) && n > 0 ? n.toFixed(d) : '';
 }
 function _estIsSameDay(ts, iso) {
-  if (!ts) return false;
+  if (ts == null || ts === '' || !iso) return false;
+  // "YYYY-MM-DD" es un día de calendario. new Date("2026-10-12") es medianoche UTC
+  // y en Ciudad de México cae en la tarde del 11.
+  if (typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}/.test(ts)) return ts.slice(0, 10) === iso;
   try {
     const d = new Date(ts);
+    if (!isFinite(d.getTime())) return false;
     const isoOf = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     return isoOf === iso;
   } catch(e) { return false; }
@@ -27056,7 +27060,7 @@ function _estShowSub(name) {
 /** Actualiza los contadores de las 3 pill-tabs */
 function _estUpdateChips() {
   try {
-    const dateISO = _estFechaISO ? _estFechaISO() : new Date().toISOString().slice(0,10);
+    const dateISO = _estFechaISO ? _estFechaISO() : todayISO();
     // Día: kg terminados del día (Monforts+Bru+Comp para esa fecha)
     let diaKg = 0;
     (state.bruck || []).forEach(r => {
@@ -27767,7 +27771,7 @@ function renderEstadistica() {
   _estBindOnce();
   // Default fecha = hoy
   const inp = document.getElementById('estFecha');
-  if (inp && !inp.value) inp.value = new Date().toISOString().slice(0,10);
+  if (inp && !inp.value) inp.value = todayISO();
   const dateISO = _estFechaISO();
 
   // Panel de Estado del Día (countdown + turnos)
