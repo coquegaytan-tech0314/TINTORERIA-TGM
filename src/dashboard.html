@@ -8543,8 +8543,7 @@ function mxWeekday(date) {
   }).format(date || new Date());
   return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[name];
 }
-function newestProdLabel() {
-  const ms = newestProdMs();
+function formatMxStamp(ms) {
   if (!ms) return '';
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'America/Mexico_City',
@@ -8558,6 +8557,28 @@ function newestProdLabel() {
   const mon = months[(Number(get('month')) || 1) - 1] || '';
   return get('day') + ' ' + mon + ' ' + get('hour') + ':' + get('minute');
 }
+function newestProdLabel() {
+  return formatMxStamp(newestProdMs());
+}
+/** Fecha del registro más nuevo entre las colecciones pedidas, hora de Ciudad de México. */
+function newestRecordsLabel(keys) {
+  const list = Array.isArray(keys) && keys.length ? keys : ['prod'];
+  let best = 0;
+  list.forEach(k => {
+    const rows = (typeof state !== 'undefined' && state && Array.isArray(state[k])) ? state[k] : [];
+    for (let i = 0; i < rows.length; i++) {
+      const t = recordTsMs(rows[i]);
+      if (t > best) best = t;
+    }
+  });
+  return formatMxStamp(best);
+}
+const EXPORT_CLOUD_LOADING = 'Cargando datos completos de la nube…';
+function exportIncompleteWarning(label) {
+  return label
+    ? ('La descarga puede estar incompleta · último dato: ' + label)
+    : 'La descarga puede estar incompleta · sin fecha de registro en este equipo';
+}
 /** Ámbar si el dato más nuevo tiene más de 24 h, solo de lunes a sábado (CDMX). */
 function prodDataIsStale() {
   const ms = newestProdMs();
@@ -8568,6 +8589,117 @@ function prodDataIsStale() {
 }
 window.tgNewestProdLabel = newestProdLabel;
 window.tgProdDataIsStale = prodDataIsStale;
+window.tgNewestRecordsLabel = newestRecordsLabel;
+window.tgExportIncompleteWarning = exportIncompleteWarning;
+
+/**
+ * Baja del servidor solo las colecciones que un archivo va a leer.
+ * getDocsFromServer únicamente: una respuesta fromCache no se mezcla.
+ * Si el servidor no responde, el estado en memoria se queda como está.
+ */
+async function refreshCollectionsForExport(keys) {
+  const needed = (keys || []).filter(k => FB_COLLECTIONS[k]);
+  const labelKeys = needed.length ? needed : (keys || ['prod']);
+  if (!needed.length) {
+    return { ok: true, incomplete: false, newestLabel: newestRecordsLabel(labelKeys) };
+  }
+  const FB = await whenFbReady();
+  if (!FB || typeof FB.getDocsFromServer !== 'function') {
+    return { ok: false, incomplete: true, newestLabel: newestRecordsLabel(labelKeys) };
+  }
+  let incomplete = false;
+  const results = await Promise.allSettled(needed.map(async (k) => {
+    const snap = await FB.getDocsFromServer(FB.collection(FB.db, FB_COLLECTIONS[k]));
+    const classified = tgClassifyDocsSnap(snap);
+    if (!classified.ok) {
+      const err = new Error(classified.message || 'from-cache');
+      err.code = classified.code || 'from-cache';
+      throw err;
+    }
+    const cloudArr = [];
+    snap.forEach(d => {
+      if (d && typeof d.data === 'function') cloudArr.push(d.data());
+    });
+    return { k, cloudArr };
+  }));
+  results.forEach(res => {
+    if (res.status !== 'fulfilled') { incomplete = true; return; }
+    const k = res.value.k;
+    state[k] = mergeById(state[k] || [], res.value.cloudArr);
+    if (LS_KEYS[k]) save(LS_KEYS[k], state[k]);
+  });
+  return { ok: !incomplete, incomplete, newestLabel: newestRecordsLabel(labelKeys) };
+}
+window.tgRefreshCollectionsForExport = refreshCollectionsForExport;
+
+/** Pronósticos del reporte semanal. No están en FB_COLLECTIONS; se leen aparte y solo del servidor. */
+async function refreshPronosticoDiaForExport() {
+  try {
+    const FB = await whenFbReady();
+    if (!FB || typeof FB.getDocsFromServer !== 'function') return false;
+    if (typeof _pronoCache === 'undefined' || !_pronoCache || typeof _pronoCache.set !== 'function') return false;
+    const snap = await FB.getDocsFromServer(FB.collection(FB.db, 'pronostico_dia'));
+    const classified = tgClassifyDocsSnap(snap);
+    if (!classified.ok) return false;
+    snap.forEach(d => {
+      const data = (d && typeof d.data === 'function') ? (d.data() || {}) : {};
+      const fecha = (d && d.id) || data.fecha;
+      if (!fecha) return;
+      _pronoCache.set(fecha, {
+        pronostico: Number(data.pronostico) || 0,
+        causaExtra: data.causaExtra || ''
+      });
+    });
+    return true;
+  } catch (e) {
+    console.warn('[export] pronostico_dia', e && e.message || e);
+    return false;
+  }
+}
+window.tgRefreshPronosticoDiaForExport = refreshPronosticoDiaForExport;
+
+/**
+ * Desactiva el botón, avisa y espera la lectura del servidor.
+ * Si no hay servidor, avisa que el archivo puede ir incompleto y deja seguir la descarga.
+ */
+async function prepareExport(btn, keys) {
+  if (btn && btn.dataset && btn.dataset.tgExporting === '1') {
+    return { ok: false, incomplete: false, skipped: true, newestLabel: '', finish() {} };
+  }
+  const prevHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    if (!btn.dataset) btn.dataset = {};
+    btn.dataset.tgExporting = '1';
+    btn.disabled = true;
+    if (typeof btn.setAttribute === 'function') btn.setAttribute('aria-busy', 'true');
+    btn.textContent = EXPORT_CLOUD_LOADING;
+  }
+  if (typeof toast === 'function') toast(EXPORT_CLOUD_LOADING);
+  let result;
+  try {
+    result = await refreshCollectionsForExport(keys);
+  } catch (e) {
+    result = { ok: false, incomplete: true, newestLabel: newestRecordsLabel(keys) };
+  }
+  if (!result || result.incomplete) {
+    const msg = exportIncompleteWarning(result && result.newestLabel);
+    if (typeof toast === 'function') toast(msg, true);
+  }
+  return {
+    ok: !!(result && result.ok),
+    incomplete: !result || !!result.incomplete,
+    skipped: false,
+    newestLabel: (result && result.newestLabel) || '',
+    finish() {
+      if (!btn) return;
+      btn.disabled = false;
+      if (btn.dataset) delete btn.dataset.tgExporting;
+      if (typeof btn.removeAttribute === 'function') btn.removeAttribute('aria-busy');
+      btn.innerHTML = prevHtml;
+    }
+  };
+}
+window.tgPrepareExport = prepareExport;
 
 /** Actualiza indicador visual de nube (punto + texto) */
 function updateCloudUI() {
@@ -10365,7 +10497,8 @@ window.TG_WHATSNEW = (function(){
       bullets: [
         'Si solo hay datos guardados en el navegador, el punto se pone ámbar: «Sin conexión a la nube, mostrando datos guardados».',
         'Junto al estado verás «último dato: 7 oct 14:05». Entre semana, si ese dato tiene más de 24 h, el indicador se pone ámbar.',
-        'Sincronizar ahora borra la caché offline antes de recargar. Si se llena la memoria del equipo, se conservan los registros más nuevos.'
+        'Sincronizar ahora borra la caché offline antes de recargar. Si se llena la memoria del equipo, se conservan los registros más nuevos.',
+        'Excel y CSV esperan la lectura del servidor antes de armar el archivo. Si la nube no responde, se avisa que la descarga puede estar incompleta y se muestra la fecha del último dato.'
       ],
       where: 'Indicador de nube · Sincronizar ahora'
     },
@@ -16473,11 +16606,14 @@ function _toSheet(rows, columns){
   return ws;
 }
 
-function exportToExcel(){
+async function exportToExcel(){
   if (typeof XLSX === 'undefined') {
     toast('No se pudo cargar el módulo Excel. Revisa tu conexión.', true);
     return;
   }
+  const _expBtn = document.getElementById('exportBtn');
+  const _expPrep = await prepareExport(_expBtn, ['prod', 'down', 'bruck', 'history']);
+  if (_expPrep.skipped) return;
   try {
     const wb = XLSX.utils.book_new();
     wb.Props = {
@@ -16671,6 +16807,8 @@ function exportToExcel(){
   } catch (err) {
     console.error('Export Excel error:', err);
     toast('Error al exportar a Excel: ' + (err && err.message || err), true);
+  } finally {
+    _expPrep.finish();
   }
 }
 
@@ -16699,7 +16837,7 @@ function _fmtDia(dateISO) {
   } catch(e) { return dateISO; }
 }
 
-function exportDayReport() {
+async function exportDayReport() {
   if (typeof XLSX === 'undefined') {
     toast('No se pudo cargar el módulo Excel. Revisa tu conexión.', true);
     return;
@@ -16707,16 +16845,18 @@ function exportDayReport() {
   const dateISO = (document.getElementById('reportDate') || {}).value || todayISO();
   if (!dateISO) { toast('Selecciona una fecha primero', true); return; }
 
-  const prodRows  = (state.prod || []).filter(r => r.fecha === dateISO);
-  const bruckAll  = (state.bruck || []).filter(r => r.fecha === dateISO);
-  const compRows  = (state.compact || []).filter(r => r.fecha === dateISO);
-
-  if (!prodRows.length && !bruckAll.length && !compRows.length) {
-    toast('No hay fichas para el día ' + dateISO, true);
-    return;
-  }
-
+  const _expBtn = document.getElementById('reportDownloadDayBtn');
+  const _expPrep = await prepareExport(_expBtn, ['prod', 'bruck', 'compact']);
+  if (_expPrep.skipped) return;
   try {
+    const prodRows  = (state.prod || []).filter(r => r.fecha === dateISO);
+    const bruckAll  = (state.bruck || []).filter(r => r.fecha === dateISO);
+    const compRows  = (state.compact || []).filter(r => r.fecha === dateISO);
+
+    if (!prodRows.length && !bruckAll.length && !compRows.length) {
+      toast('No hay fichas para el día ' + dateISO, true);
+      return;
+    }
     const wb = XLSX.utils.book_new();
     wb.Props = {
       Title: 'Tintorería TGM — Reporte del día',
@@ -17056,6 +17196,8 @@ function exportDayReport() {
   } catch (err) {
     console.error('Export día error:', err);
     toast('Error al exportar el día: ' + (err && err.message || err), true);
+  } finally {
+    _expPrep.finish();
   }
 }
 
@@ -21420,14 +21562,23 @@ function bindReporteSemanal() {
     ref.value = _rsCurrentMonday;
     renderReporteSemanal();
   });
-  document.getElementById('rs_printBtn')?.addEventListener('click', () => {
-    // Marca el body para imprimir sólo el card; estilos en <style>
-    document.body.classList.add('print-rs-only');
-    setTimeout(() => {
-      window.print();
-      // Quitar la marca después de un pequeño delay
-      setTimeout(() => document.body.classList.remove('print-rs-only'), 500);
-    }, 50);
+  document.getElementById('rs_printBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('rs_printBtn');
+    const prep = await prepareExport(btn, ['bruck', 'compact']);
+    if (prep.skipped) return;
+    try {
+      const pronoOk = await refreshPronosticoDiaForExport();
+      if (!pronoOk && prep.ok && typeof toast === 'function') toast(exportIncompleteWarning(prep.newestLabel), true);
+      if (typeof renderReporteSemanal === 'function') await renderReporteSemanal();
+      // Marca el body para imprimir sólo el card; estilos en <style>
+      document.body.classList.add('print-rs-only');
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => document.body.classList.remove('print-rs-only'), 500);
+      }, 50);
+    } finally {
+      prep.finish();
+    }
   });
   // Toggle de la regla del proceso (recordatorio del manager). Estado persistido en localStorage.
   (() => {
@@ -21561,10 +21712,16 @@ function bindReporteSemanal() {
     const ok = await _rsCopyToClipboard(txt);
     _rsToast(ok ? '✅ KPIs copiados' : '⚠️ No se pudo copiar');
   });
-  document.getElementById('rs_actExportCSV')?.addEventListener('click', () => {
-    const csv = _rsBuildCSV();
-    if (!csv) { _rsToast('Esperando datos…'); return; }
+  document.getElementById('rs_actExportCSV')?.addEventListener('click', async () => {
+    const btn = document.getElementById('rs_actExportCSV');
+    const prep = await prepareExport(btn, ['bruck', 'compact']);
+    if (prep.skipped) return;
     try {
+      const pronoOk = await refreshPronosticoDiaForExport();
+      if (!pronoOk && prep.ok && typeof toast === 'function') toast(exportIncompleteWarning(prep.newestLabel), true);
+      if (typeof renderReporteSemanal === 'function') await renderReporteSemanal();
+      const csv = _rsBuildCSV();
+      if (!csv) { _rsToast('Esperando datos…'); return; }
       const c = window._rsLastCtx || {};
       const fname = `reporte_semanal_bruckner_${(c.monday||todayISO())}.csv`;
       // BOM para que Excel detecte UTF-8
@@ -21577,6 +21734,8 @@ function bindReporteSemanal() {
       _rsToast('⬇️ CSV descargado');
     } catch(e) {
       _rsToast('⚠️ Error exportando CSV');
+    } finally {
+      prep.finish();
     }
   });
 
@@ -25652,7 +25811,11 @@ function _catAprobarTela(id) {
 }
 
 // —— CSV export ——
-function _catExportCSV() {
+async function _catExportCSV() {
+  const _expBtn = document.getElementById('cat_exportCsv');
+  const _expPrep = await prepareExport(_expBtn, ['telas']);
+  if (_expPrep.skipped) return;
+  try {
   const rows = Array.isArray(state.telas) ? state.telas : [];
   if (rows.length === 0) return;
   const headers = ['nombre','composicion','anchoTotal','anchoUtil','rendimiento','pesoGm2','compatibilidadRama','malla','columnasCm','estabilidad','actualizadoEn'];
@@ -25671,6 +25834,9 @@ function _catExportCSV() {
   a.download = `catalogo_telas_TGM_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+  } finally {
+    _expPrep.finish();
+  }
 }
 
 // —— Eventos (bind una sola vez) ——
@@ -27310,6 +27476,27 @@ function _estToggleTurnoDetail(turnoKey, rows, dateISO) {
   _estRenderTurnoDetail(turnoKey, rows, dateISO);
 }
 
+function _estMakeSourceOf() {
+  const prodIds   = new Set((state.prod   || []).map(r => r && r.id).filter(Boolean));
+  const bruckIds  = new Set((state.bruck  || []).map(r => r && r.id).filter(Boolean));
+  const compIds   = new Set((state.compact|| []).map(r => r && r.id).filter(Boolean));
+  return (r) => {
+    if (!r) return { tag:'?', color:'#94a3b8', bg:'rgba(148,163,184,0.15)' };
+    if (bruckIds.has(r.id))  return { tag:'RAMA', color:'#f59e0b', bg:'rgba(245,158,11,0.15)' };
+    if (compIds.has(r.id))   return { tag:'COMP', color:'#a78bfa', bg:'rgba(167,139,250,0.15)' };
+    if (prodIds.has(r.id))   return { tag:'TINT', color:'#60a5fa', bg:'rgba(96,165,250,0.15)' };
+    return { tag:'?', color:'#94a3b8', bg:'rgba(148,163,184,0.15)' };
+  };
+}
+function _estTurnoRows(turnoKey, dateISO) {
+  const dayMode = _estDayMode();
+  const pack = (dayMode === 'prod') ? _estRecordsByProdDay(dateISO) : _estRecordsInWindow(dateISO);
+  const all = (pack && pack.all) || [];
+  return all.filter(r => {
+    const t = (dayMode === 'prod') ? _prodTurnoForRecord(r) : _estClassifyTurno(new Date(r.ts));
+    return t === turnoKey;
+  });
+}
 function _estRenderTurnoDetail(turnoKey, rows, dateISO) {
   const box    = document.getElementById('estTurnoDetail');
   const iconEl = document.getElementById('estTurnoDetailIcon');
@@ -27333,16 +27520,7 @@ function _estRenderTurnoDetail(turnoKey, rows, dateISO) {
     return;
   }
 
-  // Detectar de qué colección viene cada registro (produccion / bruck / compact)
-  const prodIds   = new Set((state.prod   || []).map(r => r && r.id).filter(Boolean));
-  const bruckIds  = new Set((state.bruck  || []).map(r => r && r.id).filter(Boolean));
-  const compIds   = new Set((state.compact|| []).map(r => r && r.id).filter(Boolean));
-  const sourceOf = (r) => {
-    if (bruckIds.has(r.id))  return { tag:'RAMA', color:'#f59e0b', bg:'rgba(245,158,11,0.15)' };
-    if (compIds.has(r.id))   return { tag:'COMP', color:'#a78bfa', bg:'rgba(167,139,250,0.15)' };
-    if (prodIds.has(r.id))   return { tag:'TINT', color:'#60a5fa', bg:'rgba(96,165,250,0.15)' };
-    return { tag:'?', color:'#94a3b8', bg:'rgba(148,163,184,0.15)' };
-  };
+  const sourceOf = _estMakeSourceOf();
 
   // Ordenar por timestamp ascendente
   const sorted = [...rows].sort((a,b) => (a.ts||0) - (b.ts||0));
@@ -27411,15 +27589,30 @@ function _estRenderTurnoDetail(turnoKey, rows, dateISO) {
   box.classList.remove('hidden');
   box.scrollIntoView({ behavior:'smooth', block:'nearest' });
 
-  // Bind Excel button (idempotente) — usa closure sobre sorted + sourceOf + kgTotal
+  // Bind Excel button. No usa el cierre de esta pintura: vuelve a leer el servidor y rearma las filas.
   const xlsxBtn = document.getElementById('estTurnoDetailXlsx');
   if (xlsxBtn) {
-    xlsxBtn.onclick = () => {
+    xlsxBtn.onclick = async () => {
+      if (typeof XLSX === 'undefined') {
+        if (typeof toast === 'function') toast('La librería de Excel no cargada aún', true);
+        return;
+      }
+      const prep = await prepareExport(xlsxBtn, ['prod', 'bruck', 'compact']);
+      if (prep.skipped) return;
       try {
-        _estExportTurnoXlsx(turnoKey, sorted, sourceOf, kgTotal, dateISO);
+        const fresh = _estTurnoRows(turnoKey, dateISO);
+        if (!fresh.length) {
+          if (typeof toast === 'function') toast('Sin datos para exportar', true);
+          return;
+        }
+        const freshKg = fresh.reduce((a, b) => a + (parseFloat(b.kilos) || 0), 0);
+        const freshSorted = [...fresh].sort((a, b) => (a.ts || 0) - (b.ts || 0));
+        _estExportTurnoXlsx(turnoKey, freshSorted, _estMakeSourceOf(), freshKg, dateISO);
       } catch(err) {
         console.error('Export turno error:', err);
         if (typeof toast === 'function') toast('Error al exportar: ' + err.message, true);
+      } finally {
+        prep.finish();
       }
     };
   }
@@ -27746,8 +27939,12 @@ function renderEstadistica() {
 }
 
 // Exportar el reporte a Excel (una sola hoja con la tabla completa + footer)
-function _estExportExcel() {
+async function _estExportExcel() {
   if (typeof XLSX === 'undefined') { showToast('Excel no cargado'); return; }
+  const _expBtn = document.getElementById('estExportBtn');
+  const _expPrep = await prepareExport(_expBtn, ['prod', 'bruck', 'compact', 'empacado']);
+  if (_expPrep.skipped) return;
+  try {
   const dateISO = _estFechaISO();
   const rows = _estBuildRows(dateISO);
   if (!rows.length) { showToast('Sin datos para exportar'); return; }
@@ -27821,6 +28018,9 @@ function _estExportExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Estadística');
   XLSX.writeFile(wb, `estadistica_reporte_${dateISO}.xlsx`, { compression: true, bookType: 'xlsx' });
   showToast('Excel descargado ✓');
+  } finally {
+    _expPrep.finish();
+  }
 }
 
 init();
