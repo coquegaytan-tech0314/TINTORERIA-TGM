@@ -97,10 +97,7 @@ Dock (izq→der, `data-tab`): **Tejeduría** `tab-tejeduria` · **Ficha** `tab-c
 - **Tubular → Compactadora:** PIQUE 1F/2F, INTERLOCK (y typos), CHIFON, cualquier CARDIGAN, RIB, CUELLOS, PUÑOS. Piqué Atlante/Marsella, Felpa y Jersey → Rama. Ancho de trabajo Rama 1.40–2.10 m (teórico 2.20; `RAMA_DEFAULTS`).
 - **Día de producción (v10):** Turno 3° capturado después de medianoche pertenece al día anterior. Turnos por reloj: 1° 06–14, 2° 14–22, 3° 22–06.
 - **C.B. (Clase B):** la decide Revisado después de Empacado; Empacado solo marca "sospechosos".
-- **Semanas — ⚠️ inconsistencia** (ver §11): según el historial el reporte Semanal usa **Lun–Sáb (6 días)** como el Excel de Roger. En el código actual:
-  - Reporte Semanal Rama (`_rsWeekDates`): suma **7 fechas Lun→Dom**, el subtítulo solo muestra hasta el sábado, y el promedio de pronóstico y "días ≥100% / <85%" se calculan **/6**. El comentario lo explica como "convención Roger: etiqueta LUN–SÁB pero el TOTAL incluye domingo si hubo producción".
-  - Resumen para el jefe (v13, botón "Semanal (Lun→Dom)") y "Preguntar al día → semana pasada": **Lun→Dom ISO**.
-  - Estadística "Semanal" en otro punto suma "los últimos 7 días".
+- **Semana de producción (PR #10):** lunes 00:00 – sábado 23:59, `America/Mexico_City`. El domingo se atribuye a la semana lun–sáb que acaba de terminar. «Semana pasada» es ese lun–sáb ya cerrado más su domingo. Misma regla en Preguntar al día, resumen al jefe, reporte semanal y «esta semana». Ayer y mes pasado no cambian. El filtro «Últimos 7 días» de Eficiencia sigue siendo siete días corridos. Detalle en `METRICS.md`.
 
 ## 6. Datos: de dónde salen los números
 
@@ -210,14 +207,14 @@ Procedimiento:
 8. Retirar el repo/URL gemelo `TINTORERIA-TGM-STATICRYPT`.
 9. Catálogo de telas: composiciones exactas (p. ej. Piqué Olmo es Pol/Alg), faltan mallas, columnas/cm, estabilidad.
 10. Quién puede dar de alta telas rápido (`canAltaTelaRapida`, opciones A/B/C): nunca se respondió.
-11. Definición de semana (§5).
+11. Definición de semana: resuelta en PR #10 (lun–sáb, domingo a la semana que cierra). Ver `METRICS.md`.
 12. Calidad de datos: muchas filas `_review` en Rama feb/may y dudas de transcripción de Tejeduría.
 
 ## 14. Preguntas abiertas — PENDIENTE confirmar con Koke
 
 1. **Seguridad:** ¿qué opción de `security-fix-proposal.md` aplicamos? ¿Rotamos las contraseñas de cortina y candado (el hash y el texto plano viejo están en historial público)?
 2. **`forceResync`:** las claves locales de Estadística, metas, Rama y paros ya se conservan (PR #7). ¿Se ha perdido el rol Jefe en las tablets (`tg_tint_role` sigue fuera de la lista)?
-3. **Semana:** ¿cuál es la oficial para reportes, Lun–Sáb (Excel de Roger) o Lun–Dom (resumen del jefe / Preguntar al día)? ¿El domingo suma al total semanal?
+3. **Semana:** Koke fijó lun–sáb (`America/Mexico_City`); el domingo suma a la semana que acaba de terminar (PR #10, `METRICS.md`).
 4. **Reglas de Firestore:** ¿las reglas en la consola incluyen `tejeduria_rollos`, `chat_typing` y `pronostico_dia`? ¿`estadistica_imports` debe escribir de verdad?
 5. **Roger montaje/suavizado (PR #1):** ¿sigue congelado? Cuando haya GO, ¿se rehace sobre `src/dashboard.html`, y el Resumen del día debe incluir Monforts?
 6. **Este archivo:** ¿reemplaza al `AI_CONTEXT.md` en inglés del repo? Como Koke pide respuestas en inglés, ¿lo quieres en inglés, en español o bilingüe?
