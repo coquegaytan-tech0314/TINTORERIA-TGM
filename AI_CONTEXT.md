@@ -107,8 +107,8 @@ Dock (izq→der, `data-tab`): **Tejeduría** `tab-tejeduria` · **Ficha** `tab-c
 ### Sincronización
 - Guarda **primero** en `localStorage` (`LS_KEYS`), luego `saveToCloud(collKey, record)` / `deleteFromCloud` a Firestore (fire-and-forget; doc id = `record.id`). `saveToCloud` **ignora** cualquier clave que no esté en `FB_COLLECTIONS`.
 - `loadFromCloud()` baja todas las colecciones de `FB_COLLECTIONS`, mezcla por `id` (`mergeById`: gana `ts` más alto) y reescribe `localStorage`. Algunas vistas usan `onSnapshot`. `enableIndexedDbPersistence` activo. Topes `LS_CAPS` (p. ej. 2000 fichas por colección).
-- v23: chip de frescura, heartbeat cada 60 s, watchdog (90 s + 30 s sin snapshots → `forceResync`), auto-refresh cada 5 min si la pantalla está inactiva (sin input enfocado, modal, tour, popover o chat abierto), resync al volver del fondo.
-- **`forceResync()`** borra **todo** `localStorage` excepto: `tg_role…`, `tg_user…`, `tgm.ambience…`, `tg_chat_last_seen`, `tg_tint_auth_v1`, `tg_tint_user_session`, `tg_tint_empleado_id`, `tg_tint_session_lastcheck`, `tg_morning_prompt_date`, `tg_tint_auth_attempts_v1`, `tg_tint_auth_locked_until_v1`, `tg_onboarding…`, `tg_tint_onboarding…`, `staticrypt_…`; luego recarga con `?v=`. ⚠️ Ver riesgo en §11 (datos solo locales).
+- v23: chip de frescura, heartbeat cada 60 s, watchdog (90 s + 30 s sin snapshots → `forceResync`), auto-refresh cada 5 min si la pantalla está inactiva (sin input enfocado, modal, tour, popover o chat abierto), resync al volver del fondo. El watchdog y el auto-refresh **no recargan** si un formulario de captura está a medias (`isCaptureDirty`: ficha `f_`, Rama `br_`, tiempos muertos `dt_`/`dtr_`, compactadora `cmp_`, tejeduría `tejf`).
+- **`forceResync()`** borra `localStorage` excepto: `tg_role…`, `tg_user…`, `tgm.ambience…`, `tg_chat_last_seen`, `tg_tint_auth_v1`, `tg_tint_user_session`, `tg_tint_empleado_id`, `tg_tint_session_lastcheck`, `tg_morning_prompt_date`, `tg_tint_auth_attempts_v1`, `tg_tint_auth_locked_until_v1`, `tg_onboarding…`, `tg_tint_onboarding…`, `staticrypt_…`, y las claves solo locales `tg_tint_metas_v2`, `tg_tint_cfg_rama_v1`, `tg_tint_estadi_v1`, `tg_tint_ramadown_v2`; luego recarga con `?v=`. ⚠️ Siguen en riesgo las banderas de import/backfill y `tg_tint_role` (§12).
 
 ### `LS_KEYS`
 `prod: tg_tint_prod_v2`, `down: tg_tint_down_v2`, `bruck: tg_tint_bruck_v2`, `compact: tg_tint_compact_v1`, `history: tg_tint_history_v2`, `metas: tg_tint_metas_v2`, `rd: tg_tint_ramadown_v2`, `telas: tg_tint_telas_v1`, `cfgRama: tg_tint_cfg_rama_v1`, `estadi: tg_tint_estadi_v1`, `empacado: tg_tint_empacado_v1`, `revisado: tg_tint_revisado_v1`, `tejeduria: tg_tint_tejeduria_v1`, `onboarding: tg_tint_onboarding_v2`. Solo locales (no van a Firestore): `metas`, `rd` (paros de rama), `cfgRama`, `estadi` (overrides de Estadística).
@@ -191,11 +191,7 @@ Procedimiento:
 1. **La cortina StatiCrypt se puede saltar:** el repo es público y Pages sirve `…/src/dashboard.html` (200) y `…/data/estadistica-backfill-2026.json` (200). El historial git público también tiene `index.html` plano (tag `backup-pre-staticrypt-2026-08-02`, commits v9–v14). Propuesta aparte: `security-fix-proposal.md`.
 2. El hash del candado = token `auth` de Firestore y está en código público → las reglas "de cerca" no protegen contra quien lea el repo.
 3. El repo gemelo `TINTORERIA-TGM-STATICRYPT` sigue público y en línea con un `index.html` cifrado viejo (mismo tamaño que el de v15, 17 ago), que probablemente apunta a la misma Firestore, y también publica el JSON de backfill.
-4. **`forceResync` borra datos que solo viven en el dispositivo:**
-   - `tg_tint_estadi_v1` (ediciones manuales de Estadística), `tg_tint_ramadown_v2` (paros de rama), `tg_tint_metas_v2`, `tg_tint_cfg_rama_v1`, `tg_tint_role` (no coincide con el patrón `tg_role`) y las banderas de import/backfill.
-   - Se dispara con "Sincronizar", al tocar el chip, en el auto-refresh de cada 5 min y en el watchdog → las ediciones manuales de Estadística probablemente se pierden y el rol vuelve a Supervisor.
-   - Los auto-importadores y el backfill se re-aplican en cada recarga.
-   - (Lectura de código; no probado en tablet.)
+4. **`forceResync` ya conserva** `tg_tint_estadi_v1`, `tg_tint_ramadown_v2`, `tg_tint_metas_v2` y `tg_tint_cfg_rama_v1`, y no recarga si la captura está a medias. **Sigue borrando** `tg_tint_role` (no coincide con el patrón `tg_role`) y las banderas de import/backfill, así que el rol puede volver a Supervisor y los auto-importadores/backfill se re-aplican en cada recarga. (Lectura de código; no probado en tablet.)
 5. PR **#1** (abierto, 22 ago) = arreglos "Roger montaje/suavizado", **congelado** por Koke; edita el `index.html` descifrado del flujo viejo, así que habría que rehacerlo sobre `src/dashboard.html`. La parte de Monforts ya la cubrió PR #6; el aviso "no se registró en la nube" y el Total Terminado sin Suavizado no están en el código actual.
 6. `_resumenComputeBruck` (Resumen del día) solo suma `rama === 'Bruckner'`, aunque Monforts ya es la rama por defecto.
 7. `tejeduria_rollos.ts` es texto ISO y `mergeById` compara `+ts` (= 0) → en Tejeduría la nube siempre gana al sincronizar.
@@ -220,7 +216,7 @@ Procedimiento:
 ## 14. Preguntas abiertas — PENDIENTE confirmar con Koke
 
 1. **Seguridad:** ¿qué opción de `security-fix-proposal.md` aplicamos? ¿Rotamos las contraseñas de cortina y candado (el hash y el texto plano viejo están en historial público)?
-2. **`forceResync`:** ¿se han perdido ediciones de Estadística o el rol Jefe en las tablets? ¿Autorizas un arreglo mínimo (agregar las claves locales a la lista de "no borrar")?
+2. **`forceResync`:** las claves locales de Estadística, metas, Rama y paros ya se conservan (PR #7). ¿Se ha perdido el rol Jefe en las tablets (`tg_tint_role` sigue fuera de la lista)?
 3. **Semana:** ¿cuál es la oficial para reportes, Lun–Sáb (Excel de Roger) o Lun–Dom (resumen del jefe / Preguntar al día)? ¿El domingo suma al total semanal?
 4. **Reglas de Firestore:** ¿las reglas en la consola incluyen `tejeduria_rollos`, `chat_typing` y `pronostico_dia`? ¿`estadistica_imports` debe escribir de verdad?
 5. **Roger montaje/suavizado (PR #1):** ¿sigue congelado? Cuando haya GO, ¿se rehace sobre `src/dashboard.html`, y el Resumen del día debe incluir Monforts?

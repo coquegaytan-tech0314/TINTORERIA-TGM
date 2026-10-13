@@ -8405,8 +8405,17 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
       }
     });
 
-    // Render aunque haya fallos parciales — lo que sí cargó es útil
+    // Render aunque haya fallos parciales — lo que sí cargó es útil.
+    // Si el operador está escribiendo una celda del plan, no reescribir #planTbody.
+    var _skipPlan = false;
+    try {
+      var _ae = document.activeElement;
+      var _pt = document.getElementById('planTbody');
+      _skipPlan = !!(_ae && _pt && _pt.contains(_ae));
+    } catch (e) {}
+    window._tgSkipPlanRender = _skipPlan;
     if (typeof renderAll === 'function') renderAll();
+    window._tgSkipPlanRender = false;
 
     if (failures.length === 0) {
       // Éxito total — limpia estado de error y cancela reintentos
@@ -10243,9 +10252,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 18;
+  const CURRENT_VERSION = 19;
 
   const CHANGELOG = [
+    {
+      v: 19,
+      date: '2026-09-30',
+      icon: '🛡️',
+      title: 'La captura ya no se borra sola',
+      summary: 'Los formularios ya no se borran con la actualización automática; se conservan metas y configuración de Rama.',
+      bullets: [
+        'Si estás llenando una ficha (Tintorería, Rama, Tiempos Muertos, Compactadora o Tejeduría), la página espera a que guardes o limpies antes de recargar.',
+        'Al volver a la pestaña después de un rato, tampoco se borra lo que ibas escribiendo.',
+        'Metas, configuración de Rama, Estadística y paros de Rama se conservan al sincronizar.'
+      ],
+      where: 'Ficha · Rama · Tiempos Muertos · Compactadora · Tejeduría'
+    },
     {
       v: 18,
       date: '2026-09-25',
@@ -11951,6 +11973,7 @@ function clearProdForm() {
   recalc();
   // 💡 Smart Defaults: pre-llenar sugerencias después de limpiar
   try { if (window.TG_SMART_DEFAULTS) window.TG_SMART_DEFAULTS.applyIfEmpty(); } catch(e){}
+  try { if (window.markCaptureClean) window.markCaptureClean('prod'); } catch(e){}
 }
 
 /* ================================================================
@@ -12361,8 +12384,16 @@ window.saveOpenFichaMotivoNotas = function(id, notas) {
   // No re-render — keep cursor focus in input
 };
 
-// Auto-refresh aging cada 60s para que los colores avancen sin recargar
-setInterval(() => { try { renderOpenFichasPanel(); } catch(e) {} }, 60000);
+// Auto-refresh aging cada 60s para que los colores avancen sin recargar.
+// No reescribir la lista si el operador está en el motivo o en la nota.
+setInterval(() => {
+  try {
+    const list = document.getElementById('openFichasList');
+    const ae = document.activeElement;
+    if (list && ae && list.contains(ae)) return;
+    renderOpenFichasPanel();
+  } catch(e) {}
+}, 60000);
 
 /* ---------------------------------------------------------------
    REPORTE DE PRODUCCIÓN (agrupado por máquina - imita el papel)
@@ -14511,6 +14542,7 @@ function clearDtrForm() {
   const rm = $('#dtr_rama'); if (rm) rm.value = 'Bruckner';
   const ct = $('#dtr_cat'); if (ct) ct.value = 'Mecánico';
   const mv = $('#dtr_motivo'); if (mv) mv.value = '';
+  try { if (window.markCaptureClean) window.markCaptureClean('dtr'); } catch(e){}
 }
 
 function renderRamaDowntime() {
@@ -14616,6 +14648,7 @@ function clearDtForm() {
   $$('.dt-cat-btn').forEach(x => x.classList.remove('active'));
   ['#dt_machine','#dt_hIni','#dt_hFin','#dt_motivo','#dt_notas'].forEach(s => $(s).value = '');
   $('#dt_fecha').value = todayISO();
+  try { if (window.markCaptureClean) window.markCaptureClean('dt'); } catch(e){}
 }
 function renderDowntime() {
   const today = todayISO();
@@ -15205,6 +15238,7 @@ function clearBrForm() {
   $('#br_proceso').value = '';
   const _hint = document.getElementById('brProcesoHint');
   if (_hint) _hint.classList.add('hidden');
+  try { if (window.markCaptureClean) window.markCaptureClean('br'); } catch(e){}
 }
 
 /* Auto-calc metros from kg × rend + auto-calc costo total */
@@ -16936,6 +16970,7 @@ function _planRowId() { return 'p_' + Math.random().toString(36).slice(2,9) + Da
 
 /** Render principal: tabla del plan + banner de avance */
 function renderPlanAvance() {
+  if (window._tgSkipPlanRender) return;
   if (!document.getElementById('planTbody')) return;
   const items = PLAN_STATE.items || [];
   const fecha = PLAN_STATE.fecha || todayISO();
@@ -22350,6 +22385,7 @@ function clearCompactForm(keepDate) {
   document.querySelectorAll('.cmp-motpase-btn').forEach(b => b.classList.toggle('active', b.dataset.mp === 'nuevo'));
   const mpHid = document.getElementById('cmp_motivoPase'); if (mpHid) mpHid.value = 'nuevo';
   _cmpUpdateCostoUI();
+  try { if (window.markCaptureClean) window.markCaptureClean('cmp'); } catch(e){}
 }
 
 function renderCompact() {
@@ -23125,6 +23161,7 @@ function _tejCloseModal() {
   modal.style.display = 'none';
   _tejEditingId = null;
   _tejCurrentRollos = [];
+  try { if (window.markCaptureClean) window.markCaptureClean('tej'); } catch(e){}
 }
 
 function _tejAddRolloFromInput() {
@@ -28358,7 +28395,7 @@ init();
 <!--  1) Chip visible de "actualizado hace Xs" en el header        -->
 <!--  2) Botón "Sincronizar ahora" en el popover Más               -->
 <!--  3) Watchdog: si no llegan snapshots en 90s, reengancha       -->
-<!--  4) Auto-refresh cada 5 min (solo si no hay input/modal abierto) -->
+<!--  4) Auto-refresh cada 5 min (solo si no hay input/modal/formulario a medias) -->
 <!--  5) Cache-bust del HTML vía ?v=<hash> en la URL               -->
 <!-- NADA de esto toca colecciones, formulas, tab order, escala.  -->
 <!-- ============================================================= -->
@@ -28430,6 +28467,73 @@ init();
   var lastSnapshotAt = 0;      // último timestamp de cualquier snapshot Firestore
   var lastAutoRefresh = Date.now();
 
+  // Formularios de captura a medias. La recarga de HTML espera; Firestore sigue.
+  // Se limpia solo cuando corre clearProdForm / clearBrForm / clearDtForm / etc.
+  var CAPTURE_DIRTY = { prod:false, br:false, dt:false, dtr:false, cmp:false, tej:false };
+
+  function formKeyForCaptureId(id){
+    if (!id) return null;
+    var low = String(id).toLowerCase();
+    if (low.indexOf('filter') !== -1 || low.indexOf('filtro') !== -1 || low.indexOf('buscar') !== -1 || low.indexOf('search') !== -1) return null;
+    if (id === 'br_from' || id === 'br_to') return null;
+    if (id.indexOf('f_') === 0) return 'prod';
+    if (id.indexOf('br_') === 0) return 'br';
+    if (id.indexOf('dtr_') === 0) return 'dtr';
+    if (id.indexOf('dt_') === 0) return 'dt';
+    if (id.indexOf('cmp_') === 0) return 'cmp';
+    if (id.indexOf('tejf') === 0) return 'tej';
+    return null;
+  }
+
+  function markCaptureDirty(key){
+    if (key && Object.prototype.hasOwnProperty.call(CAPTURE_DIRTY, key)) CAPTURE_DIRTY[key] = true;
+  }
+  function markCaptureClean(key){
+    if (key && Object.prototype.hasOwnProperty.call(CAPTURE_DIRTY, key)) CAPTURE_DIRTY[key] = false;
+  }
+  function isCaptureDirty(){
+    for (var k in CAPTURE_DIRTY) { if (CAPTURE_DIRTY[k]) return true; }
+    return false;
+  }
+  window.isCaptureDirty = isCaptureDirty;
+  window.markCaptureClean = markCaptureClean;
+
+  function installCaptureDirtyTracking(){
+    if (installCaptureDirtyTracking.done) return;
+    installCaptureDirtyTracking.done = true;
+    function onField(e){
+      var t = e.target;
+      if (!t || !t.tagName) return;
+      var tag = t.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+      markCaptureDirty(formKeyForCaptureId(t.id));
+    }
+    document.addEventListener('input', onField, true);
+    document.addEventListener('change', onField, true);
+    var chips = [
+      ['machine-btn', 'prod'],
+      ['proceso-btn', 'prod'],
+      ['shift-btn', 'prod'],
+      ['br-proc-btn', 'br'],
+      ['br-motpase-btn', 'br'],
+      ['cmp-proc-btn', 'cmp'],
+      ['cmp-motpase-btn', 'cmp'],
+      ['dt-cat-btn', 'dt']
+    ];
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      if (!t || !t.closest) return;
+      if (t.closest('#cerrarFichaModal') || t.closest('#openFichasList')) return;
+      for (var i = 0; i < chips.length; i++) {
+        var btn = t.closest('.' + chips[i][0]);
+        if (!btn) continue;
+        if (btn.classList.contains('cf-shift-btn') || btn.classList.contains('br-proc-filter')) return;
+        markCaptureDirty(chips[i][1]);
+        return;
+      }
+    }, true);
+  }
+
   function formatAge(ms){
     if (!lastSnapshotAt) return 'esperando datos…';
     var s = Math.floor(ms / 1000);
@@ -28500,6 +28604,9 @@ init();
   // 3) Force resync: limpia caches y recarga con cache-bust
   // ======================================================================
   function forceResync(userTriggered){
+    // Recarga automática: si hay ficha a medias, modal o foco, no purgar ni recargar.
+    // El tick siguiente vuelve a intentar. "Sincronizar ahora" (usuario) sí recarga.
+    if (!userTriggered && !isSafeToAutoRefresh()) return false;
     // Aviso rápido (chip amber)
     var chip = document.getElementById('tgSyncChip');
     var txt  = document.getElementById('tgSyncChipText');
@@ -28513,7 +28620,8 @@ init();
       // Antes v23 los borraba → auto-refresh sacaba al operador al lock.
       // tg_onboarding no coincide con la clave real (tg_tint_onboarding_v2).
       // Sin el prefijo correcto, cada Sincronizar/auto-refresh borra el tour y vuelve a salir.
-      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|staticrypt_)/;
+      // Local-only (no están en Firestore): metas, config Rama, overrides de Estadística, paros de Rama.
+      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|staticrypt_)/;
       var keys = [];
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
@@ -28529,6 +28637,7 @@ init();
       // reload suave (auto): mismo query
       location.replace(url.toString());
     }
+    return true;
   }
 
   // ======================================================================
@@ -28556,7 +28665,8 @@ init();
       setTimeout(function(){
         var age2 = Date.now() - lastSnapshotAt;
         if (age2 > 90 * 1000 && !document.hidden && navigator.onLine) {
-          forceResync(false);
+          // Si hay captura a medias, no recargar. El próximo tick del watchdog reintenta.
+          if (!forceResync(false)) watchdogWarned = false;
         } else {
           watchdogWarned = false;
         }
@@ -28570,28 +28680,39 @@ init();
   // 5) Auto-refresh cada 5 min (defensivo). Solo si:
   //    - Tab visible
   //    - Online
+  //    - Ningún formulario de captura está a medias (isCaptureDirty)
   //    - No hay input/textarea/select con foco (no interrumpir a nadie)
   //    - No hay modal abierto (fichas, editor, etc.)
   //    - Han pasado >= 5 min del último refresh
+  //    Si no es seguro, no se avanza el reloj: el próximo tick reintenta.
   // ======================================================================
+  function isElShown(el){
+    if (!el || el.classList.contains('hidden')) return false;
+    var cs = null;
+    try { cs = window.getComputedStyle(el); } catch(e) {}
+    if (cs && (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse')) return false;
+    return el.getClientRects().length > 0;
+  }
+
   function isSafeToAutoRefresh(){
     if (document.hidden || !navigator.onLine) return false;
-    // Algún input activo?
+    // Ficha, Rama, tiempos muertos, compactadora o tejeduría a medias
+    if (isCaptureDirty()) return false;
+    // Input, textarea o select con foco — incluye la captura (f_, br_, dt_, dtr_, cmp_, tejf)
     var el = document.activeElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) {
       return false;
     }
-    // Algún modal visible? (buscamos overlays z-[110..126] o pattern fixed inset-0 visible)
+    // Algún modal visible? offsetParent es null en position:fixed; usar estilo computado.
     var modals = document.querySelectorAll('.fixed.inset-0.z-\\[110\\], .fixed.inset-0.z-\\[120\\], .fixed.inset-0.z-\\[125\\], .fixed.inset-0.z-\\[126\\]');
     for (var i = 0; i < modals.length; i++) {
-      var m = modals[i];
-      if (!m.classList.contains('hidden') && m.offsetParent !== null) return false;
+      if (isElShown(modals[i])) return false;
     }
     // Tour de bienvenida abierto: no recargar encima del operador
     if (document.getElementById('onboardingOverlay')) return false;
     // Popover "Más" abierto?
     var pop = document.getElementById('tabMorePopover');
-    if (pop && !pop.classList.contains('hidden') && pop.offsetParent !== null) return false;
+    if (pop && isElShown(pop)) return false;
     // Popover de presencia?
     var pres = document.getElementById('tgPresencePopover');
     if (pres && pres.classList.contains('open')) return false;
@@ -28644,6 +28765,7 @@ init();
   // Boot
   // ======================================================================
   function boot(){
+    installCaptureDirtyTracking();
     installSyncChip();
     installMasButton();
     setInterval(tickSyncChip, 5 * 1000);
@@ -28658,7 +28780,9 @@ init();
     document.addEventListener('visibilitychange', function(){
       if (!document.hidden) {
         tickSyncChip();
-        // Si al volver el tab la data tiene más de 5 min de vieja, sync inmediato
+        // Si al volver el tab la data tiene más de 5 min de vieja, sync inmediato.
+        // Con captura a medias, isSafeToAutoRefresh es false: no recargar.
+        // autoRefreshTick (cada 60s) reintenta cuando ya se guardó o se limpió.
         if (lastSnapshotAt && (Date.now() - lastSnapshotAt) > 5 * 60 * 1000 && isSafeToAutoRefresh()) {
           forceResync(false);
         }
@@ -28676,7 +28800,12 @@ init();
   window.TG = window.TG || {};
   window.TG.sync = {
     now: function(){ forceResync(true); },
-    lastSnapshotAt: function(){ return lastSnapshotAt; }
+    lastSnapshotAt: function(){ return lastSnapshotAt; },
+    setLastSnapshotAt: function(ts){ lastSnapshotAt = +ts || 0; },
+    setLastAutoRefresh: function(ts){ lastAutoRefresh = +ts || 0; },
+    autoRefreshTick: function(){ autoRefreshTick(); },
+    watchdog: function(){ watchdog(); },
+    isSafeToAutoRefresh: function(){ return isSafeToAutoRefresh(); }
   };
 })();
 </script>
