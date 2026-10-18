@@ -35,7 +35,7 @@
   import {
     getFirestore, collection, doc, setDoc, deleteDoc, getDocs, getDocsFromServer,
     query, orderBy, limit, writeBatch, serverTimestamp, enableIndexedDbPersistence,
-    onSnapshot, addDoc, where, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp
+    onSnapshot, addDoc, where, documentId, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -59,7 +59,7 @@
   window.TG_FB = {
     db,
     collection, doc, setDoc, deleteDoc, getDocs, getDocsFromServer, query, orderBy, limit, writeBatch, serverTimestamp,
-    onSnapshot, addDoc, where, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp,
+    onSnapshot, addDoc, where, documentId, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp,
     ready: true
   };
   // Avisar a la app principal que Firebase ya está listo
@@ -8310,6 +8310,14 @@ let fbLastErrorSig = '';       // firma del último error mostrado (para no repe
 let fbRetryTimer = null;       // timer de reintento exponencial silencioso
 let fbRetryDelay = 30000;      // arranca en 30s, sube hasta 5 min
 let fbConsecutiveFails = 0;    // # de loadFromCloud que fallaron parcial/total seguidos
+let fbLastServerSyncAt = 0;   // última lectura que sí salió del servidor (no de la caché)
+const EXPORT_SYNC_FRESH_MS = 2 * 60 * 1000;
+const CLOUD_RECENT_DAYS = 45;
+// Colecciones grandes: en la carga solo se piden los días recientes, nunca la historia completa.
+const CLOUD_HEAVY_KEYS = {
+  prod: 1, down: 1, bruck: 1, compact: 1, history: 1,
+  empacado: 1, revisado: 1, tejeduria: 1, planDia: 1, planDiaComp: 1
+};
 
 /** Espera a que el SDK de Firebase esté listo */
 function whenFbReady() {
@@ -8432,22 +8440,112 @@ function tgClassifyDocsSnap(snap) {
 }
 window.tgClassifyDocsSnap = tgClassifyDocsSnap;
 
-/** Lee la colección en el servidor. Solo si eso falla, usa getDocs (puede ser caché). */
-async function fetchCloudSnap(FB, colName) {
-  const ref = FB.collection(FB.db, colName);
-  if (typeof FB.getDocsFromServer === 'function') {
-    try {
-      return await FB.getDocsFromServer(ref);
-    } catch (serverErr) {
-      console.warn('[FB] getDocsFromServer falló, se intenta la copia local:', colName, serverErr && serverErr.code || serverErr);
+/** Día calendario de hace N días, hora de Ciudad de México. */
+function cloudCutoffISO(days) {
+  const n = days == null ? CLOUD_RECENT_DAYS : days;
+  try {
+    if (window.TGM_WEEK && window.TGM_WEEK.todayISO && window.TGM_WEEK.addDaysISO) {
+      return window.TGM_WEEK.addDaysISO(window.TGM_WEEK.todayISO(), -n);
     }
+  } catch (e) {}
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+function cloudRecentRange() {
+  return { start: cloudCutoffISO(CLOUD_RECENT_DAYS), end: '' };
+}
+function cloudRangeStartMs(iso) {
+  if (!iso) return 0;
+  try {
+    if (window.TGM_WEEK && window.TGM_WEEK.mxMidnightMs) return window.TGM_WEEK.mxMidnightMs(iso);
+  } catch (e) {}
+  return new Date(iso + 'T00:00:00-06:00').getTime();
+}
+function cloudRangeEndMs(iso) {
+  if (!iso) return 0;
+  let next = '';
+  try {
+    if (window.TGM_WEEK && window.TGM_WEEK.addDaysISO) next = window.TGM_WEEK.addDaysISO(iso, 1);
+  } catch (e) {}
+  if (!next) return new Date(iso + 'T23:59:59-06:00').getTime() + 1;
+  return cloudRangeStartMs(next);
+}
+/** true si el registro cae en el rango (fecha o ts). Sin rango, se queda. */
+function rowInCloudRange(row, range) {
+  if (!range || !range.start) return true;
+  const fecha = row && (row.fecha || row.fechaProd);
+  if (typeof fecha === 'string' && fecha.length >= 10) {
+    const f = fecha.slice(0, 10);
+    if (f < range.start) return false;
+    if (range.end && f > range.end) return false;
+    return true;
+  }
+  const ms = recordTsMs(row);
+  if (!ms) return false;
+  if (ms < cloudRangeStartMs(range.start)) return false;
+  if (range.end && ms >= cloudRangeEndMs(range.end)) return false;
+  return true;
+}
+function noteServerSync() { fbLastServerSyncAt = Date.now(); }
+window.tgCloudRecentRange = cloudRecentRange;
+window.tgRowInCloudRange = rowInCloudRange;
+
+/**
+ * Lectura ligera. La carga usa getDocs (caché primero), nunca getDocsFromServer
+ * de la colección entera. Una lectura de servidor, si hace falta, va acotada
+ * por fecha o ts (p. ej. 45 días, o el rango del archivo).
+ */
+async function readCloudSnap(FB, colName, range, server) {
+  const ref = FB.collection(FB.db, colName);
+  const attempts = [];
+  if (range && range.start && typeof FB.query === 'function' && typeof FB.where === 'function') {
+    const fechaParts = [FB.where('fecha', '>=', range.start)];
+    if (range.end) fechaParts.push(FB.where('fecha', '<=', range.end));
+    attempts.push(function(){ return FB.query(ref, ...fechaParts); });
+    if (colName === 'historial') {
+      const tsParts = [FB.where('ts', '>=', cloudRangeStartMs(range.start))];
+      if (range.end) tsParts.push(FB.where('ts', '<', cloudRangeEndMs(range.end)));
+      attempts.push(function(){ return FB.query(ref, ...tsParts); });
+    }
+  }
+  let lastErr = null;
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const q = attempts[i]();
+      if (server && typeof FB.getDocsFromServer === 'function') return await FB.getDocsFromServer(q);
+      return await FB.getDocs(q);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (server) {
+    const err = lastErr || new Error('sin lectura acotada');
+    err.code = (lastErr && lastErr.code) || 'unbounded';
+    throw err;
   }
   return FB.getDocs(ref);
 }
+window.tgReadCloudSnap = readCloudSnap;
 
-/** Baja todas las colecciones de Firestore, mezcla con estado local y re-renderiza.
+/** Caché primero (getDocs). fromCache solo pinta el chip ámbar; no dispara una bajada completa. */
+async function fetchCloudSnap(FB, colName, key) {
+  const range = CLOUD_HEAVY_KEYS[key] ? cloudRecentRange() : null;
+  try {
+    return await readCloudSnap(FB, colName, range, false);
+  } catch (e) {
+    console.warn('[FB] lectura reciente falló, se usa la caché:', colName, e && e.code || e);
+    return FB.getDocs(FB.collection(FB.db, colName));
+  }
+}
+
+/** Baja las colecciones de Firestore, mezcla con estado local y re-renderiza.
+ *  Una colección a la vez, para no tener todos los snapshots en memoria.
  *  Tolerante a fallos: si una colección falla, las demás siguen.
- *  Un snapshot fromCache no es éxito: el indicador avisa que son datos guardados.
+ *  fromCache no obliga a bajar la colección entera: solo pinta el chip ámbar.
  */
 async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
   const FB = await whenFbReady();
@@ -8459,55 +8557,61 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
     setSyncSpinning(true);
     const keys = Object.keys(FB_COLLECTIONS); // prod, down, bruck, history
 
-    // Promise.allSettled: cada colección sucede/falla independiente
-    const results = await Promise.allSettled(
-      keys.map(k => fetchCloudSnap(FB, FB_COLLECTIONS[k]))
-    );
-
     let totalNew = 0;
     let okCount = 0;
     const failures = []; // { key, collection, code, message }
 
-    results.forEach((res, i) => {
+    for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
       const colName = FB_COLLECTIONS[k];
-      if (res.status === 'fulfilled') {
-        const classified = tgClassifyDocsSnap(res.value);
-        try {
-          const cloudArr = [];
-          res.value.forEach(d => cloudArr.push(d.data()));
-          const beforeCount = (state[k] || []).length;
-          const merged = mergeById(state[k] || [], cloudArr);
-          totalNew += Math.max(0, merged.length - beforeCount);
-          state[k] = merged;
-          save(LS_KEYS[k], merged);
-          if (classified.ok) okCount++;
-          else failures.push({
+      let snap = null;
+      try {
+        snap = await fetchCloudSnap(FB, colName, k);
+      } catch (err) {
+        const reason = err || {};
+        failures.push({
+          key: k,
+          collection: colName,
+          code: reason.code || 'unknown',
+          message: reason.message || String(reason)
+        });
+        console.warn(`[FB] colección '${colName}' falló:`, reason.code || '', reason.message || reason);
+        continue;
+      }
+      const classified = tgClassifyDocsSnap(snap);
+      try {
+        const range = CLOUD_HEAVY_KEYS[k] ? cloudRecentRange() : null;
+        const cloudArr = [];
+        snap.forEach(d => {
+          const row = (d && typeof d.data === 'function') ? d.data() : null;
+          if (row && rowInCloudRange(row, range)) cloudArr.push(row);
+        });
+        snap = null;
+        const beforeCount = (state[k] || []).length;
+        const merged = mergeById(state[k] || [], cloudArr);
+        totalNew += Math.max(0, merged.length - beforeCount);
+        state[k] = merged;
+        save(LS_KEYS[k], merged);
+        if (classified.ok) {
+          okCount++;
+        } else {
+          failures.push({
             key: k,
             collection: colName,
             code: classified.code,
             message: classified.message
           });
-        } catch (mergeErr) {
-          failures.push({
-            key: k,
-            collection: colName,
-            code: 'merge-error',
-            message: mergeErr && mergeErr.message || String(mergeErr)
-          });
-          console.warn(`[FB] error procesando '${colName}':`, mergeErr);
         }
-      } else {
-        const err = res.reason || {};
+      } catch (mergeErr) {
         failures.push({
           key: k,
           collection: colName,
-          code: err.code || 'unknown',
-          message: err.message || String(err)
+          code: 'merge-error',
+          message: mergeErr && mergeErr.message || String(mergeErr)
         });
-        console.warn(`[FB] colección '${colName}' falló:`, err.code || '', err.message || err);
+        console.warn(`[FB] error procesando '${colName}':`, mergeErr);
       }
-    });
+    }
 
     // Render aunque haya fallos parciales — lo que sí cargó es útil.
     // Si el operador está escribiendo una celda del plan, no reescribir #planTbody.
@@ -8522,7 +8626,9 @@ async function loadFromCloud({ silent = false, fromRetry = false } = {}) {
     window._tgSkipPlanRender = false;
 
     if (failures.length === 0) {
-      // Éxito total — limpia estado de error y cancela reintentos
+      // Éxito total — limpia estado de error y cancela reintentos.
+      // Una exportación en los siguientes ~2 min no vuelve a pedir la nube.
+      noteServerSync();
       fbLastError = null;
       fbLastErrorSig = '';
       cancelSilentRetry();
@@ -8634,7 +8740,7 @@ function newestRecordsLabel(keys) {
   });
   return formatMxStamp(best);
 }
-const EXPORT_CLOUD_LOADING = 'Cargando datos completos de la nube…';
+const EXPORT_CLOUD_LOADING = 'Cargando datos…';
 function exportIncompleteWarning(label) {
   return label
     ? ('La descarga puede estar incompleta · último dato: ' + label)
@@ -8654,63 +8760,92 @@ window.tgNewestRecordsLabel = newestRecordsLabel;
 window.tgExportIncompleteWarning = exportIncompleteWarning;
 
 /**
- * Baja del servidor solo las colecciones que un archivo va a leer.
- * getDocsFromServer únicamente: una respuesta fromCache no se mezcla.
- * Si el servidor no responde, el estado en memoria se queda como está.
+ * Baja solo las colecciones y el rango de fechas que el archivo va a usar.
+ * Una colección a la vez. Si la última lectura de servidor tiene menos de ~2 min, no repite.
+ * Una respuesta fromCache no se mezcla. Si el servidor no responde, el estado local se queda.
  */
-async function refreshCollectionsForExport(keys) {
+async function refreshCollectionsForExport(keys, range) {
   const needed = (keys || []).filter(k => FB_COLLECTIONS[k]);
   const labelKeys = needed.length ? needed : (keys || ['prod']);
+  const newestLabel = () => newestRecordsLabel(labelKeys);
   if (!needed.length) {
-    return { ok: true, incomplete: false, newestLabel: newestRecordsLabel(labelKeys) };
+    return { ok: true, incomplete: false, newestLabel: newestLabel() };
+  }
+  if (fbLastServerSyncAt && (Date.now() - fbLastServerSyncAt) < EXPORT_SYNC_FRESH_MS) {
+    return { ok: true, incomplete: false, fresh: true, newestLabel: newestLabel() };
   }
   const FB = await whenFbReady();
-  if (!FB || typeof FB.getDocsFromServer !== 'function') {
-    return { ok: false, incomplete: true, newestLabel: newestRecordsLabel(labelKeys) };
+  if (!FB || typeof FB.getDocs !== 'function') {
+    return { ok: false, incomplete: true, newestLabel: newestLabel() };
   }
   let incomplete = false;
-  const results = await Promise.allSettled(needed.map(async (k) => {
-    const snap = await FB.getDocsFromServer(FB.collection(FB.db, FB_COLLECTIONS[k]));
+  let sawServer = false;
+  for (let i = 0; i < needed.length; i++) {
+    const k = needed[i];
+    const useRange = range && range.start
+      ? range
+      : (CLOUD_HEAVY_KEYS[k] ? cloudRecentRange() : null);
+    const wantServer = !!(useRange && useRange.start);
+    let snap = null;
+    try {
+      snap = await readCloudSnap(FB, FB_COLLECTIONS[k], useRange, wantServer);
+    } catch (e) {
+      incomplete = true;
+      console.warn('[export]', FB_COLLECTIONS[k], e && e.code || e);
+      continue;
+    }
     const classified = tgClassifyDocsSnap(snap);
     if (!classified.ok) {
-      const err = new Error(classified.message || 'from-cache');
-      err.code = classified.code || 'from-cache';
-      throw err;
+      incomplete = true;
+      snap = null;
+      continue;
     }
     const cloudArr = [];
     snap.forEach(d => {
-      if (d && typeof d.data === 'function') cloudArr.push(d.data());
+      const row = (d && typeof d.data === 'function') ? d.data() : null;
+      if (row && rowInCloudRange(row, useRange)) cloudArr.push(row);
     });
-    return { k, cloudArr };
-  }));
-  results.forEach(res => {
-    if (res.status !== 'fulfilled') { incomplete = true; return; }
-    const k = res.value.k;
-    state[k] = mergeById(state[k] || [], res.value.cloudArr);
+    snap = null;
+    state[k] = mergeById(state[k] || [], cloudArr);
     if (LS_KEYS[k]) save(LS_KEYS[k], state[k]);
-  });
-  return { ok: !incomplete, incomplete, newestLabel: newestRecordsLabel(labelKeys) };
+    sawServer = true;
+  }
+  if (sawServer) noteServerSync();
+  return { ok: !incomplete, incomplete, newestLabel: newestLabel() };
 }
 window.tgRefreshCollectionsForExport = refreshCollectionsForExport;
 
-/** Pronósticos del reporte semanal. No están en FB_COLLECTIONS; se leen aparte y solo del servidor. */
-async function refreshPronosticoDiaForExport() {
+/** Pronósticos del reporte semanal, solo las fechas del reporte. No baja la colección entera. */
+async function refreshPronosticoDiaForExport(range) {
   try {
     const FB = await whenFbReady();
-    if (!FB || typeof FB.getDocsFromServer !== 'function') return false;
+    if (!FB || typeof FB.getDocs !== 'function') return false;
     if (typeof _pronoCache === 'undefined' || !_pronoCache || typeof _pronoCache.set !== 'function') return false;
-    const snap = await FB.getDocsFromServer(FB.collection(FB.db, 'pronostico_dia'));
+    const ref = FB.collection(FB.db, 'pronostico_dia');
+    let snap;
+    if (range && range.start && typeof FB.query === 'function' && typeof FB.where === 'function' && typeof FB.documentId === 'function' && typeof FB.getDocsFromServer === 'function') {
+      const end = range.end || range.start;
+      snap = await FB.getDocsFromServer(FB.query(
+        ref,
+        FB.where(FB.documentId(), '>=', range.start),
+        FB.where(FB.documentId(), '<=', end)
+      ));
+    } else {
+      return false;
+    }
     const classified = tgClassifyDocsSnap(snap);
     if (!classified.ok) return false;
     snap.forEach(d => {
       const data = (d && typeof d.data === 'function') ? (d.data() || {}) : {};
       const fecha = (d && d.id) || data.fecha;
       if (!fecha) return;
+      if (range && range.start && (fecha < range.start || (range.end && fecha > range.end))) return;
       _pronoCache.set(fecha, {
         pronostico: Number(data.pronostico) || 0,
         causaExtra: data.causaExtra || ''
       });
     });
+    noteServerSync();
     return true;
   } catch (e) {
     console.warn('[export] pronostico_dia', e && e.message || e);
@@ -8723,7 +8858,7 @@ window.tgRefreshPronosticoDiaForExport = refreshPronosticoDiaForExport;
  * Desactiva el botón, avisa y espera la lectura del servidor.
  * Si no hay servidor, avisa que el archivo puede ir incompleto y deja seguir la descarga.
  */
-async function prepareExport(btn, keys) {
+async function prepareExport(btn, keys, range) {
   if (btn && btn.dataset && btn.dataset.tgExporting === '1') {
     return { ok: false, incomplete: false, skipped: true, newestLabel: '', finish() {} };
   }
@@ -8738,7 +8873,7 @@ async function prepareExport(btn, keys) {
   if (typeof toast === 'function') toast(EXPORT_CLOUD_LOADING);
   let result;
   try {
-    result = await refreshCollectionsForExport(keys);
+    result = await refreshCollectionsForExport(keys, range);
   } catch (e) {
     result = { ok: false, incomplete: true, newestLabel: newestRecordsLabel(keys) };
   }
@@ -10613,9 +10748,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 22;
+  const CURRENT_VERSION = 23;
 
   const CHANGELOG = [
+    {
+      v: 23,
+      date: '2026-10-18',
+      icon: '🪶',
+      title: 'La tablet ya no se traba al sincronizar',
+      summary: 'La carga usa la copia guardada. Si pide la nube, solo trae los días recientes, y el archivo solo las fechas que va a sacar.',
+      bullets: [
+        'Al abrir ya no se descarga toda la historia. Si no hay nube, el punto ámbar dice «Sin conexión a la nube, mostrando datos guardados».',
+        'Excel y CSV muestran «Cargando datos…» y piden el rango de ese reporte. Si la nube no responde, avisan que la descarga puede estar incompleta y muestran el último dato.',
+        'La recarga automática no borra la copia guardada. Solo «Sincronizar ahora» la limpia.'
+      ],
+      where: 'Indicador de nube · Excel y CSV · Sincronizar ahora'
+    },
     {
       v: 22,
       date: '2026-10-13',
@@ -17009,7 +17157,7 @@ async function exportDayReport() {
   if (!dateISO) { toast('Selecciona una fecha primero', true); return; }
 
   const _expBtn = document.getElementById('reportDownloadDayBtn');
-  const _expPrep = await prepareExport(_expBtn, ['prod', 'bruck', 'compact']);
+  const _expPrep = await prepareExport(_expBtn, ['prod', 'bruck', 'compact'], { start: dateISO, end: dateISO });
   if (_expPrep.skipped) return;
   try {
     const prodRows  = (state.prod || []).filter(r => r.fecha === dateISO);
@@ -21702,10 +21850,12 @@ function bindReporteSemanal() {
   });
   document.getElementById('rs_printBtn')?.addEventListener('click', async () => {
     const btn = document.getElementById('rs_printBtn');
-    const prep = await prepareExport(btn, ['bruck', 'compact']);
+    const dates = (typeof _rsWeekDates === 'function') ? _rsWeekDates(_rsCurrentMonday) : [];
+    const range = dates.length ? { start: dates[0], end: dates[dates.length - 1] } : null;
+    const prep = await prepareExport(btn, ['bruck', 'compact'], range);
     if (prep.skipped) return;
     try {
-      const pronoOk = await refreshPronosticoDiaForExport();
+      const pronoOk = await refreshPronosticoDiaForExport(range);
       if (!pronoOk && prep.ok && typeof toast === 'function') toast(exportIncompleteWarning(prep.newestLabel), true);
       if (typeof renderReporteSemanal === 'function') await renderReporteSemanal();
       // Marca el body para imprimir sólo el card; estilos en <style>
@@ -21852,10 +22002,12 @@ function bindReporteSemanal() {
   });
   document.getElementById('rs_actExportCSV')?.addEventListener('click', async () => {
     const btn = document.getElementById('rs_actExportCSV');
-    const prep = await prepareExport(btn, ['bruck', 'compact']);
+    const dates = (typeof _rsWeekDates === 'function') ? _rsWeekDates(_rsCurrentMonday) : [];
+    const range = dates.length ? { start: dates[0], end: dates[dates.length - 1] } : null;
+    const prep = await prepareExport(btn, ['bruck', 'compact'], range);
     if (prep.skipped) return;
     try {
-      const pronoOk = await refreshPronosticoDiaForExport();
+      const pronoOk = await refreshPronosticoDiaForExport(range);
       if (!pronoOk && prep.ok && typeof toast === 'function') toast(exportIncompleteWarning(prep.newestLabel), true);
       if (typeof renderReporteSemanal === 'function') await renderReporteSemanal();
       const csv = _rsBuildCSV();
@@ -27743,7 +27895,7 @@ function _estRenderTurnoDetail(turnoKey, rows, dateISO) {
         if (typeof toast === 'function') toast('La librería de Excel no cargada aún', true);
         return;
       }
-      const prep = await prepareExport(xlsxBtn, ['prod', 'bruck', 'compact']);
+      const prep = await prepareExport(xlsxBtn, ['prod', 'bruck', 'compact'], { start: dateISO, end: dateISO });
       if (prep.skipped) return;
       try {
         const fresh = _estTurnoRows(turnoKey, dateISO);
@@ -28088,10 +28240,10 @@ function renderEstadistica() {
 async function _estExportExcel() {
   if (typeof XLSX === 'undefined') { showToast('Excel no cargado'); return; }
   const _expBtn = document.getElementById('estExportBtn');
-  const _expPrep = await prepareExport(_expBtn, ['prod', 'bruck', 'compact', 'empacado']);
+  const dateISO = _estFechaISO();
+  const _expPrep = await prepareExport(_expBtn, ['prod', 'bruck', 'compact', 'empacado'], { start: dateISO, end: dateISO });
   if (_expPrep.skipped) return;
   try {
-  const dateISO = _estFechaISO();
   const rows = _estBuildRows(dateISO);
   if (!rows.length) { showToast('Sin datos para exportar'); return; }
 
@@ -29465,6 +29617,19 @@ init();
       chip.classList.add('warn');
       txt.textContent = 'sincronizando…';
     }
+    function reloadNow() {
+      if (reloadNow.done) return;
+      reloadNow.done = true;
+      var url = new URL(location.href);
+      url.searchParams.set('v', Date.now().toString(36));
+      location.replace(url.toString());
+    }
+    // La recarga automática (cada 5 min, watchdog, al volver a la pestaña)
+    // no borra localStorage ni la caché offline. Solo «Sincronizar ahora».
+    if (!userTriggered) {
+      reloadNow();
+      return true;
+    }
     try {
       // v24 (fix crítico): NO borrar tokens de acceso (curtain in-app) ni el
       // nombre de sesión, ni las llaves de "Recordar 30 días" de StatiCrypt.
@@ -29477,20 +29642,8 @@ init();
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
     } catch(e){}
-
-    function reloadNow() {
-      if (reloadNow.done) return;
-      reloadNow.done = true;
-      var url = new URL(location.href);
-      url.searchParams.set('v', Date.now().toString(36));
-      location.replace(url.toString());
-    }
-    if (userTriggered) {
-      clearFirestoreOfflineCache().finally(function(){ reloadNow(); });
-      setTimeout(reloadNow, 4000);
-    } else {
-      reloadNow();
-    }
+    clearFirestoreOfflineCache().finally(function(){ reloadNow(); });
+    setTimeout(reloadNow, 4000);
     return true;
   }
 
