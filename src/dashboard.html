@@ -35,7 +35,7 @@
   import {
     getFirestore, collection, doc, setDoc, deleteDoc, getDocs, getDocsFromServer,
     query, orderBy, limit, writeBatch, serverTimestamp, enableIndexedDbPersistence,
-    onSnapshot, addDoc, where, documentId, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp
+    onSnapshot, addDoc, where, documentId, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, waitForPendingWrites, Timestamp
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -59,7 +59,7 @@
   window.TG_FB = {
     db,
     collection, doc, setDoc, deleteDoc, getDocs, getDocsFromServer, query, orderBy, limit, writeBatch, serverTimestamp,
-    onSnapshot, addDoc, where, documentId, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, Timestamp,
+    onSnapshot, addDoc, where, documentId, getDoc, getDocFromServer, terminate, clearIndexedDbPersistence, waitForPendingWrites, Timestamp,
     ready: true
   };
   // Avisar a la app principal que Firebase ya está listo
@@ -8343,21 +8343,117 @@ function _withAuth(record) {
   return Object.assign({}, record, { auth: FB_AUTH_TOKEN });
 }
 
-/** Guarda un registro en Firestore (fire-and-forget) */
+const LS_OUTBOX = 'tg_outbox_v1';
+function outboxRead() {
+  try { const a = JSON.parse(localStorage.getItem(LS_OUTBOX) || '[]'); return Array.isArray(a) ? a : []; }
+  catch (e) { return []; }
+}
+function outboxWrite(list) {
+  try { localStorage.setItem(LS_OUTBOX, JSON.stringify(list)); } catch (e) {}
+  try { paintOutboxBadge(); } catch (e2) {}
+}
+function outboxStamp(rec) {
+  if (!rec) return '';
+  if (rec.ts != null && rec.ts !== '') return rec.ts;
+  if (rec.ts_edicion) return rec.ts_edicion;
+  if (rec.updatedAt != null && rec.updatedAt !== '') return rec.updatedAt;
+  return '';
+}
+function outboxLocal(col, id) {
+  if (col === 'pronostico_dia') {
+    try { return (typeof _pronoCache !== 'undefined' && _pronoCache) ? _pronoCache.get(id) : null; } catch (e) { return null; }
+  }
+  const arr = (typeof state !== 'undefined' && state) ? state[col] : null;
+  if (!Array.isArray(arr)) return null;
+  for (let i = 0; i < arr.length; i++) if (arr[i] && String(arr[i].id) === String(id)) return arr[i];
+  return null;
+}
+function outboxAdd(col, id, ts) {
+  if (!col || id == null || col === 'history' || col === 'historial') return;
+  const sid = String(id);
+  const list = outboxRead().filter(e => !(e && e.col === col && String(e.id) === sid));
+  list.push({ col, id: sid, ts: ts == null ? '' : ts });
+  outboxWrite(list);
+}
+function outboxRemove(col, id) {
+  const sid = String(id);
+  outboxWrite(outboxRead().filter(e => !(e && e.col === col && String(e.id) === sid)));
+}
+function outboxCount() { return outboxRead().length; }
+window.tgOutboxCount = outboxCount;
+function paintOutboxBadge() {
+  const chip = document.getElementById('tgSyncChip');
+  if (!chip || !chip.parentNode) return;
+  let el = document.getElementById('tgOutboxBadge');
+  if (!el) {
+    el = document.createElement('button');
+    el.id = 'tgOutboxBadge';
+    el.type = 'button';
+    el.style.cssText = 'display:none;margin-left:6px;padding:4px 8px;border-radius:999px;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.45);font-size:11px;font-weight:800;cursor:pointer;max-width:48vw;text-align:left';
+    el.addEventListener('click', function(){
+      if (typeof toast === 'function') toast('Se guardaron en esta tablet. Se suben solas al volver internet. No borres datos del navegador.');
+    });
+    chip.parentNode.insertBefore(el, chip.nextSibling);
+  }
+  const n = outboxCount();
+  el.style.display = n ? 'inline-flex' : 'none';
+  if (!n) return;
+  el.textContent = n === 1 ? '⚠ 1 ficha pendiente de subir' : ('⚠ ' + n + ' fichas pendientes de subir');
+}
+let outboxFlushing = false;
+async function flushOutbox() {
+  if (outboxFlushing) return;
+  const list = outboxRead();
+  if (!list.length) return;
+  outboxFlushing = true;
+  try {
+  const FB = await whenFbReady();
+  if (!FB || window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) return;
+  for (let i = 0; i < list.length; i++) {
+    const e = list[i];
+    if (!e || e.col === 'history') { outboxRemove(e && e.col, e && e.id); continue; }
+    const rec = outboxLocal(e.col, e.id);
+    const name = (FB_COLLECTIONS && FB_COLLECTIONS[e.col]) || e.col;
+    try {
+      fbPendingWrites++;
+      updateCloudUI();
+      if (rec && e.ts !== '' && String(outboxStamp(rec)) === String(e.ts)) {
+        const payload = e.col === 'pronostico_dia'
+          ? { pronostico: Number(rec.pronostico)||0, causaExtra: rec.causaExtra || '', updatedAt: rec.updatedAt || e.ts, updatedBy: (window.TG_USER && window.TG_USER.name) || 'desconocido', auth: FB_AUTH_TOKEN }
+          : _withAuth(rec);
+        await FB.setDoc(FB.doc(FB.db, name, String(e.id)), payload, { merge: true });
+        outboxRemove(e.col, e.id);
+      } else if (!rec) {
+        await FB.deleteDoc(FB.doc(FB.db, name, String(e.id)));
+        outboxRemove(e.col, e.id);
+      } else outboxRemove(e.col, e.id);
+    } catch (err) {
+      console.warn('[outbox]', e.col, e.id, err && err.code || err);
+    } finally {
+      fbPendingWrites = Math.max(0, fbPendingWrites - 1);
+      updateCloudUI();
+    }
+  }
+  } finally { outboxFlushing = false; }
+}
+window.tgFlushOutbox = flushOutbox;
+
+/** Guarda un registro en Firestore (fire-and-forget). La bitácora no entra al outbox. */
 async function saveToCloud(collKey, record) {
   try {
-    const FB = await whenFbReady();
-    if (!FB) return; // sin SDK, solo localStorage
     const collName = FB_COLLECTIONS[collKey];
     if (!collName || !record || !record.id) return;
-    // Bloquear escrituras si el usuario no inició sesión correctamente
     if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) {
       console.warn('[FB] saveToCloud: sin sesión válida, descartando');
       return;
     }
+    if (collKey !== 'history') outboxAdd(collKey, record.id, outboxStamp(record));
+    const FB = await whenFbReady();
+    if (!FB) return; // queda en el outbox; se reenvía al abrir
     fbPendingWrites++;
     updateCloudUI();
     await FB.setDoc(FB.doc(FB.db, collName, String(record.id)), _withAuth(record));
+    if (collKey !== 'history') outboxRemove(collKey, record.id);
     fbLastError = null;
   } catch (e) {
     fbLastError = e;
@@ -8371,17 +8467,19 @@ async function saveToCloud(collKey, record) {
 /** Borra un registro de Firestore */
 async function deleteFromCloud(collKey, id) {
   try {
-    const FB = await whenFbReady();
-    if (!FB) return;
     const collName = FB_COLLECTIONS[collKey];
     if (!collName || !id) return;
     if (window.TG_AUTH_TOKEN !== FB_AUTH_TOKEN) {
       console.warn('[FB] deleteFromCloud: sin sesión válida, descartando');
       return;
     }
+    if (collKey !== 'history') outboxAdd(collKey, id, '');
+    const FB = await whenFbReady();
+    if (!FB) return;
     fbPendingWrites++;
     updateCloudUI();
     await FB.deleteDoc(FB.doc(FB.db, collName, String(id)));
+    if (collKey !== 'history') outboxRemove(collKey, id);
     fbLastError = null;
   } catch (e) {
     fbLastError = e;
@@ -8899,6 +8997,7 @@ window.tgPrepareExport = prepareExport;
 
 /** Actualiza indicador visual de nube (punto + texto) */
 function updateCloudUI() {
+  try { paintOutboxBadge(); } catch (e) {}
   const dot = document.getElementById('cloudDot');
   const msg = document.getElementById('cloudMsg');
   if (!dot || !msg) return;
@@ -9917,6 +10016,7 @@ function init() {
   setTimeout(() => {
     updateCloudUI();
     loadFromCloud({ silent: true });
+    try { flushOutbox(); } catch (e) {}
   }, 300);
 }
 
@@ -9934,10 +10034,15 @@ function bindCloudSync() {
     });
   }
   // Detectar online/offline para actualizar el indicador visual
-  window.addEventListener('online',  () => { updateCloudUI(); /* Firestore reenviará automáticamente */ });
+  window.addEventListener('online',  () => { updateCloudUI(); try { flushOutbox(); } catch (e) {} });
   window.addEventListener('offline', () => { updateCloudUI(); });
-  // Si el SDK aún no está listo cuando init corre, escuchamos
-  window.addEventListener('firebase-ready', () => { updateCloudUI(); });
+  window.addEventListener('beforeunload', (e) => {
+    if (typeof outboxCount === 'function' && outboxCount() > 0) {
+      e.preventDefault();
+      e.returnValue = 'Hay fichas pendientes de subir.';
+    }
+  });
+  window.addEventListener('firebase-ready', () => { updateCloudUI(); try { flushOutbox(); } catch (e) {} });
   updateCloudUI();
 }
 
@@ -10748,9 +10853,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 23;
+  const CURRENT_VERSION = 24;
 
   const CHANGELOG = [
+    {
+      v: 24,
+      date: '2026-11-01',
+      icon: '⚠',
+      title: 'Fichas pendientes de subir',
+      summary: 'Si no hay internet, la ficha queda en esta tablet y el aviso dice cuántas faltan por subir. Sincronizar ahora no borra nada mientras sigan pendientes.',
+      bullets: [
+        'Junto a la nube verás «N fichas pendientes de subir». Al tocarlo: se guardaron en esta tablet y se suben solas al volver internet.',
+        'Si cierras la página con fichas pendientes, el navegador avisa. No borres los datos del navegador.',
+        '«Sincronizar ahora» espera hasta 15 s. Si siguen sin subir, no limpia la copia y pide esperar a tener internet.'
+      ],
+      where: 'Indicador de nube · Sincronizar ahora'
+    },
     {
       v: 23,
       date: '2026-10-18',
@@ -19359,9 +19477,11 @@ async function empSave() {
   try {
     const FB = await whenFbReady();
     if (FB && window.TG_AUTH_TOKEN === FB_AUTH_TOKEN) {
+      outboxAdd('empacado', id, doc.ts_edicion || doc.ts);
       fbPendingWrites++;
       updateCloudUI();
       await FB.setDoc(FB.doc(FB.db, FB_COLLECTIONS.empacado, id), doc, { merge: true });
+      outboxRemove('empacado', id);
       fbLastError = null;
     }
   } catch (e) {
@@ -19413,9 +19533,11 @@ async function empDelete() {
   try {
     const FB = await whenFbReady();
     if (FB && window.TG_AUTH_TOKEN === FB_AUTH_TOKEN) {
+      outboxAdd('empacado', id, '');
       fbPendingWrites++;
       updateCloudUI();
       await FB.deleteDoc(FB.doc(FB.db, FB_COLLECTIONS.empacado, id));
+      outboxRemove('empacado', id);
     }
   } catch (e) {
     console.warn('[Emp] delete error', e);
@@ -19902,9 +20024,11 @@ async function rvsGuardarLote(lote) {
   try {
     const FB = await whenFbReady();
     if (FB && window.TG_AUTH_TOKEN === FB_AUTH_TOKEN) {
+      outboxAdd('revisado', id, doc.ts_edicion || doc.ts);
       fbPendingWrites++;
       updateCloudUI();
       await FB.setDoc(FB.doc(FB.db, FB_COLLECTIONS.revisado, id), doc, { merge: true });
+      outboxRemove('revisado', id);
       fbLastError = null;
     }
   } catch (e) {
@@ -20911,15 +21035,19 @@ async function _pronoSave(fecha, patch) {
       console.warn('[pronostico] sin sesión válida, descartando');
       return;
     }
+    const _pronoStamp = new Date().toISOString();
+    if (next) next.updatedAt = _pronoStamp;
+    outboxAdd('pronostico_dia', fecha, _pronoStamp);
     fbPendingWrites++;
     updateCloudUI();
     await FB.setDoc(FB.doc(FB.db, 'pronostico_dia', fecha), {
       pronostico: Number(next.pronostico)||0,
       causaExtra: next.causaExtra || '',
-      updatedAt: new Date().toISOString(),
+      updatedAt: _pronoStamp,
       updatedBy: (window.TG_USER && window.TG_USER.name) || 'desconocido',
       auth: FB_AUTH_TOKEN
     }, { merge: true });
+    outboxRemove('pronostico_dia', fecha);
     fbLastError = null;
   } catch (e) {
     fbLastError = e;
@@ -29630,6 +29758,30 @@ init();
       reloadNow();
       return true;
     }
+    if (!forceResync._waiting && typeof outboxCount === 'function' && outboxCount() > 0) {
+      forceResync._waiting = true;
+      var nPending = outboxCount();
+      var FB = window.TG_FB;
+      var wait = (FB && typeof FB.waitForPendingWrites === 'function' && FB.db)
+        ? FB.waitForPendingWrites(FB.db)
+        : Promise.reject(new Error('no-wait'));
+      var timeout = new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 15000); });
+      Promise.race([wait, timeout]).then(function(){
+        forceResync._waiting = false;
+        if (outboxCount() > 0) {
+          try { tickSyncChip(); } catch (e) {}
+          if (typeof toast === 'function') toast('Hay ' + outboxCount() + ' fichas sin subir. Espera a tener internet antes de sincronizar.', true);
+          return;
+        }
+        forceResync(true);
+      }).catch(function(){
+        forceResync._waiting = false;
+        try { tickSyncChip(); } catch (e) {}
+        var n = outboxCount() || nPending;
+        if (typeof toast === 'function') toast('Hay ' + n + ' fichas sin subir. Espera a tener internet antes de sincronizar.', true);
+      });
+      return false;
+    }
     try {
       // v24 (fix crítico): NO borrar tokens de acceso (curtain in-app) ni el
       // nombre de sesión, ni las llaves de "Recordar 30 días" de StatiCrypt.
@@ -29637,7 +29789,7 @@ init();
       // tg_onboarding no coincide con la clave real (tg_tint_onboarding_v2).
       // Sin el prefijo correcto, cada Sincronizar/auto-refresh borra el tour y vuelve a salir.
       // Local-only (no están en Firestore): metas, config Rama, overrides de Estadística, paros de Rama.
-      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_auth_exp_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|tg_tint_shift_op_v1|tg_draft_|staticrypt_)/;
+      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_auth_exp_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|tg_tint_shift_op_v1|tg_draft_|tg_outbox_|staticrypt_)/;
       var keys = [];
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
