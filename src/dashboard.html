@@ -30231,6 +30231,16 @@ init();
     for (var i = 0; i < modals.length; i++) {
       if (isElShown(modals[i])) return false;
     }
+    // Captura por debajo de z-110. Cerrar Ficha es z-50: si nadie tiene el
+    // foco, el refresh de 5 min o al volver la tablet lo cerraba y se perdía
+    // lo escrito. No se cambia el z-index ni el look; solo se respeta que esté abierto.
+    var captureModalIds = [
+      'cerrarFichaModal', 'fichaGuardModal', 'dupWarnModal',
+      'altaTelaModal', 'solTelaModal', 'bruckEditModal'
+    ];
+    for (var c = 0; c < captureModalIds.length; c++) {
+      if (isElShown(document.getElementById(captureModalIds[c]))) return false;
+    }
     // Tour de bienvenida abierto: no recargar encima del operador
     if (document.getElementById('onboardingOverlay')) return false;
     // Popover "Más" abierto?
