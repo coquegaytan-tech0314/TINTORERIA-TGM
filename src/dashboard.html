@@ -17,6 +17,217 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2307090d'/%3E%3Cpath d='M4 7c2.5-2 5.5-2 8 0s5.5 2 8 0M4 12c2.5-2 5.5-2 8 0s5.5 2 8 0M4 17c2.5-2 5.5-2 8 0s5.5 2 8 0' stroke='%23FF2E4D' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2307090d'/%3E%3Cpath d='M4 7c2.5-2 5.5-2 8 0s5.5 2 8 0M4 12c2.5-2 5.5-2 8 0s5.5 2 8 0M4 17c2.5-2 5.5-2 8 0s5.5 2 8 0' stroke='%23FF2E4D' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
 <title>Tintorería TGM · Tejidos Gaytan de Moroleón</title>
+<script>
+/* Vista nueva (prueba), por tableta. Apagada si la clave no es "1": no cambia el tablero. */
+(function () {
+  try {
+    if (localStorage.getItem('tg_tint_vista_v1') === '1') {
+      document.documentElement.classList.add('vista-nueva');
+    }
+  } catch (e) {}
+})();
+</script>
+<style id="vnCss">
+  /* Reglas inertes sin html.vista-nueva. El interruptor nace apagado. */
+  html.vista-nueva header { max-width: 100%; }
+  @media (max-width: 1100px) {
+    html.vista-nueva header > div.max-w-7xl:first-child {
+      flex-wrap: wrap !important;
+      row-gap: 8px;
+      column-gap: 8px;
+    }
+    html.vista-nueva header > div.max-w-7xl:first-child > div:first-child {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    html.vista-nueva header > div.max-w-7xl:first-child > div:nth-child(2) {
+      flex: 1 1 100%;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 6px;
+      min-width: 0;
+      max-width: 100%;
+    }
+    html.vista-nueva header h1 + p { display: none !important; }
+    html.vista-nueva header button .sm\:inline { display: none !important; }
+    html.vista-nueva #roleSwitcherLabel { display: none !important; }
+    html.vista-nueva #roleSwitcherLabelShort { display: inline !important; }
+    html.vista-nueva header .hidden.sm\:flex.items-center.gap-2.text-sm { display: none !important; }
+    html.vista-nueva header .btn,
+    html.vista-nueva #userPill,
+    html.vista-nueva #shiftOpChip {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    html.vista-nueva #userPillName,
+    html.vista-nueva #shiftOpChipText {
+      max-width: 5.6rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      vertical-align: bottom;
+    }
+  }
+  @media (min-width: 1101px) {
+    html.vista-nueva #vnDateMirror { display: none; }
+  }
+  html.vista-nueva #tab-capture:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: calc(var(--vn-dock, 88px) + 84px);
+  }
+  html.vista-nueva #fmAbrir,
+  html.vista-nueva #fmCerrar,
+  html.vista-nueva #fmCompleta {
+    min-height: 52px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    font-size: 1rem;
+  }
+  html.vista-nueva #fmHint { display: none !important; }
+  html.vista-nueva #tab-capture > :first-child { margin-bottom: 8px !important; }
+  html.vista-nueva #tab-capture > :first-child p { display: none; }
+  html.vista-nueva #tab-capture .card.p-5.mb-4 { padding: 12px !important; margin-bottom: 8px !important; }
+  html.vista-nueva #tab-capture.vn-cerrar:not(.hidden) #fichaActions {
+    position: static;
+    margin: 12px 0 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  html.vista-nueva #tab-capture > * { order: 10; }
+  html.vista-nueva #tab-capture > :first-child { order: 1; }
+  html.vista-nueva #tab-capture:has(#fmAbrir) > .card:has(#fmAbrir) { order: 2; }
+  html.vista-nueva #tab-capture:not(.vn-cerrar) #openFichasPanel { order: 50; }
+  html.vista-nueva #tab-capture.vn-cerrar #openFichasPanel { order: 3; }
+  html.vista-nueva #tab-capture:not(.hidden) #fichaActions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--vn-dock, 88px);
+    z-index: 35;
+    margin: 0;
+    padding: 8px 12px;
+    background: rgba(7, 9, 13, 0.96);
+    border-top: 1px solid #253149;
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.45);
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  html.vista-nueva #tab-capture:not(.hidden) #fichaActions .btn {
+    min-height: 52px !important;
+    padding: 8px 14px !important;
+  }
+  html.vista-nueva #toast.show { bottom: calc(var(--vn-dock, 88px) + 72px); }
+  .vn-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    background: rgba(14, 165, 233, 0.1);
+    color: #7dd3fc;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .vn-note { font-size: 12px; color: #93c5fd; font-weight: 700; margin-top: 6px; }
+  .vn-nudge[hidden], #vnParoMore[hidden] { display: none !important; }
+  .vn-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.08);
+    color: #fde68a;
+  }
+  .vn-nudge button { min-height: 44px; }
+  .vn-keypad {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid #253149;
+    background: #111826;
+  }
+  .vn-keypad-disp {
+    font-size: 2rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #f8fafc;
+    text-align: right;
+    min-height: 52px;
+    padding: 4px 8px 10px;
+  }
+  .vn-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .vn-keys button {
+    min-height: 56px;
+    min-width: 44px;
+    border-radius: 12px;
+    border: 1px solid #253149;
+    background: #1a2232;
+    color: #f8fafc;
+    font-size: 1.45rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .vn-keys button:active { transform: scale(0.98); }
+  .vn-sheet:not(.hidden) {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.72);
+  }
+  .vn-sheet-card {
+    width: min(760px, 100%);
+    max-height: min(92vh, 900px);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    background: #0b0f16;
+    border: 1px solid #253149;
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    padding: 0;
+    color: #e5e7eb;
+  }
+  .vn-sheet-card:has(.vn-sheet-scroll) { overflow: hidden; }
+  .vn-sheet-scroll { overflow: auto; padding: 16px 16px 8px; min-height: 0; }
+  .vn-choice {
+    min-height: 48px;
+    min-width: 44px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #253149;
+    background: #111826;
+    color: #e5e7eb;
+    font-weight: 800;
+    text-align: left;
+  }
+  .vn-choice.on { border-color: #FF2E4D; background: rgba(255, 46, 77, 0.16); color: #fff; }
+  .vn-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vn-go {
+    width: 100%;
+    min-height: 56px;
+    margin: 0;
+    flex: 0 0 auto;
+    border-radius: 0;
+    border: 0;
+    border-radius: 14px;
+    background: #FF2E4D;
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 800;
+  }
+  .vn-go:disabled { opacity: 0.45; }
+</style>
 
 <!-- Tailwind CSS via CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -29789,7 +30000,9 @@ init();
       // tg_onboarding no coincide con la clave real (tg_tint_onboarding_v2).
       // Sin el prefijo correcto, cada Sincronizar/auto-refresh borra el tour y vuelve a salir.
       // Local-only (no están en Firestore): metas, config Rama, overrides de Estadística, paros de Rama.
-      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_auth_exp_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|tg_tint_shift_op_v1|tg_draft_|tg_outbox_|staticrypt_)/;
+      /* tg_tint_vista_v1 es el interruptor de la vista de prueba en ESTA tableta.
+         Sincronizar ahora no debe apagarlo. No es un dato de producción. */
+      var toKeep = /^(tg_role|tg_user|tgm\.ambience|tg_chat_last_seen|tg_tint_auth_v1|tg_tint_auth_exp_v1|tg_tint_user_session|tg_tint_empleado_id|tg_tint_session_lastcheck|tg_morning_prompt_date|tg_tint_auth_attempts_v1|tg_tint_auth_locked_until_v1|tg_onboarding|tg_tint_onboarding|tg_tint_metas_v2|tg_tint_cfg_rama_v1|tg_tint_estadi_v1|tg_tint_ramadown_v2|tg_tint_shift_op_v1|tg_tint_vista_v1|tg_draft_|tg_outbox_|staticrypt_)/;
       var keys = [];
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k){ if (!toKeep.test(k)) { try { localStorage.removeItem(k); } catch(e){} } });
@@ -30882,6 +31095,632 @@ init();
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
   else bind();
+})();
+</script>
+<script>
+/* Vista nueva (prueba). localStorage tg_tint_vista_v1 = "1" solo en esta tableta.
+   Apagada: este script no pinta nada. Encendida: solo cambia la entrada.
+   El paro pulsa #dtSave. Metros escribe el mismo #cmp_metros. Nada nuevo en Firestore.
+   Relevo no llama a localStorage, sessionStorage ni Firebase. */
+(function () {
+  'use strict';
+  var KEY = 'tg_tint_vista_v1';
+  var CAT_BY_MOTIVO = {
+    'Lavado de máquina': 'Operación',
+    'Cambio de guía / descontaminar': 'Operación',
+    'Mantenimiento preventivo': 'Mecánico',
+    'Falla eléctrica': 'Eléctrico',
+    'Falta de material': 'Operación',
+    'Falta de vapor': 'Operación',
+    'Falta de agua': 'Operación',
+    'Falla mecánica': 'Mecánico',
+    'Atorón': 'Mecánico',
+    'Problema en válvula': 'Mecánico',
+    'Checar tono': 'Operación',
+    'Descargar / Cargar': 'Operación',
+    'Falta de carros': 'Operación',
+    'Ahorro de energías': 'Operación',
+    'Día festivo': 'Operación',
+    'Otro': 'Operación'
+  };
+
+  function vnOn() {
+    try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function clockShift() {
+    var h = new Date().getHours();
+    if (h >= 6 && h < 14) return '1°';
+    if (h >= 14 && h < 22) return '2°';
+    return '3°';
+  }
+  function hhmm(d) {
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  function toMin(v) {
+    var p = String(v || '').split(':');
+    if (p.length < 2 || p[0] === '' || isNaN(p[0]) || isNaN(p[1])) return null;
+    return Number(p[0]) * 60 + Number(p[1]);
+  }
+  function say(msg) { try { if (typeof toast === 'function') toast(msg); } catch (e) {} }
+
+  function turn(next) {
+    try {
+      if (next) localStorage.setItem(KEY, '1');
+      else localStorage.removeItem(KEY);
+    } catch (e) {}
+    document.documentElement.classList.toggle('vista-nueva', !!next);
+    if (next) mount();
+    else unmount();
+    say(next ? 'Vista nueva activada en esta tableta' : 'Vista nueva apagada en esta tableta');
+  }
+
+  function installLogoToggle() {
+    var mark = document.querySelector('header .tg-brand-mark');
+    if (!mark || mark.getAttribute('data-vn-wired') === '1') return;
+    mark.setAttribute('data-vn-wired', '1');
+    var n = 0;
+    var timer = null;
+    mark.addEventListener('click', function (e) {
+      if (e.altKey) {
+        n = 0;
+        if (timer) { clearTimeout(timer); timer = null; }
+        turn(!vnOn());
+        return;
+      }
+      n += 1;
+      if (!timer) {
+        timer = setTimeout(function () { n = 0; timer = null; }, 3000);
+      }
+      if (n >= 5) {
+        n = 0;
+        clearTimeout(timer);
+        timer = null;
+        turn(!vnOn());
+      }
+    });
+  }
+
+  function syncDock() {
+    var nav = document.querySelector('nav.fixed.bottom-0');
+    var h = nav && nav.offsetHeight ? nav.offsetHeight : 88;
+    document.documentElement.style.setProperty('--vn-dock', h + 'px');
+  }
+  function markMode(mode) {
+    var tab = document.getElementById('tab-capture');
+    if (tab) tab.classList.toggle('vn-cerrar', mode === 'cerrar');
+  }
+
+  function recOfCard(card) {
+    var btn = card.querySelector('button[onclick*="openCerrarFichaModal"]');
+    if (!btn) return null;
+    var m = /openCerrarFichaModal\('([^']*)'\)/.exec(btn.getAttribute('onclick') || '');
+    if (!m) return null;
+    var arr = (typeof state !== 'undefined' && state && state.prod) || [];
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] && arr[i].id === m[1]) return arr[i];
+    }
+    return null;
+  }
+
+  function sortOpenList() {
+    var list = document.getElementById('openFichasList');
+    var note = document.getElementById('vnSortNote');
+    if (!list) return;
+    var cards = Array.prototype.slice.call(list.querySelectorAll('.open-ficha-card'));
+    cards.sort(function (a, b) {
+      var ra = recOfCard(a);
+      var rb = recOfCard(b);
+      var ha = ra && typeof fichaAging === 'function' ? fichaAging(ra).hours : 0;
+      var hb = rb && typeof fichaAging === 'function' ? fichaAging(rb).hours : 0;
+      if (hb !== ha) return hb - ha;
+      var ka = ((ra && ra.fecha) || '') + ' ' + ((ra && ra.hEntrada) || '');
+      var kb = ((rb && rb.fecha) || '') + ' ' + ((rb && rb.hEntrada) || '');
+      return ka.localeCompare(kb);
+    });
+    cards.forEach(function (c) { list.appendChild(c); });
+    if (note) {
+      note.textContent = cards.length
+        ? 'Orden de cierre: la más atrasada primero. Los colores siguen igual (2 h y 6 h).'
+        : 'Sin fichas abiertas.';
+    }
+  }
+
+  function ensureChrome() {
+    var row = document.getElementById('cloudStatus');
+    if (row && row.parentElement && !document.getElementById('vnBadge')) {
+      var badge = document.createElement('button');
+      badge.type = 'button';
+      badge.id = 'vnBadge';
+      badge.className = 'vn-badge';
+      badge.textContent = 'Vista nueva (prueba)';
+      badge.addEventListener('click', function () {
+        if (!confirm('¿Apagar la vista nueva en esta tableta?')) return;
+        turn(false);
+      });
+      var mirror = document.createElement('span');
+      mirror.id = 'vnDateMirror';
+      mirror.style.fontWeight = '700';
+      mirror.style.color = '#cbd5e1';
+      var src = document.getElementById('todayLabel');
+      mirror.textContent = src ? src.textContent : '';
+      row.parentElement.insertBefore(badge, row);
+      row.parentElement.insertBefore(mirror, row);
+    }
+    var h3 = document.querySelector('#openFichasPanel h3');
+    if (h3 && h3.parentElement && !document.getElementById('vnSortNote')) {
+      var note = document.createElement('p');
+      note.id = 'vnSortNote';
+      note.className = 'vn-note';
+      h3.parentElement.insertAdjacentElement('afterend', note);
+    }
+    var legend = document.querySelector('#openFichasPanel .flex.items-center.gap-3.text-xs');
+    if (legend && !document.getElementById('vnRelevoBtn')) {
+      var rel = document.createElement('button');
+      rel.type = 'button';
+      rel.id = 'vnRelevoBtn';
+      rel.className = 'vn-choice';
+      rel.textContent = 'Relevo del turno';
+      rel.addEventListener('click', openRelevo);
+      legend.appendChild(rel);
+    }
+    var down = document.getElementById('tab-downtime');
+    if (down && down.firstElementChild && !document.getElementById('vnParoLaunch')) {
+      var launch = document.createElement('button');
+      launch.type = 'button';
+      launch.id = 'vnParoLaunch';
+      launch.className = 'btn btn-primary';
+      launch.style.minHeight = '52px';
+      launch.style.margin = '0 0 12px';
+      launch.textContent = 'Registrar paro en 3 toques';
+      down.firstElementChild.insertAdjacentElement('afterend', launch);
+      launch.addEventListener('click', openParo);
+    }
+    var compact = document.getElementById('tab-compact');
+    if (compact && compact.firstElementChild && !document.getElementById('vnMetrosNudge')) {
+      var nudge = document.createElement('div');
+      nudge.id = 'vnMetrosNudge';
+      nudge.className = 'vn-nudge';
+      nudge.hidden = true;
+      compact.firstElementChild.insertAdjacentElement('afterend', nudge);
+    }
+    var metros = document.getElementById('cmp_metros');
+    if (metros && !document.getElementById('vnKeypad')) {
+      var cell = metros.parentElement;
+      var pad = document.createElement('div');
+      pad.id = 'vnKeypad';
+      pad.className = 'vn-keypad';
+      pad.innerHTML =
+        '<div style="font-size:12px;font-weight:800;color:#94a3b8;letter-spacing:.04em">METROS · MISMO CAMPO</div>' +
+        '<div class="vn-keypad-disp" id="vnKeyDisp">0</div>' +
+        '<div class="vn-keys" id="vnKeys"></div>';
+      if (cell) cell.insertAdjacentElement('afterend', pad);
+      var keys = document.getElementById('vnKeys');
+      ['7','8','9','4','5','6','1','2','3','.','0','←'].forEach(function (k) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = k;
+        b.setAttribute('data-k', k === '←' ? 'back' : k);
+        keys.appendChild(b);
+      });
+      keys.addEventListener('click', function (e) {
+        var b = e.target.closest('button');
+        if (!b) return;
+        typeMetro(b.getAttribute('data-k'));
+      });
+      metros.setAttribute('readonly', 'readonly');
+      metros.addEventListener('click', function () {
+        var disp = document.getElementById('vnKeyDisp');
+        if (disp) disp.scrollIntoView({ block: 'nearest' });
+      });
+      paintMetro(metros.value || '');
+    }
+  }
+
+  function paintMetro(raw, silent) {
+    var el = document.getElementById('cmp_metros');
+    var disp = document.getElementById('vnKeyDisp');
+    if (!el) return;
+    el.dataset.vnRaw = raw;
+    var commit = raw.charAt(raw.length - 1) === '.' ? raw.slice(0, -1) : raw;
+    var changed = el.value !== commit;
+    if (changed) el.value = commit;
+    if (!silent && changed) {
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    }
+    if (disp) disp.textContent = raw || '0';
+  }
+  function typeMetro(k) {
+    var el = document.getElementById('cmp_metros');
+    if (!el) return;
+    var raw = el.dataset.vnRaw != null ? el.dataset.vnRaw : String(el.value || '');
+    if (k === 'back') raw = raw.slice(0, -1);
+    else if (k === '.') {
+      if (raw.indexOf('.') === -1) raw = (raw || '0') + '.';
+    } else {
+      var digits = raw.replace('.', '');
+      if (digits.length >= 7) return;
+      if (raw === '0') raw = k;
+      else raw += k;
+    }
+    paintMetro(raw);
+  }
+
+  function refreshNudge() {
+    var box = document.getElementById('vnMetrosNudge');
+    if (!box || !vnOn()) return;
+    var today = (typeof todayISO === 'function') ? todayISO() : '';
+    var rows = ((typeof state !== 'undefined' && state && state.compact) || []).filter(function (r) {
+      if (!r || r.fecha !== today) return false;
+      return !(parseFloat(r.metros) > 0);
+    });
+    if (!rows.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    var names = rows.slice(0, 4).map(function (r) { return esc(r.lote || 'sin lote'); }).join(', ');
+    var extra = rows.length > 4 ? ' y ' + (rows.length - 4) + ' más' : '';
+    box.innerHTML =
+      '<div><b>' + rows.length + (rows.length === 1 ? ' lote de hoy sin metros' : ' lotes de hoy sin metros') + '.</b> ' +
+      names + extra + '. Aviso en pantalla: puedes guardar la ficha igual. Metros sigue opcional.</div>' +
+      '<button type="button" class="btn btn-secondary" id="vnMetrosGo">Ir a Metros</button>';
+    var go = document.getElementById('vnMetrosGo');
+    if (go) go.addEventListener('click', function () {
+      var el = document.getElementById('cmp_metros');
+      if (el) el.scrollIntoView({ block: 'center' });
+    });
+  }
+
+  function lastExitToday(machine) {
+    var best = null;
+    var today = (typeof todayISO === 'function') ? todayISO() : '';
+    var arr = (typeof state !== 'undefined' && state && state.prod) || [];
+    arr.forEach(function (r) {
+      if (!r || r.machine !== machine || !r.hSalida || r.fecha !== today) return;
+      var mins = toMin(r.hSalida);
+      if (mins == null) return;
+      if (!best || mins > best.mins) best = { mins: mins, h: r.hSalida.slice(0, 5) };
+    });
+    if (!best) return '';
+    var now = new Date();
+    var nowM = now.getHours() * 60 + now.getMinutes();
+    if (best.mins >= nowM) return '';
+    return best.h;
+  }
+
+  var paro = null;
+  function openParo() {
+    paro = { machine: '', motivo: '', cat: '', startMode: 'm15', startHH: '', endMode: 'now', nota: '' };
+    var old = document.getElementById('vnParoSheet');
+    if (old) old.remove();
+    var motivos = [];
+    var sel = document.getElementById('dt_motivo');
+    if (sel) {
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value) motivos.push(sel.options[i].value);
+      }
+    }
+    var counts = {};
+    ((typeof state !== 'undefined' && state && state.down) || []).forEach(function (r) {
+      if (r && r.motivo) counts[r.motivo] = (counts[r.motivo] || 0) + 1;
+    });
+    motivos.sort(function (a, b) { return (counts[b] || 0) - (counts[a] || 0) || a.localeCompare(b, 'es'); });
+    var top = motivos.slice(0, 8);
+    var rest = motivos.slice(8);
+    var machines = (typeof MACHINES !== 'undefined' && MACHINES) ? MACHINES : [];
+    var cats = [];
+    document.querySelectorAll('.dt-cat-btn').forEach(function (b) {
+      var c = b.getAttribute('data-cat');
+      if (c) cats.push(c);
+    });
+    var sheet = document.createElement('div');
+    sheet.id = 'vnParoSheet';
+    sheet.className = 'vn-sheet fixed inset-0 z-[120]';
+    sheet.style.zIndex = '100';
+    sheet.innerHTML =
+      '<div class="vn-sheet-card" role="dialog" aria-label="Registrar paro"><div class="vn-sheet-scroll">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">' +
+          '<h3 style="font-size:1.25rem;font-weight:900;color:#fff">Registrar paro</h3>' +
+          '<button type="button" class="vn-choice" data-act="close">Cerrar</button>' +
+        '</div>' +
+        '<p style="color:#94a3b8;font-size:13px;margin-bottom:10px">Tres toques: máquina, motivo y Registrar. Usa el mismo guardado de siempre. «Sigue parada» no escribe nada.</p>' +
+        '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin:8px 0">1 · MÁQUINA</div>' +
+        '<div class="vn-grid" id="vnParoMachines">' + machines.map(function (m) {
+          return '<button type="button" class="vn-choice" data-act="machine" data-v="' + esc(m.id) + '">' + esc(m.id) + '</button>';
+        }).join('') + '</div>' +
+        '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin:12px 0 8px">2 · MOTIVO</div>' +
+        '<div class="vn-grid" id="vnParoTop">' + top.map(function (m) {
+          return '<button type="button" class="vn-choice" data-act="motivo" data-v="' + esc(m) + '">' + esc(m) + '</button>';
+        }).join('') + '</div>' +
+        (rest.length ? '<button type="button" class="vn-choice" data-act="more" style="margin-top:8px">Más motivos</button><div class="vn-grid" id="vnParoMore" hidden style="margin-top:8px">' + rest.map(function (m) {
+          return '<button type="button" class="vn-choice" data-act="motivo" data-v="' + esc(m) + '">' + esc(m) + '</button>';
+        }).join('') + '</div>' : '') +
+        '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin:12px 0 8px">CUÁNDO EMPEZÓ · YA VIENE ELEGIDO</div>' +
+        '<div class="vn-grid" id="vnParoStarts"></div>' +
+        '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin:12px 0 8px">¿YA TERMINÓ?</div>' +
+        '<div class="vn-grid">' +
+          '<button type="button" class="vn-choice on" data-act="end" data-v="now">Terminó ahora</button>' +
+          '<button type="button" class="vn-choice" data-act="end" data-v="sigue">Sigue parada</button>' +
+        '</div>' +
+        '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin:12px 0 8px">CATEGORÍA SUGERIDA</div>' +
+        '<div class="vn-grid" id="vnParoCats">' + cats.map(function (c) {
+          return '<button type="button" class="vn-choice" data-act="cat" data-v="' + esc(c) + '">' + esc(c) + '</button>';
+        }).join('') + '</div>' +
+        '<label style="display:block;margin-top:12px;font-size:12px;font-weight:800;color:#94a3b8">NOTA OPCIONAL</label>' +
+        '<input id="vnParoNota" class="field" style="margin-top:6px" placeholder="Si hace falta, una línea" />' +
+        '<p id="vnParoPreview" style="margin-top:10px;font-size:14px;color:#e2e8f0"></p>' +
+        '<p id="vnParoMsg" style="min-height:1.2em;color:#fca5a5;font-size:13px"></p>' +
+        '</div>' +
+        '<button type="button" class="vn-go" id="vnParoGo" data-act="go" disabled>Registrar paro</button>' +
+      '</div>';
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', onParoClick);
+    var nota = document.getElementById('vnParoNota');
+    if (nota) nota.addEventListener('input', function () { paro.nota = nota.value; paintParo(); });
+    paintStarts();
+    paintParo();
+  }
+  function paintStarts() {
+    var box = document.getElementById('vnParoStarts');
+    if (!box || !paro) return;
+    var now = new Date();
+    var last = paro.machine ? lastExitToday(paro.machine) : '';
+    var opts = [];
+    if (last) opts.push({ id: 'last', label: 'Desde ' + last + ' · fin de la última ficha', hh: last });
+    opts.push({ id: 'now', label: 'Ahora · ' + hhmm(now), hh: hhmm(now) });
+    opts.push({ id: 'm15', label: 'Hace 15 min', hh: hhmm(new Date(now.getTime() - 15 * 60000)) });
+    opts.push({ id: 'm30', label: 'Hace 30 min', hh: hhmm(new Date(now.getTime() - 30 * 60000)) });
+    opts.push({ id: 'm60', label: 'Hace 1 h', hh: hhmm(new Date(now.getTime() - 60 * 60000)) });
+    if (!opts.some(function (o) { return o.id === paro.startMode; })) {
+      paro.startMode = last ? 'last' : 'm15';
+    }
+    var chosen = null;
+    opts.forEach(function (o) { if (o.id === paro.startMode) chosen = o; });
+    if (!chosen) chosen = opts[0];
+    paro.startHH = chosen.hh;
+    box.innerHTML = opts.map(function (o) {
+      return '<button type="button" class="vn-choice' + (o.id === paro.startMode ? ' on' : '') + '" data-act="start" data-v="' + o.id + '" data-hh="' + esc(o.hh) + '">' + esc(o.label) + '</button>';
+    }).join('');
+  }
+  function paintParo() {
+    if (!paro) return;
+    document.querySelectorAll('#vnParoSheet [data-act="machine"]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-v') === paro.machine);
+    });
+    document.querySelectorAll('#vnParoSheet [data-act="motivo"]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-v') === paro.motivo);
+    });
+    document.querySelectorAll('#vnParoSheet [data-act="cat"]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-v') === paro.cat);
+    });
+    document.querySelectorAll('#vnParoSheet [data-act="end"]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-v') === paro.endMode);
+    });
+    var go = document.getElementById('vnParoGo');
+    var ready = !!(paro.machine && paro.motivo && paro.cat && paro.startHH);
+    if (go) {
+      go.disabled = !ready || paro.endMode === 'sigue';
+      go.textContent = paro.endMode === 'sigue' ? 'No se guarda mientras siga parada' : 'Registrar paro';
+    }
+    var prev = document.getElementById('vnParoPreview');
+    if (prev) {
+      var fin = hhmm(new Date());
+      var mins = (typeof durationMinutes === 'function' && paro.startHH) ? durationMinutes(paro.startHH, fin) : 0;
+      var op = (typeof window.tgShiftOperador === 'function' && window.tgShiftOperador()) || '';
+      prev.textContent = ready
+        ? ('Se guardará: ' + paro.machine + ' · ' + paro.startHH + ' → ' + (paro.endMode === 'sigue' ? 'sin fin' : fin) +
+           (paro.endMode === 'sigue' ? '' : ' · ' + mins + ' min') + ' · ' + paro.motivo + ' · ' + paro.cat +
+           (op ? ' · ' + op : ''))
+        : 'Falta la máquina o el motivo.';
+    }
+  }
+  function onParoClick(e) {
+    var b = e.target.closest('[data-act]');
+    if (!b || !paro) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'close') { closeParo(); return; }
+    if (act === 'more') {
+      var more = document.getElementById('vnParoMore');
+      if (more) more.hidden = !more.hidden;
+      return;
+    }
+    if (act === 'machine') {
+      paro.machine = b.getAttribute('data-v') || '';
+      if (lastExitToday(paro.machine)) paro.startMode = 'last';
+      paintStarts();
+    } else if (act === 'motivo') {
+      paro.motivo = b.getAttribute('data-v') || '';
+      var sug = CAT_BY_MOTIVO[paro.motivo] || 'Operación';
+      var ok = false;
+      document.querySelectorAll('#vnParoCats [data-act="cat"]').forEach(function (c) {
+        if (c.getAttribute('data-v') === sug) ok = true;
+      });
+      paro.cat = ok ? sug : 'Operación';
+    } else if (act === 'cat') {
+      paro.cat = b.getAttribute('data-v') || '';
+    } else if (act === 'start') {
+      paro.startMode = b.getAttribute('data-v') || 'm15';
+      paro.startHH = b.getAttribute('data-hh') || '';
+    } else if (act === 'end') {
+      paro.endMode = b.getAttribute('data-v') || 'now';
+      var msg = document.getElementById('vnParoMsg');
+      if (msg) msg.textContent = paro.endMode === 'sigue'
+        ? '«Sigue parada» queda solo en esta pantalla. El registro de hoy necesita hora de fin.'
+        : '';
+    } else if (act === 'go' || e.target.id === 'vnParoGo') {
+      commitParo();
+      return;
+    }
+    paintParo();
+  }
+  function closeParo() {
+    var sheet = document.getElementById('vnParoSheet');
+    if (sheet) sheet.remove();
+    paro = null;
+  }
+  function commitParo() {
+    if (!paro || !paro.machine || !paro.motivo || !paro.cat || !paro.startHH) return;
+    var msg = document.getElementById('vnParoMsg');
+    if (paro.endMode === 'sigue') {
+      if (msg) msg.textContent = 'No se escribió nada. Elige «Terminó ahora» para usar el guardado de siempre.';
+      return;
+    }
+    var machineEl = document.getElementById('dt_machine');
+    var fechaEl = document.getElementById('dt_fecha');
+    var iniEl = document.getElementById('dt_hIni');
+    var finEl = document.getElementById('dt_hFin');
+    var motEl = document.getElementById('dt_motivo');
+    var notasEl = document.getElementById('dt_notas');
+    var saveBtn = document.getElementById('dtSave');
+    if (!machineEl || !iniEl || !finEl || !motEl || !saveBtn) return;
+    var hFin = hhmm(new Date());
+    machineEl.value = paro.machine;
+    if (fechaEl) fechaEl.value = (typeof todayISO === 'function') ? todayISO() : '';
+    iniEl.value = paro.startHH;
+    finEl.value = hFin;
+    motEl.value = paro.motivo;
+    if (notasEl) notasEl.value = paro.nota || '';
+    var catBtn = document.querySelector('#tab-downtime .dt-cat-btn[data-cat="' + paro.cat + '"]');
+    if (catBtn) catBtn.click();
+    else if (typeof state !== 'undefined' && state) state.selectedDtCat = paro.cat;
+    var sheet = document.getElementById('vnParoSheet');
+    if (sheet) sheet.classList.add('hidden');
+    saveBtn.click();
+    var modal = document.getElementById('userModal');
+    var waitingUser = modal && !modal.classList.contains('hidden');
+    if (!waitingUser) {
+      if (!machineEl.value) closeParo();
+      else if (sheet) sheet.classList.remove('hidden');
+      return;
+    }
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      var m = document.getElementById('dt_machine');
+      var um = document.getElementById('userModal');
+      var open = um && !um.classList.contains('hidden');
+      if (m && !m.value) { clearInterval(timer); closeParo(); }
+      else if (!open || tries > 600) {
+        clearInterval(timer);
+        if (m && !m.value) closeParo();
+        else if (sheet) sheet.classList.remove('hidden');
+      }
+    }, 200);
+  }
+
+  function openRelevo() {
+    var old = document.getElementById('vnRelevoSheet');
+    if (old) old.remove();
+    var shift = clockShift();
+    var rows = (typeof getFichasAbiertas === 'function' ? getFichasAbiertas() : []).slice();
+    rows.sort(function (a, b) {
+      var ha = typeof fichaAging === 'function' ? fichaAging(a).hours : 0;
+      var hb = typeof fichaAging === 'function' ? fichaAging(b).hours : 0;
+      return hb - ha;
+    });
+    var inherited = rows.filter(function (r) { return (r.shiftAbrir || r.shift || '') !== shift; });
+    var lines = inherited.map(function (r) {
+      var ag = typeof fichaAging === 'function' ? fichaAging(r) : { label: '', hours: 0 };
+      var h = ag.hours < 1 ? Math.round(ag.hours * 60) + ' min' : ag.hours.toFixed(1) + ' h';
+      return '<div style="padding:10px 0;border-top:1px solid #253149">' +
+        '<b style="color:#fff">' + esc(r.machine || '—') + '</b> · lote ' + esc(r.lote || '—') +
+        ' · ' + esc(ag.label || '') + ' · ' + h +
+        '<div style="color:#94a3b8;font-size:13px">Abrió ' + esc(r.operadorAbrir || r.operador || '—') +
+        ' · turno ' + esc(r.shiftAbrir || r.shift || '—') +
+        (r.motivoApertura ? ' · ' + esc(r.motivoApertura) : '') + '</div></div>';
+    }).join('');
+    var sheet = document.createElement('div');
+    sheet.id = 'vnRelevoSheet';
+    sheet.className = 'vn-sheet fixed inset-0 z-[120]';
+    sheet.style.zIndex = '100';
+    sheet.innerHTML =
+      '<div class="vn-sheet-card" role="dialog" aria-label="Relevo del turno">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+          '<h3 style="font-size:1.25rem;font-weight:900;color:#fff">Relevo del ' + esc(shift) + ' turno</h3>' +
+          '<button type="button" class="vn-choice" id="vnRelevoX">Cerrar</button>' +
+        '</div>' +
+        '<p style="color:#94a3b8;font-size:13px;margin:8px 0 12px">Solo se ve en esta pantalla. Recibir el relevo no guarda nada.</p>' +
+        '<div style="font-weight:800;color:#fff;margin-bottom:6px">Vienen de otro turno · ' + inherited.length + '</div>' +
+        (lines || '<p style="color:#94a3b8">No hay fichas abiertas de otro turno.</p>') +
+        '<button type="button" class="vn-go" id="vnRelevoOk">Recibí el relevo</button>' +
+      '</div>';
+    document.body.appendChild(sheet);
+    function shut(ack) {
+      sheet.remove();
+      if (ack) say('Relevo visto en esta pantalla. No se guardó nada.');
+    }
+    document.getElementById('vnRelevoX').addEventListener('click', function () { shut(false); });
+    document.getElementById('vnRelevoOk').addEventListener('click', function () { shut(true); });
+  }
+
+  function unmount() {
+    ['vnBadge', 'vnDateMirror', 'vnSortNote', 'vnRelevoBtn', 'vnRelevoSheet', 'vnParoLaunch', 'vnParoSheet', 'vnKeypad', 'vnMetrosNudge'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    var tab = document.getElementById('tab-capture');
+    if (tab) tab.classList.remove('vn-cerrar');
+    var metros = document.getElementById('cmp_metros');
+    if (metros) {
+      metros.removeAttribute('readonly');
+      delete metros.dataset.vnRaw;
+    }
+    paro = null;
+  }
+
+  function mount() {
+    document.documentElement.classList.add('vista-nueva');
+    syncDock();
+    ensureChrome();
+    var mode = (typeof state !== 'undefined' && state && state.fichaMode) || 'abrir';
+    markMode(mode);
+    var metros = document.getElementById('cmp_metros');
+    if (metros) {
+      metros.setAttribute('readonly', 'readonly');
+      if (!metros.dataset.vnRaw) paintMetro(String(metros.value || ''), true);
+    }
+    sortOpenList();
+    refreshNudge();
+  }
+
+  function installHooks() {
+    if (installHooks.done) return;
+    installHooks.done = true;
+    if (typeof renderOpenFichasPanel === 'function') {
+      var origOpen = renderOpenFichasPanel;
+      renderOpenFichasPanel = function () {
+        var r = origOpen.apply(this, arguments);
+        if (vnOn()) sortOpenList();
+        return r;
+      };
+    }
+    if (typeof switchFichaMode === 'function') {
+      var origMode = switchFichaMode;
+      switchFichaMode = function (mode) {
+        var r = origMode.apply(this, arguments);
+        if (vnOn()) markMode(mode);
+        return r;
+      };
+    }
+    if (typeof renderCompact === 'function') {
+      var origCmp = renderCompact;
+      renderCompact = function () {
+        var r = origCmp.apply(this, arguments);
+        if (vnOn()) refreshNudge();
+        return r;
+      };
+    }
+  }
+
+  try {
+    installLogoToggle();
+    installHooks();
+    if (vnOn()) mount();
+  } catch (err) {
+    try { console.warn('[vista-nueva]', err && err.message ? err.message : err); } catch (e2) {}
+  }
 })();
 </script>
 </body>
