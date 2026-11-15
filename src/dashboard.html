@@ -72,10 +72,36 @@
   @media (min-width: 1101px) {
     html.vista-nueva #vnDateMirror { display: none; }
   }
+  /* La ficha ocupa el hueco entre el encabezado y el dock.
+     La barra de acciones es el último tramo de esa columna, no una capa fija
+     encima del formulario: así no tapa LOTE / TELA al hacer scroll. */
   html.vista-nueva #tab-capture:not(.hidden) {
+    position: fixed;
+    z-index: 30;
+    top: var(--vn-header, 168px);
+    bottom: var(--vn-dock, calc(88px + env(safe-area-inset-bottom, 0px)));
+    left: 0;
+    right: 0;
+    width: min(80rem, 100%);
+    margin-left: auto;
+    margin-right: auto;
+    padding: 8px 1rem 0;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    padding-bottom: calc(var(--vn-dock, 88px) + 84px);
+    overflow: hidden;
+    background: var(--tg-bg-0, #07090d);
+  }
+  html.vista-nueva #vnFichaScroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    /* El espacio de la barra y del dock ya está fuera de este scroll.
+       Este relleno solo separa el último campo de la barra. */
+    padding-bottom: 16px;
+    scroll-padding-bottom: 16px;
   }
   html.vista-nueva #fmAbrir,
   html.vista-nueva #fmCerrar,
@@ -86,41 +112,36 @@
     font-size: 1rem;
   }
   html.vista-nueva #fmHint { display: none !important; }
-  html.vista-nueva #tab-capture > :first-child { margin-bottom: 8px !important; }
-  html.vista-nueva #tab-capture > :first-child p { display: none; }
+  html.vista-nueva #vnFichaScroll > * { order: 10; }
+  html.vista-nueva #vnFichaScroll > :first-child { order: 1; margin-bottom: 8px !important; }
+  html.vista-nueva #vnFichaScroll > :first-child p { display: none; }
   html.vista-nueva #tab-capture .card.p-5.mb-4 { padding: 12px !important; margin-bottom: 8px !important; }
-  html.vista-nueva #tab-capture.vn-cerrar:not(.hidden) #fichaActions {
-    position: static;
-    margin: 12px 0 0;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-  }
-  html.vista-nueva #tab-capture > * { order: 10; }
-  html.vista-nueva #tab-capture > :first-child { order: 1; }
-  html.vista-nueva #tab-capture:has(#fmAbrir) > .card:has(#fmAbrir) { order: 2; }
+  html.vista-nueva #vnFichaScroll > .card:has(#fmAbrir) { order: 2; }
   html.vista-nueva #tab-capture:not(.vn-cerrar) #openFichasPanel { order: 50; }
   html.vista-nueva #tab-capture.vn-cerrar #openFichasPanel { order: 3; }
   html.vista-nueva #tab-capture:not(.hidden) #fichaActions {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: var(--vn-dock, 88px);
-    z-index: 35;
+    position: relative;
+    flex: 0 0 auto;
+    order: 2;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    top: auto;
+    z-index: 2;
     margin: 0;
-    padding: 8px 12px;
-    background: rgba(7, 9, 13, 0.96);
+    width: 100%;
+    max-width: none;
+    padding: 8px 0;
+    background: var(--tg-bg-0, #07090d);
     border-top: 1px solid #253149;
-    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.45);
-    max-width: 100vw;
+    box-shadow: none;
     box-sizing: border-box;
   }
   html.vista-nueva #tab-capture:not(.hidden) #fichaActions .btn {
     min-height: 52px !important;
     padding: 8px 14px !important;
   }
-  html.vista-nueva #toast.show { bottom: calc(var(--vn-dock, 88px) + 72px); }
+  html.vista-nueva #toast.show { bottom: calc(var(--vn-dock, 88px) + var(--vn-bar, 72px) + env(safe-area-inset-bottom, 0px) + 8px); }
   .vn-badge {
     display: inline-flex;
     align-items: center;
@@ -31529,10 +31550,54 @@ init();
     });
   }
 
-  function syncDock() {
+  function syncChrome() {
+    var header = document.querySelector('header');
     var nav = document.querySelector('nav.fixed.bottom-0');
-    var h = nav && nav.offsetHeight ? nav.offsetHeight : 88;
-    document.documentElement.style.setProperty('--vn-dock', h + 'px');
+    var banner = document.getElementById('draftBanner');
+    var headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 168;
+    var extra = 0;
+    if (banner && !banner.classList.contains('hidden')) {
+      extra = Math.ceil(banner.getBoundingClientRect().height) + 8;
+    }
+    var dock = nav ? Math.ceil(nav.getBoundingClientRect().height) : 88;
+    if (dock < 44) dock = 88;
+    var root = document.documentElement;
+    root.style.setProperty('--vn-header', (headerH + extra) + 'px');
+    root.style.setProperty('--vn-dock', dock + 'px');
+    var bar = document.getElementById('fichaActions');
+    if (bar) root.style.setProperty('--vn-bar', Math.ceil(bar.getBoundingClientRect().height) + 'px');
+  }
+  function pinFichaShell() {
+    var tab = document.getElementById('tab-capture');
+    var bar = document.getElementById('fichaActions');
+    if (!tab || !bar || document.getElementById('vnFichaScroll')) return;
+    var scroll = document.createElement('div');
+    scroll.id = 'vnFichaScroll';
+    var kids = Array.prototype.slice.call(tab.childNodes);
+    kids.forEach(function (n) {
+      if (n !== bar) scroll.appendChild(n);
+    });
+    tab.insertBefore(scroll, bar);
+  }
+  function unpinFichaShell() {
+    var tab = document.getElementById('tab-capture');
+    var scroll = document.getElementById('vnFichaScroll');
+    if (!tab || !scroll) return;
+    while (scroll.firstChild) tab.insertBefore(scroll.firstChild, scroll);
+    scroll.remove();
+  }
+  function watchChrome() {
+    if (watchChrome.done || typeof ResizeObserver !== 'function') return;
+    watchChrome.done = true;
+    var ro = new ResizeObserver(function () { if (vnOn()) syncChrome(); });
+    var header = document.querySelector('header');
+    var nav = document.querySelector('nav.fixed.bottom-0');
+    var banner = document.getElementById('draftBanner');
+    if (header) ro.observe(header);
+    if (nav) ro.observe(nav);
+    if (banner) ro.observe(banner);
+    window.addEventListener('resize', function () { if (vnOn()) syncChrome(); });
+    window.addEventListener('orientationchange', function () { if (vnOn()) syncChrome(); });
   }
   function markMode(mode) {
     var tab = document.getElementById('tab-capture');
@@ -32004,8 +32069,13 @@ init();
       var el = document.getElementById(id);
       if (el) el.remove();
     });
+    unpinFichaShell();
     var tab = document.getElementById('tab-capture');
     if (tab) tab.classList.remove('vn-cerrar');
+    var root = document.documentElement;
+    root.style.removeProperty('--vn-header');
+    root.style.removeProperty('--vn-dock');
+    root.style.removeProperty('--vn-bar');
     var metros = document.getElementById('cmp_metros');
     if (metros) {
       metros.removeAttribute('readonly');
@@ -32016,7 +32086,9 @@ init();
 
   function mount() {
     document.documentElement.classList.add('vista-nueva');
-    syncDock();
+    pinFichaShell();
+    watchChrome();
+    syncChrome();
     ensureChrome();
     var mode = (typeof state !== 'undefined' && state && state.fichaMode) || 'abrir';
     markMode(mode);
