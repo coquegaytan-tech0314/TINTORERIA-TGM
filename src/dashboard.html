@@ -3034,7 +3034,8 @@
         </div>
         <div>
           <label class="lbl">Operador</label>
-          <input type="text" id="f_operador" class="field" placeholder="Nombre o # de colaborador" />
+          <input type="text" id="f_operador" class="field" list="tgOperadorList" placeholder="Nombre o # de colaborador" autocomplete="off" />
+          <datalist id="tgOperadorList"></datalist>
         </div>
         <div>
           <label class="lbl">Fecha</label>
@@ -3956,6 +3957,10 @@
     <!-- Formulario -->
     <div class="card p-5 mb-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="lbl" for="dt_operador">Operador (auto)</label>
+          <input type="text" id="dt_operador" class="field" list="tgOperadorList" placeholder="Nombre del operador" autocomplete="off" />
+        </div>
         <div>
           <label class="lbl">Máquina</label>
           <select id="dt_machine" class="field">
@@ -4314,7 +4319,7 @@
         </div>
         <div>
           <label class="lbl">Operador</label>
-          <input type="text" id="br_operador" class="field" placeholder="Nombre o # colaborador" />
+          <input type="text" id="br_operador" class="field" list="tgOperadorList" placeholder="Nombre o # colaborador" autocomplete="off" />
         </div>
         <div>
           <label class="lbl">Lote</label>
@@ -4927,7 +4932,7 @@
         </div>
         <div>
           <label class="lbl">Operador</label>
-          <input type="text" id="cmp_operador" class="field" placeholder="Nombre o # colaborador" />
+          <input type="text" id="cmp_operador" class="field" list="tgOperadorList" placeholder="Nombre o # colaborador" autocomplete="off" />
         </div>
         <div>
           <label class="lbl">Lote</label>
@@ -6646,7 +6651,7 @@
         </div>
         <div class="flex items-center gap-1">
           <label class="text-slate-400 text-[10px]">Operador</label>
-          <input id="tejOperador" list="tejOperadoresList" class="field !py-1 !px-2 !text-xs w-40 font-bold" placeholder="Selecciona…" />
+          <input id="tejOperador" list="tgOperadorList" class="field !py-1 !px-2 !text-xs w-40 font-bold" placeholder="Selecciona…" autocomplete="off" />
           <datalist id="tejOperadoresList"></datalist>
         </div>
         <div class="flex items-center gap-1">
@@ -7695,7 +7700,7 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
           <option>1º</option><option>2º</option><option>3º</option>
         </select>
       </div>
-      <div><label class="lbl">Operador</label><input type="text" id="ef_operador" class="field" /></div>
+      <div><label class="lbl">Operador</label><input type="text" id="ef_operador" class="field" list="tgOperadorList" autocomplete="off" /></div>
       <div><label class="lbl">Lote</label><input type="text" id="ef_lote" class="field" /></div>
       <div><label class="lbl">Tela</label><input type="text" id="ef_tela" class="field" /></div>
       <div><label class="lbl">Color</label><input type="text" id="ef_color" class="field" /></div>
@@ -9458,6 +9463,184 @@ window.TGM_WEEK = (function () {
     mxMidnightMs: mxMidnightMs
   };
 })();
+
+/* Nombres de operador que ya aparecen en los datos.
+   OPERADOR_ALIAS es la lista editable: la clave es el nombre que se
+   ofrece y los valores son variantes ya capturadas. No inventes personas.
+   Ejemplo, sin activar:
+   // 'FIDEL PARDO': ['PARDO FIDEL', 'FIDEL']
+   «FIDEL PARDO» y «PARDO FIDEL» se juntan solos (mismas palabras).
+   Un typo como «ORICARDP» se queda, hasta que alguien lo agregue aquí. */
+const OPERADOR_ALIAS = {};
+function tgEscOp(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+function tgOperadorFold(s) {
+  return String(s || '').trim().replace(/\s+/g, ' ');
+}
+function tgOperadorKey(s) {
+  return tgOperadorFold(s).toUpperCase();
+}
+function tgOperadorTokenKey(s) {
+  return tgOperadorKey(s).split(' ').filter(Boolean).sort().join(' ');
+}
+function tgOperadorNombres() {
+  const alias = {};
+  Object.keys(OPERADOR_ALIAS).forEach(function (canonRaw) {
+    const canon = tgOperadorFold(canonRaw);
+    if (!canon) return;
+    alias[tgOperadorKey(canon)] = canon;
+    alias[tgOperadorTokenKey(canon)] = canon;
+    (OPERADOR_ALIAS[canonRaw] || []).forEach(function (v) {
+      alias[tgOperadorKey(v)] = canon;
+      alias[tgOperadorTokenKey(v)] = canon;
+    });
+  });
+  const groups = {};
+  function add(raw) {
+    let name = tgOperadorFold(raw);
+    if (!name) return;
+    const low = name.toLowerCase();
+    if (low === 'invitado' || low === '(sin operador)' || low === 'sin operador') return;
+    const canon = alias[tgOperadorKey(name)] || alias[tgOperadorTokenKey(name)];
+    if (canon) name = canon;
+    const key = canon ? ('C:' + tgOperadorKey(canon)) : ('T:' + tgOperadorTokenKey(name));
+    if (!groups[key]) groups[key] = {};
+    groups[key][name] = (groups[key][name] || 0) + 1;
+  }
+  try {
+    if (typeof TEJ_OPERADORES_SEED !== 'undefined' && TEJ_OPERADORES_SEED) TEJ_OPERADORES_SEED.forEach(add);
+  } catch (e) {}
+  try {
+    if (typeof EMP_STATE !== 'undefined' && EMP_STATE && EMP_STATE.list) {
+      EMP_STATE.list.forEach(function (emp) {
+        if (emp && emp.activo !== false) add(emp.nombre);
+      });
+    }
+  } catch (e2) {}
+  try {
+    if (typeof state !== 'undefined' && state) {
+      ['prod', 'bruck', 'compact', 'down', 'tejeduria'].forEach(function (k) {
+        const arr = state[k];
+        if (!arr || !arr.forEach) return;
+        arr.forEach(function (r) {
+          if (!r) return;
+          add(r.operador);
+          add(r.operadorAbrir);
+          add(r.operadorCerrar);
+        });
+      });
+    }
+  } catch (e3) {}
+  const names = Object.keys(groups).map(function (key) {
+    const spells = groups[key];
+    let best = '';
+    let bestN = -1;
+    Object.keys(spells).forEach(function (sp) {
+      const n = spells[sp];
+      const better = n > bestN
+        || (n === bestN && sp.length > best.length)
+        || (n === bestN && sp.length === best.length && sp.localeCompare(best, 'es') < 0);
+      if (better) { best = sp; bestN = n; }
+    });
+    return best;
+  }).filter(Boolean);
+  names.sort(function (a, b) { return a.localeCompare(b, 'es'); });
+  return names;
+}
+function tgRefreshOperadorList() {
+  const names = tgOperadorNombres();
+  ['tgOperadorList', 'tejOperadoresList', 'tejHistOperadoresList'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = names.map(function (n) {
+      return '<option value="' + tgEscOp(n) + '"></option>';
+    }).join('');
+  });
+  return names;
+}
+function tgOperadorPanel() {
+  let p = document.getElementById('tgOperadorPanel');
+  if (p) return p;
+  p = document.createElement('div');
+  p.id = 'tgOperadorPanel';
+  p.setAttribute('role', 'listbox');
+  p.style.cssText = 'position:fixed;z-index:200;display:none;max-height:240px;overflow:auto;background:#0b1220;border:1px solid #253149;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:6px';
+  document.body.appendChild(p);
+  return p;
+}
+function tgHideOperadorPanel() {
+  const p = document.getElementById('tgOperadorPanel');
+  if (p) p.style.display = 'none';
+}
+function tgShowOperadorPanel(input) {
+  if (!input) return;
+  const names = tgRefreshOperadorList();
+  const q = tgOperadorKey(input.value);
+  const shown = names.filter(function (n) {
+    if (!q) return true;
+    return tgOperadorKey(n).indexOf(q) !== -1;
+  }).slice(0, 8);
+  const p = tgOperadorPanel();
+  if (!shown.length) { tgHideOperadorPanel(); return; }
+  p.innerHTML = shown.map(function (n) {
+    return '<button type="button" data-op="' + tgEscOp(n) + '" style="display:block;width:100%;text-align:left;min-height:44px;margin:0 0 6px;padding:10px 12px;border-radius:10px;border:1px solid #253149;background:#111826;color:#f8fafc;font-weight:700;font-size:16px">' + tgEscOp(n) + '</button>';
+  }).join('');
+  const r = input.getBoundingClientRect();
+  const width = Math.max(r.width, 220);
+  p.style.width = width + 'px';
+  p.style.left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8)) + 'px';
+  const below = r.bottom + 6;
+  p.style.top = below + 'px';
+  p.style.display = 'block';
+  p._input = input;
+  if (below + 80 > window.innerHeight) {
+    p.style.top = Math.max(8, r.top - 8 - Math.min(240, shown.length * 52)) + 'px';
+  }
+}
+function tgBindOperadorFields() {
+  ['f_operador', 'br_operador', 'cmp_operador', 'ef_operador', 'dt_operador', 'tejOperador', 'vnParoOp'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.opList === '1') return;
+    el.dataset.opList = '1';
+    if (!el.getAttribute('list')) el.setAttribute('list', 'tgOperadorList');
+    el.setAttribute('autocomplete', 'off');
+    el.addEventListener('focus', function () { tgShowOperadorPanel(el); });
+    el.addEventListener('input', function () { tgShowOperadorPanel(el); });
+    el.addEventListener('blur', function () { setTimeout(tgHideOperadorPanel, 250); });
+  });
+  const panel = tgOperadorPanel();
+  if (!panel.dataset.bound) {
+    panel.dataset.bound = '1';
+    document.addEventListener('pointerdown', function (e) {
+      if (panel.style.display === 'none') return;
+      if (panel.contains(e.target)) return;
+      const t = e.target;
+      if (t && t.dataset && t.dataset.opList === '1') return;
+      tgHideOperadorPanel();
+    }, true);
+    window.addEventListener('scroll', tgHideOperadorPanel, true);
+    panel.addEventListener('pointerdown', function (e) {
+      const b = e.target.closest('button');
+      if (!b || !panel._input) return;
+      e.preventDefault();
+      panel._input.value = b.getAttribute('data-op') || '';
+      try { panel._input.dispatchEvent(new Event('input', { bubbles: true })); } catch (err) {}
+      try { panel._input.dispatchEvent(new Event('change', { bubbles: true })); } catch (err2) {}
+      tgHideOperadorPanel();
+    });
+  }
+}
+function tgPrefillDtOperador() {
+  const el = document.getElementById('dt_operador');
+  if (!el || tgOperadorFold(el.value)) return;
+  const name = (window.tgShiftOperador && window.tgShiftOperador()) || '';
+  if (name) el.value = name;
+}
+window.tgOperadorNombres = tgOperadorNombres;
+window.tgRefreshOperadorList = tgRefreshOperadorList;
+window.tgBindOperadorFields = tgBindOperadorFields;
+window.tgPrefillDtOperador = tgPrefillDtOperador;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 /** Duración en minutos entre "HH:MM" y "HH:MM", soporta cruzar medianoche */
@@ -10084,6 +10267,7 @@ function init() {
   bindTabs();
   bindCaptureForm();
   bindDowntimeForm();
+  try { tgBindOperadorFields(); tgRefreshOperadorList(); tgPrefillDtOperador(); } catch (e) {}
   bindRamaDowntimeForm();
   bindBrucknerForm();
   bindBruckFilters();
@@ -11085,9 +11269,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 24;
+  const CURRENT_VERSION = 25;
 
   const CHANGELOG = [
+    {
+      v: 25,
+      date: '2026-11-16',
+      icon: '👷',
+      title: 'Lista de operadores y paro con nombre',
+      summary: 'Los campos de operador ofrecen los nombres que ya se usaron, sin repetir grafías. En Tiempos muertos el nombre del turno se llena solo y se puede cambiar.',
+      bullets: [
+        'Al tocar Operador aparecen los nombres ya capturados. Puedes escribir uno que no esté en la lista.',
+        'En Tiempos muertos el campo se llama «Operador (auto)» y trae el operador de este turno.',
+        'Se guarda en el mismo lugar de siempre. No hay nombres inventados.'
+      ],
+      where: 'Ficha · Rama · Compactadora · Tejeduría · Tiempos muertos'
+    },
     {
       v: 24,
       date: '2026-11-01',
@@ -15848,6 +16045,7 @@ function bindDowntimeForm() {
     if (!state.selectedDtCat) return toast('Selecciona una categoría', true);
     if (!mot) return toast('Selecciona el motivo', true);
     const mins = durationMinutes(i, e);
+    const opEscrito = ($('#dt_operador') && $('#dt_operador').value.trim()) || '';
     const rec = {
       id: uid(), ts: Date.now(),
       machine: m, fecha: f, hIni: i, hFin: e,
@@ -15855,7 +16053,7 @@ function bindDowntimeForm() {
       categoria: state.selectedDtCat,
       motivo: mot,
       notas: $('#dt_notas').value.trim(),
-      operador: (window.tgShiftOperador ? window.tgShiftOperador() : '')
+      operador: opEscrito || (window.tgShiftOperador ? window.tgShiftOperador() : '')
     };
     state.down.unshift(rec);
     save(LS_KEYS.down, state.down);
@@ -15870,8 +16068,9 @@ function bindDowntimeForm() {
 function clearDtForm() {
   state.selectedDtCat = null;
   $$('.dt-cat-btn').forEach(x => x.classList.remove('active'));
-  ['#dt_machine','#dt_hIni','#dt_hFin','#dt_motivo','#dt_notas'].forEach(s => $(s).value = '');
+  ['#dt_machine','#dt_hIni','#dt_hFin','#dt_motivo','#dt_notas','#dt_operador'].forEach(s => { if ($(s)) $(s).value = ''; });
   $('#dt_fecha').value = todayISO();
+  try { tgPrefillDtOperador(); } catch (e) {}
   try { if (window.markCaptureClean) window.markCaptureClean('dt'); } catch(e){}
   try { if (window.clearCaptureDraft) window.clearCaptureDraft('dt'); } catch(e){}
 }
@@ -24171,11 +24370,8 @@ function _tejGetSessionCtx() {
 }
 
 function _tejPopulateDatalists() {
-  // Operators = seed + any distinct new ones in data
-  const dataOps = Array.from(new Set((state.tejeduria||[]).map(r => (r.operador||'').trim()).filter(Boolean)));
-  const merged = Array.from(new Set([...TEJ_OPERADORES_SEED, ...dataOps])).sort((a,b)=>a.localeCompare(b,'es'));
-  const opList = document.getElementById('tejOperadoresList');
-  if (opList) opList.innerHTML = merged.map(o => `<option value="${o}"></option>`).join('');
+  // Misma lista que el resto de la planta: nombres ya usados, sin duplicar grafías.
+  try { if (typeof tgRefreshOperadorList === 'function') tgRefreshOperadorList(); } catch (e) {}
 
   // Máquinas — from data only (no seed; grows organically)
   const dataMaq = Array.from(new Set((state.tejeduria||[]).map(r => (r.maquina||'').trim()).filter(Boolean)))
@@ -29877,34 +30073,16 @@ init();
       setIfEmpty('br_operador', o.operador);
       setIfEmpty('cmp_operador', o.operador);
       setIfEmpty('tejOperador', o.operador);
+      setIfEmpty('dt_operador', o.operador);
     }
     prefillFichaTurnoFromClock();
+    try { if (window.tgBindOperadorFields) window.tgBindOperadorFields(); } catch (e) {}
+    try { if (window.tgPrefillDtOperador) window.tgPrefillDtOperador(); } catch (e2) {}
   }
   function collectOperadorNames(){
-    var set = {};
-    function add(n){
-      n = String(n || '').trim();
-      if (!n || n === '(sin operador)' || n === 'Invitado') return;
-      set[n] = true;
-    }
-    try {
-      if (typeof TEJ_OPERADORES_SEED !== 'undefined' && TEJ_OPERADORES_SEED) TEJ_OPERADORES_SEED.forEach(add);
-    } catch(e){}
-    try {
-      if (typeof EMP_STATE !== 'undefined' && EMP_STATE && EMP_STATE.list) {
-        EMP_STATE.list.forEach(function(emp){ if (emp && emp.activo !== false) add(emp.nombre); });
-      }
-    } catch(e2){}
-    try {
-      if (typeof state !== 'undefined' && state) {
-        ['prod','bruck','tejeduria'].forEach(function(k){
-          var arr = state[k];
-          if (!arr || !arr.slice) return;
-          arr.slice(0, 80).forEach(function(r){ if (r) add(r.operador); });
-        });
-      }
-    } catch(e3){}
-    return Object.keys(set).sort(function(a, b){ return a.localeCompare(b, 'es'); });
+    try { if (window.tgRefreshOperadorList) window.tgRefreshOperadorList(); } catch (e) {}
+    if (window.tgOperadorNombres) return window.tgOperadorNombres();
+    return [];
   }
   function openShiftOpModal(){
     var modal = document.getElementById('shiftOpModal');
@@ -31835,6 +32013,8 @@ init();
           '<button type="button" class="vn-choice" data-act="close">Cerrar</button>' +
         '</div>' +
         '<p style="color:#94a3b8;font-size:13px;margin-bottom:10px">Tres toques: máquina, motivo y Registrar. Usa el mismo guardado de siempre. «Sigue parada» no escribe nada.</p>' +
+        '<label style="display:block;font-size:12px;font-weight:800;color:#94a3b8" for="vnParoOp">Operador (auto)</label>' +
+        '<input id="vnParoOp" class="field" list="tgOperadorList" autocomplete="off" style="margin:6px 0 12px" placeholder="Nombre del operador" />' +
         '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin:8px 0">1 · MÁQUINA</div>' +
         '<div class="vn-grid" id="vnParoMachines">' + machines.map(function (m) {
           return '<button type="button" class="vn-choice" data-act="machine" data-v="' + esc(m.id) + '">' + esc(m.id) + '</button>';
@@ -31870,6 +32050,17 @@ init();
     if (nota) nota.addEventListener('input', function () { paro.nota = nota.value; paintParo(); });
     paintStarts();
     paintParo();
+    var opForm = document.getElementById('dt_operador');
+    var opSheet = document.getElementById('vnParoOp');
+    var opName = (opForm && String(opForm.value || '').trim()) || (window.tgShiftOperador ? window.tgShiftOperador() : '');
+    if (opForm && !String(opForm.value || '').trim() && opName) opForm.value = opName;
+    if (opSheet) {
+      opSheet.value = opName || '';
+      opSheet.addEventListener('input', function () {
+        if (opForm) opForm.value = opSheet.value;
+      });
+    }
+    try { if (window.tgBindOperadorFields) window.tgBindOperadorFields(); } catch (e) {}
   }
   function paintStarts() {
     var box = document.getElementById('vnParoStarts');
@@ -31982,6 +32173,9 @@ init();
     var finEl = document.getElementById('dt_hFin');
     var motEl = document.getElementById('dt_motivo');
     var notasEl = document.getElementById('dt_notas');
+    var opSheet = document.getElementById('vnParoOp');
+    var opForm = document.getElementById('dt_operador');
+    if (opSheet && opForm) opForm.value = opSheet.value;
     var saveBtn = document.getElementById('dtSave');
     if (!machineEl || !iniEl || !finEl || !motEl || !saveBtn) return;
     var hFin = hhmm(new Date());
