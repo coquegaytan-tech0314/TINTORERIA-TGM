@@ -1,0 +1,88 @@
+# Publish ONLY the StatiCrypt gate to GitHub Pages.
+#
+# GitHub Pages is currently "Deploy from a branch" (main /), so the built-in
+# Jekyll workflow publishes the whole repository, including src/dashboard.html.
+# This workflow uploads the already-encrypted index.html and nothing else.
+#
+# It does not encrypt, edit, or commit index.html. ./scripts/encrypt-dashboard.sh
+# stays the only way that file is produced. After that script's commit lands on
+# main, this workflow publishes the new index.html.
+#
+# It refuses to deploy while Pages still builds from the branch, so a merge
+# cannot replace the live site until Settings → Pages → Source is GitHub Actions.
+
+name: Publish encrypted Pages site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-encrypted-only
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Deploy only after Pages source is GitHub Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! build_type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type); then
+            echo "Could not read GitHub Pages settings. Not deploying, so the live site is left as it is." >&2
+            exit 1
+          fi
+          if [[ -z "${build_type}" || "${build_type}" != "workflow" ]]; then
+            echo "GitHub Pages is still publishing from the branch (build_type=${build_type})." >&2
+            echo "The live site was not changed." >&2
+            echo "Set Settings → Pages → Build and deployment → Source to GitHub Actions, then re-run this workflow." >&2
+            exit 1
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+        with:
+          # Do not enable Pages or change its source from this workflow.
+          enablement: false
+
+      - name: Assemble public site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html _site/index.html
+          test -s _site/index.html
+          found="$(find _site -type f | sort)"
+          if [[ "${found}" != "_site/index.html" ]]; then
+            echo "Refusing to publish: the site folder is not exactly index.html" >&2
+            printf '%s\n' "${found}" >&2
+            exit 1
+          fi
+          if ! grep -q 'class="staticrypt-html"' _site/index.html; then
+            echo "Refusing to publish: index.html is not the StatiCrypt gate" >&2
+            exit 1
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
