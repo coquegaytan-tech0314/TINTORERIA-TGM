@@ -11085,9 +11085,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 24;
+  const CURRENT_VERSION = 25;
 
   const CHANGELOG = [
+    {
+      v: 25,
+      date: '2026-11-16',
+      icon: '⚠️',
+      title: 'Lote repetido en la misma máquina',
+      summary: 'Si el lote ya tiene ficha en esa máquina esta semana, se pregunta si es reproceso. Sí lo marca. No lo guarda como otra carga.',
+      bullets: [
+        'La pregunta dice la fecha y el turno de la ficha que ya está. Los botones son «Sí, reproceso» y «No, es otra carga».',
+        'La semana es la de siempre: lunes a sábado, y el domingo si hubo producción.',
+        'Si en una ficha abierta eliges el motivo Reproceso, queda marcada con la misma bandera.'
+      ],
+      where: 'Ficha · Abrir, Captura completa y Cerrar'
+    },
     {
       v: 24,
       date: '2026-11-01',
@@ -12789,13 +12802,13 @@ window.addEventListener('load', () => {
      turno (tgShiftOperador), si existe. Los dos tienen que estar
      llenos en Abrir y Captura completa.
    - Kilos menores a 10: se pregunta. Si confirman, se guarda.
-   - Mismo lote en la misma máquina: aviso, no bloqueo. Se compara
-     solo la misma máquina y una ventana de 7 días por la fecha de
-     la ficha (más las que sigan abiertas). Vacío y SIN LOTE no
-     cuentan. Si esta ficha ya está marcada como reproceso, no se
-     avisa: el reproceso sí repite lote.
+   - Mismo lote en la misma máquina, en la semana de producción
+     (lun–sáb + domingo, TGM_WEEK): aviso. «Sí, reproceso» escribe
+     el campo que ya existe, es_reproceso = true. «No, es otra carga»
+     sigue y no escribe esa bandera. Vacío y SIN LOTE no cuentan.
+     Si esta ficha ya trae es_reproceso, no se vuelve a preguntar.
+     El texto «reproceso» en notas no pone la bandera.
 --------------------------------------------------------------- */
-const FICHA_LOTE_DIAS = 7;
 
 function fichaEsc(s) {
   return String(s == null ? '' : s)
@@ -12827,12 +12840,14 @@ function fichaRecordFecha(r) {
   }
   return '';
 }
-function fichaMarcadaReproceso(ctx) {
-  if (!ctx) return false;
-  if (ctx.es_reproceso === true) return true;
-  if (ctx.motivoApertura === 'reproceso') return true;
-  const txt = ((ctx.proceso || '') + ' ' + (ctx.notas || '')).toLowerCase();
-  return txt.indexOf('reproceso') !== -1;
+function fichaFechaCorta(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  if (!m) return 'sin fecha';
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return Number(m[3]) + ' ' + meses[Number(m[2]) - 1];
+}
+function fichaTurnoTxt(r) {
+  return (r && (r.shift || r.shiftAbrir)) || 'sin turno';
 }
 function fichaNombre(r) {
   const partes = [
@@ -12847,22 +12862,22 @@ function fichaNombre(r) {
   partes.push(r.estado === 'abierta' ? 'abierta' : 'cerrada');
   return partes.join(' · ');
 }
-function fichaBuscarLoteDuplicado(ctx) {
+function fichaBuscarLoteSemana(ctx) {
   if (!ctx || fichaLoteIgnorado(ctx.lote)) return [];
   const loteN = fichaNormLote(ctx.lote);
   const machine = String(ctx.machine || '').trim();
   if (!machine) return [];
-  const base = fichaFechaMs(ctx.fecha || (typeof todayISO === 'function' ? todayISO() : ''));
-  const ventana = FICHA_LOTE_DIAS * 86400000;
+  const fecha = String(ctx.fecha || (typeof todayISO === 'function' ? todayISO() : '')).slice(0, 10);
+  const week = (window.TGM_WEEK && fecha) ? window.TGM_WEEK.weekOf(fecha) : null;
+  if (!week || !week.dates) return [];
+  const enSemana = {};
+  week.dates.forEach(function (d) { enSemana[d] = true; });
   const rows = (state.prod || []).filter(function (r) {
     if (!r || (ctx.excludeId && r.id === ctx.excludeId)) return false;
     if (fichaLoteIgnorado(r.lote)) return false;
     if (fichaNormLote(r.lote) !== loteN) return false;
     if (String(r.machine || '').trim() !== machine) return false;
-    if (r.estado === 'abierta') return true;
-    const fms = fichaFechaMs(fichaRecordFecha(r));
-    if (!base || !fms) return false;
-    return Math.abs(fms - base) <= ventana;
+    return !!enSemana[fichaRecordFecha(r)];
   });
   rows.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
   return rows;
@@ -12969,47 +12984,45 @@ function fichaModalKilos(kg, onOk, onCancel) {
   );
   fichaModalBotones(modal, onOk, onCancel);
 }
-function fichaModalLote(matches, ctx, onOk, onCancel) {
+function fichaModalLoteSemana(matches, ctx, onSi, onNo) {
   const top = matches[0];
   const extra = matches.length - 1;
-  const lote = fichaEsc(fichaNormLote(ctx.lote));
-  const maq = fichaEsc(ctx.machine || '');
+  const cuando = fichaFechaCorta(fichaRecordFecha(top)) + ' / ' + fichaTurnoTxt(top);
   const extraLine = extra > 0
-    ? '<p style="margin-top:8px;color:#e2e8f0;font-size:15px">Hay ' + extra + ' ficha' + (extra === 1 ? '' : 's') + ' más con este lote en ' + maq + '.</p>'
+    ? '<p style="margin-top:8px;color:#e2e8f0;font-size:15px">Hay ' + extra + ' ficha' + (extra === 1 ? '' : 's') + ' más con este lote en esta máquina, en esta semana.</p>'
     : '';
   const modal = fichaAbrirModal(
     '<div class="card p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto" style="border:2px solid rgba(251,191,36,0.55)">' +
-      '<h3 id="fichaGuardTitle" class="text-xl font-black text-white">Este lote ya está en otra ficha</h3>' +
-      '<p class="text-slate-200 mt-2 text-base leading-snug">El lote <b class="text-white">' + lote + '</b> ya se capturó en <b class="text-white">' + maq + '</b>. Un reproceso sí puede repetir el lote. Si es la misma carga, revisa antes de guardar otra.</p>' +
-      '<div class="mt-3 p-3 rounded-xl" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.35)">' +
-        '<div class="text-xs font-bold uppercase tracking-wide" style="color:#fbbf24">Ficha existente</div>' +
-        '<p class="text-white font-semibold mt-1 text-base leading-snug">' + fichaEsc(fichaNombre(top)) + '</p>' +
-        extraLine +
-      '</div>' +
+      '<h3 id="fichaGuardTitle" class="text-xl font-black text-white leading-snug">⚠️ Este lote ya tiene ficha en esta máquina (' + fichaEsc(cuando) + '). ¿Es reproceso?</h3>' +
+      '<p class="text-slate-300 mt-2 text-base leading-snug">' + fichaEsc(fichaNombre(top)) + '</p>' +
+      extraLine +
       '<div class="grid grid-cols-1 gap-3 mt-4">' +
-        '<button type="button" id="fichaGuardCancel" class="btn btn-secondary touch-xl">Revisar</button>' +
-        '<button type="button" id="fichaGuardOk" class="btn touch-xl" style="background:#b45309;color:#fff;min-height:48px">Guardar de todos modos</button>' +
+        '<button type="button" id="fichaLoteSi" class="btn touch-xl" style="background:#b45309;color:#fff;min-height:48px">Sí, reproceso</button>' +
+        '<button type="button" id="fichaLoteNo" class="btn btn-secondary touch-xl" style="min-height:48px">No, es otra carga</button>' +
       '</div>' +
     '</div>',
-    onCancel
+    function () {}
   );
-  fichaModalBotones(modal, onOk, onCancel);
+  modal.setAttribute('aria-labelledby', 'fichaGuardTitle');
+  document.getElementById('fichaLoteSi').addEventListener('click', function () {
+    fichaCerrarModal();
+    if (onSi) onSi();
+  });
+  document.getElementById('fichaLoteNo').addEventListener('click', function () {
+    fichaCerrarModal();
+    if (onNo) onNo();
+  });
+}
+function fichaConfirmLote(ctx, onOk) {
+  if (ctx && ctx.es_reproceso === true) { onOk('seguir'); return; }
+  const matches = fichaBuscarLoteSemana(ctx);
+  if (!matches.length) { onOk('seguir'); return; }
+  fichaModalLoteSemana(matches, ctx, function () { onOk('reproceso'); }, function () { onOk('otra'); });
 }
 function fichaConfirmSoft(ctx, onOk) {
   const kg = Number(ctx.kilos);
   const askKg = kg > 0 && kg < 10;
-  const marcada = fichaMarcadaReproceso(ctx);
-  const matches = marcada ? [] : fichaBuscarLoteDuplicado(ctx);
-  const go = function () {
-    // marcada: el reproceso ya está dicho (notas, proceso, motivo o
-    // es_reproceso). No se vuelve a preguntar ni se escribe el flag.
-    if (!matches.length) { onOk(!!marcada); return; }
-    fichaModalLote(matches, ctx, function () { onOk(true); }, function () {
-      if (ctx.loteEl) {
-        try { ctx.loteEl.scrollIntoView({ block: 'center' }); ctx.loteEl.focus(); } catch (e) {}
-      }
-    });
-  };
+  const go = function () { fichaConfirmLote(ctx, onOk); };
   if (askKg) {
     fichaModalKilos(kg, go, function () {
       if (ctx.kilosEl) {
@@ -13042,10 +13055,10 @@ function saveProd(andNew) {
     excludeId: null,
     kilosEl: document.getElementById('f_kilos'),
     loteEl: document.getElementById('f_lote')
-  }, function (loteYaAvisado) { saveProdCommit(andNew, loteYaAvisado); });
+  }, function (decision) { saveProdCommit(andNew, decision); });
 }
 
-function saveProdCommit(andNew, loteYaAvisado) {
+function saveProdCommit(andNew, decision) {
   const kilos = parseFloat($('#f_kilos').value);
   const mins = durationMinutes($('#f_hEntrada').value, $('#f_hSalida').value);
 
@@ -13105,11 +13118,16 @@ function saveProdCommit(andNew, loteYaAvisado) {
     }
   };
 
-  // Si el aviso de lote (misma máquina) ya se mostró, no se vuelve a
-  // preguntar ni se escribe es_reproceso: «Guardar de todos modos» deja
-  // el documento igual que una ficha normal. El aviso viejo de
-  // lote+proceso (otra máquina) sigue igual.
-  if (!loteYaAvisado && rec.lote && rec.proceso && !fichaLoteIgnorado(rec.lote)) {
+  // Sí: es_reproceso = true, igual que el aviso de lote+proceso.
+  // No: la ficha se guarda como otra carga, sin esa bandera.
+  // Las dos respuestas ya contestaron; no se vuelve a preguntar.
+  // Si no hubo aviso de la semana, el aviso viejo de lote+proceso
+  // (7 días, otra máquina) sigue igual.
+  if (decision === 'reproceso' || decision === 'otra') {
+    _doSaveProdRec(decision === 'reproceso');
+    return;
+  }
+  if (rec.lote && rec.proceso && !fichaLoteIgnorado(rec.lote)) {
     const dups = _findLoteProcesoDuplicate(rec.lote, rec.proceso, 7, rec.id);
     if (dups.length > 0) {
       _dupWarnModal(dups, { lote: rec.lote, proceso: rec.proceso, tela: rec.tela, kilos: rec.kilos, origen: 'RAMA · ' + rec.machine },
@@ -13214,10 +13232,10 @@ function saveFichaAbrir(){
     excludeId: null,
     kilosEl: document.getElementById('f_kilos'),
     loteEl: document.getElementById('f_lote')
-  }, function () { saveFichaAbrirCommit(); });
+  }, function (decision) { saveFichaAbrirCommit(decision === 'reproceso'); });
 }
 
-function saveFichaAbrirCommit(){
+function saveFichaAbrirCommit(esReproceso){
   const kilos = parseFloat($('#f_kilos').value);
   const rec = {
     id: uid(),
@@ -13246,11 +13264,12 @@ function saveFichaAbrirCommit(){
     operadorAbrir: ($('#f_operador').value.trim() || state.user || ''),
     shiftAbrir:    state.selectedShift
   };
+  if (esReproceso) rec.es_reproceso = true;
 
   state.prod.unshift(rec);
   save(LS_KEYS.prod, state.prod);
   try { saveToCloud('prod', rec); } catch(e) {}
-  logChange({ module:'Ficha', action:'Abierta', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · entrada ${rec.hEntrada}` });
+  logChange({ module:'Ficha', action:'Abierta', machine:rec.machine, lote:rec.lote, detail:`${fmtKg(rec.kilos)} kg · entrada ${rec.hEntrada}${esReproceso ? ' · reproceso' : ''}` });
   toast('Ficha abierta ✓ — esperando cierre del siguiente turno');
   clearProdForm();
   renderAll();
@@ -13418,7 +13437,7 @@ function openCerrarFichaModal(id){
       excludeId: rec.id,
       kilosEl: document.getElementById('cf_kilos'),
       loteEl: null
-    }, function () {
+    }, function (decision) {
       const mins = durationMinutes(rec.hEntrada, hf);
       const merma = parseFloat($('#cf_merma').value);
       const notasCierre = $('#cf_notas').value.trim();
@@ -13435,6 +13454,7 @@ function openCerrarFichaModal(id){
       rec.tsCierre      = Date.now();
       // Recalcular desempeño con kilos finales
       rec.des = calcDesempeno(rec.machine, kf, rec.proceso);
+      if (decision === 'reproceso') rec.es_reproceso = true;
 
       save(LS_KEYS.prod, state.prod);
       try { saveToCloud('prod', rec); } catch(e) {}
@@ -13584,6 +13604,7 @@ window.saveOpenFichaMotivo = function(id, motivo) {
   if (!f) return;
   const prev = f.motivoApertura || '';
   f.motivoApertura = motivo || '';
+  if (motivo === 'reproceso') f.es_reproceso = true;
   f._editedAt = Date.now();
   save(LS_KEYS.prod, state.prod);
   saveToCloud('prod', f);
@@ -16188,6 +16209,14 @@ function saveEditedFicha() {
 
   const machine = $('#ef_machine').value;
   const proceso = $('#ef_proceso').value.trim();
+  fichaConfirmLote({
+    lote: $('#ef_lote').value.trim(),
+    machine: machine,
+    fecha: $('#ef_fecha').value || f.fecha,
+    es_reproceso: f.es_reproceso === true,
+    excludeId: f.id,
+    loteEl: document.getElementById('ef_lote')
+  }, function (decision) {
   f.machine  = machine;
   f.fecha    = $('#ef_fecha').value || f.fecha;
   f.shift    = $('#ef_shift').value;
@@ -16209,6 +16238,7 @@ function saveEditedFicha() {
   f.des           = calcDesempeno(machine, kilos, proceso);
   f.tiempoPlanMin = minutosProceso(proceso);
   f.cargaEstim    = cargaEsperada(machine, proceso);
+  if (decision === 'reproceso') f.es_reproceso = true;
   f._editedAt     = Date.now();
 
   save(LS_KEYS.prod, state.prod);
@@ -16217,6 +16247,7 @@ function saveEditedFicha() {
   toast('Ficha actualizada');
   closeEditFichaModal();
   renderAll();
+  });
 }
 function bindEditFichaModal() {
   $('#editFichaClose').addEventListener('click', closeEditFichaModal);
