@@ -544,6 +544,60 @@
   .aging-warn .of-aging-chip { background: rgba(245,158,11,0.15);  color:#fbbf24; border:1px solid rgba(245,158,11,0.35); }
   .aging-late .of-aging-chip { background: rgba(244,63,94,0.18);   color:#fb7185; border:1px solid rgba(244,63,94,0.45); }
 
+  /* Semáforo de proceso (solo lectura). No reemplaza la raya de 2 h / 6 h. */
+  .of-std {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin: 8px 0 4px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-weight: 800;
+  }
+  .of-std-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    flex: 0 0 14px;
+  }
+  .of-std-text { display: flex; flex-direction: column; min-width: 0; }
+  .of-std-main {
+    font-size: 0.95rem;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+  }
+  .of-std-sub {
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.3;
+    opacity: 0.92;
+  }
+  .of-std.std-ok { background: rgba(34,197,94,0.14); color: #86efac; border-color: rgba(34,197,94,0.5); }
+  .of-std.std-ok .of-std-dot { background: #22c55e; }
+  .of-std.std-warn { background: rgba(245,158,11,0.14); color: #fde68a; border-color: rgba(245,158,11,0.55); }
+  .of-std.std-warn .of-std-dot { background: #f59e0b; }
+  .of-std.std-bad { background: rgba(239,68,68,0.16); color: #fecaca; border-color: rgba(239,68,68,0.6); }
+  .of-std.std-bad .of-std-dot { background: #ef4444; }
+  .of-std.std-none { background: rgba(148,163,184,0.12); color: #e2e8f0; border-color: rgba(148,163,184,0.45); }
+  .of-std.std-none .of-std-dot { background: #94a3b8; }
+  .of-std-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin: 0 0 12px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+  .of-std-legend .of-std-dot { width: 10px; height: 10px; flex-basis: 10px; }
+  .of-std-legend .lg-ok { background: #22c55e; }
+  .of-std-legend .lg-warn { background: #f59e0b; }
+  .of-std-legend .lg-bad { background: #ef4444; }
+  .of-std-legend .lg-none { background: #94a3b8; }
+
   /* Motivo de retraso (por qué la ficha sigue abierta) */
   .of-motivo-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:8px 0 10px; padding:8px 10px; background:rgba(15,23,42,0.45); border:1px dashed rgba(148,163,184,0.22); border-radius:10px; }
   .of-motivo-row .lbl-mini { font-size:0.62rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; }
@@ -2994,6 +3048,13 @@
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#f59e0b"></span>Cerrar pronto</span>
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#f43f5e"></span>Olvidada</span>
         </div>
+      </div>
+      <div class="of-std-legend" aria-label="Semáforo de proceso">
+        <span style="color:#e2e8f0">Semáforo de proceso</span>
+        <span class="flex items-center gap-1.5"><span class="of-std-dot lg-ok"></span>Menos del 80%</span>
+        <span class="flex items-center gap-1.5"><span class="of-std-dot lg-warn"></span>Del 80% al 100%</span>
+        <span class="flex items-center gap-1.5"><span class="of-std-dot lg-bad"></span>Sobre el estándar</span>
+        <span class="flex items-center gap-1.5"><span class="of-std-dot lg-none"></span>Sin estándar</span>
       </div>
       <div id="openFichasList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
     </div>
@@ -9379,6 +9440,308 @@ function getFichasAbiertas(){
 }
 
 /* ---------------------------------------------------------------
+   SEMÁFORO DE PROCESO (solo lectura)
+   Compara el tiempo desde hEntrada con TIEMPOS_ESTANDAR.
+   No entra a minutosProceso, tiempoPlanMin, desempeño ni Firestore.
+   La raya de 2 h / 6 h (fichaAging) no se toca.
+   Horas confirmadas por el jefe de planta y el dueño (nov 2026).
+   Para cambiar un tiempo, edita solo este arreglo.
+--------------------------------------------------------------- */
+const TIEMPOS_ESTANDAR = [
+  { key: 'blanqueo_pol_alg', label: 'Blanqueo Pol-Alg',          horas: 5 },
+  { key: 'blanqueo_pol',     label: 'Blanqueo Poliéster',        horas: 5.5 },
+  { key: 'pol_claro',        label: 'Poliéster tono claro',      horas: 7 },
+  { key: 'pol_oscuro',       label: 'Poliéster tono oscuro',     horas: 8 },
+  { key: 'pol_alg_claro',    label: 'Pol-Alg tono claro',        horas: 11.5 },
+  { key: 'pol_alg_oscuro',   label: 'Pol-Alg tono oscuro',       horas: 13 },
+  { key: 'alg_claro',        label: 'Algodón 100% tono claro',   horas: 7 },
+  { key: 'alg_oscuro',       label: 'Algodón 100% tono oscuro',  horas: 8 },
+  { key: 'pol_lycra',        label: 'Poliéster lycra',           horas: 9 },
+  { key: 'lavado_tela',      label: 'Lavado tela',               horas: 3 },
+  { key: 'lavado_maquina',   label: 'Lavado máquina',            horas: 4 }
+];
+
+function semNorm(s) {
+  return String(s == null ? '' : s)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/½/g, ' 1/2 ')
+    .replace(/¼/g, ' 1/4 ')
+    .replace(/[^a-z0-9/+]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\baly\b/g, 'alg');
+}
+
+function semEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtMinutos(mins) {
+  var m = Math.max(0, Math.round(Number(mins) || 0));
+  var h = Math.floor(m / 60);
+  var r = m % 60;
+  if (h && r) return h + ' h ' + r + ' m';
+  if (h) return h + ' h';
+  return r + ' m';
+}
+
+function fmtSobre(mins) {
+  return '+' + fmtMinutos(mins) + ' sobre estándar';
+}
+
+function fmtHorasTabla(horas) {
+  var min = Math.round(Number(horas) * 60);
+  if (!isFinite(min) || min <= 0) return '';
+  if (min % 60 === 0) return (min / 60) + ' h';
+  if (min % 60 === 30) return Math.floor(min / 60) + '.5 h';
+  return fmtMinutos(min);
+}
+
+/** Descrude, medio teñido, matiz u otro segundo proceso: no hay una sola fila. */
+function semEsCombo(p) {
+  if (/\b(1\/2|1\/4)\b/.test(p)) return true;
+  if (/\bdesc(rude|rudado)?\b/.test(p)) return true;
+  if (/\bmatiz\b/.test(p)) return true;
+  if (/\b(antiqu|antigu|stoning|stone)\b/.test(p)) return true;
+  if (/\b(bano|ciego)\b/.test(p)) return true;
+  var lav = /\blavado\b/.test(p);
+  var ten = /\btenido\b/.test(p);
+  var blq = /\b(blanqueo|bqueo)\b/.test(p);
+  return (lav ? 1 : 0) + (ten ? 1 : 0) + (blq ? 1 : 0) > 1;
+}
+
+/** Fibra escrita en el proceso. «alg» suelto no basta para Algodón 100%. */
+function semFibraProceso(p) {
+  var hasPol = /\b(pol|poliester)\b/.test(p);
+  var hasAlgodon = /\balgodon\b/.test(p);
+  var hasAlg = /\balg\b/.test(p);
+  var hasEla = /\b(lycra|elastano|spandex)\b/.test(p);
+  if (hasPol && (hasAlgodon || hasAlg)) return 'pol_alg';
+  if (hasPol && hasEla) return 'pol_lycra';
+  if (!hasPol && hasEla && hasAlgodon) return 'alg_lycra';
+  if (!hasPol && hasAlgodon) return 'alg';
+  if (hasPol) return 'pol';
+  return null;
+}
+
+function semTonoProceso(p) {
+  var osc = /\b(oscuro|obscuro)\b/.test(p);
+  var cla = /\bclaro\b/.test(p);
+  var bla = /\bblanco\b/.test(p);
+  var med = /\bmedio\b/.test(p);
+  if ((osc ? 1 : 0) + (cla ? 1 : 0) + (bla ? 1 : 0) + (med ? 1 : 0) !== 1) {
+    if (!osc && !cla && !bla && !med) return null;
+    return null;
+  }
+  if (osc) return 'oscuro';
+  if (cla) return 'claro';
+  if (bla) return 'blanco';
+  return 'medio';
+}
+
+/** Solo si el color dice claro u oscuro. Negro, rojo o blanco no se adivinan. */
+function semTonoColor(color) {
+  var c = semNorm(color);
+  if (!c) return null;
+  var osc = /\b(oscuro|obscuro)\b/.test(c);
+  var cla = /\bclaro\b/.test(c);
+  if (osc === cla) return null;
+  return osc ? 'oscuro' : 'claro';
+}
+
+function semFibraComp(comp) {
+  var c = semNorm(comp);
+  if (!c) return null;
+  var hasPol = /poli/.test(c);
+  var hasAlg = /algod/.test(c);
+  var hasEla = /elast|lycra|spandex/.test(c);
+  var hasForeign = /acril|nylon/.test(c);
+  if (hasPol && hasAlg) return 'pol_alg';
+  if (hasPol && hasEla) return 'pol_lycra';
+  if (hasAlg && hasEla) return 'alg_lycra';
+  if (hasAlg && /100/.test(c)) return 'alg';
+  if (hasPol && !hasForeign) return 'pol';
+  if (hasForeign) return 'otro';
+  return null;
+}
+
+function semTelasDisponibles() {
+  try {
+    if (typeof state !== 'undefined' && state && Array.isArray(state.telas) && state.telas.length) {
+      return state.telas;
+    }
+  } catch (e) {}
+  try {
+    if (Array.isArray(TELAS_SEED_2026_05_25)) return TELAS_SEED_2026_05_25;
+  } catch (e) {}
+  return [];
+}
+
+/** Match exacto del nombre de tela. Sin fuzzy: un typo no elige fibra. */
+function semTelaFibra(rec, rows) {
+  var name = rec && rec.tela != null ? String(rec.tela).trim() : '';
+  if (!name) return null;
+  var q = (typeof telaNormalize === 'function') ? telaNormalize(name) : semNorm(name);
+  if (!q) return null;
+  var list = rows || [];
+  var row = null;
+  for (var i = 0; i < list.length; i++) {
+    var t = list[i];
+    if (!t) continue;
+    var n = (typeof telaNormalize === 'function') ? telaNormalize(t.nombre) : semNorm(t.nombre);
+    if (n === q) { row = t; break; }
+  }
+  if (!row) return null;
+  return semFibraComp(row.composicion);
+}
+
+function semClaveExplicita(fibraP, tonoP, esBlanqueo, esTenido) {
+  if (tonoP === 'medio') return null;
+  if (esBlanqueo || tonoP === 'blanco') {
+    if (tonoP === 'claro' || tonoP === 'oscuro' || tonoP === 'medio') return null;
+    if (fibraP === 'pol') return 'blanqueo_pol';
+    if (fibraP === 'pol_alg') return 'blanqueo_pol_alg';
+    return null;
+  }
+  if (fibraP === 'pol_lycra') return 'pol_lycra';
+  if (tonoP !== 'claro' && tonoP !== 'oscuro') return null;
+  if (!esTenido && fibraP !== 'pol' && fibraP !== 'pol_alg' && fibraP !== 'alg') return null;
+  if (fibraP === 'pol') return tonoP === 'oscuro' ? 'pol_oscuro' : 'pol_claro';
+  if (fibraP === 'pol_alg') return tonoP === 'oscuro' ? 'pol_alg_oscuro' : 'pol_alg_claro';
+  if (fibraP === 'alg') return tonoP === 'oscuro' ? 'alg_oscuro' : 'alg_claro';
+  return null;
+}
+
+/** La tela solo completa lo que el proceso no dijo. No pisa una fibra distinta. */
+function semTelaConcuerda(clave, telaF) {
+  if (!telaF) return true;
+  if (clave === 'lavado_maquina' || clave === 'lavado_tela') return true;
+  if (clave === 'blanqueo_pol' || clave === 'pol_oscuro' || clave === 'pol_claro') return telaF === 'pol';
+  if (clave === 'blanqueo_pol_alg' || clave === 'pol_alg_oscuro' || clave === 'pol_alg_claro') return telaF === 'pol_alg';
+  if (clave === 'alg_oscuro' || clave === 'alg_claro') return telaF === 'alg';
+  if (clave === 'pol_lycra') return telaF === 'pol_lycra';
+  return false;
+}
+
+function semRelleno(fibraP, tonoP, esBlanqueo, esTenido, telaF, tonoColor) {
+  if (telaF === 'otro' || telaF === 'alg_lycra') return null;
+  if (fibraP && telaF && fibraP !== telaF && !(fibraP === 'pol' && telaF === 'pol_lycra')) return null;
+  var fibra = (fibraP === 'pol' && telaF === 'pol_lycra') ? 'pol_lycra' : (fibraP || telaF || null);
+  if (!fibra) return null;
+  var tono = tonoP || tonoColor;
+  if (fibra === 'pol_lycra') {
+    if (esBlanqueo || tono === 'blanco' || tono === 'medio') return null;
+    if (esTenido || fibraP === 'pol' || fibraP === 'pol_lycra') return 'pol_lycra';
+    return null;
+  }
+  if (esBlanqueo || tono === 'blanco') {
+    if (tono === 'claro' || tono === 'oscuro' || tono === 'medio') return null;
+    if (fibra === 'pol') return 'blanqueo_pol';
+    if (fibra === 'pol_alg') return 'blanqueo_pol_alg';
+    return null;
+  }
+  if (tono !== 'claro' && tono !== 'oscuro') return null;
+  if (!esTenido && !fibraP) return null;
+  if (fibra === 'pol') return tono === 'oscuro' ? 'pol_oscuro' : 'pol_claro';
+  if (fibra === 'pol_alg') return tono === 'oscuro' ? 'pol_alg_oscuro' : 'pol_alg_claro';
+  if (fibra === 'alg') return tono === 'oscuro' ? 'alg_oscuro' : 'alg_claro';
+  return null;
+}
+
+/** Devuelve la clave de TIEMPOS_ESTANDAR, o null si no hay match seguro. */
+function semaforoClasificar(rec, rows) {
+  var p = semNorm(rec && rec.proceso);
+  if (!p) return null;
+  if (semEsCombo(p)) return null;
+  if (/^lavado (de )?maquina$/.test(p)) return 'lavado_maquina';
+  if (/^lavado (de )?telas?$/.test(p)) return 'lavado_tela';
+  if (/\blavado\b/.test(p)) return null;
+
+  var fibraP = semFibraProceso(p);
+  var tonoP = semTonoProceso(p);
+  if (tonoP === 'medio') return null;
+  var esBlanqueo = /\b(blanqueo|bqueo)\b/.test(p);
+  var esTenido = /\btenido\b/.test(p);
+  var telaF = semTelaFibra(rec, rows);
+  var explicita = semClaveExplicita(fibraP, tonoP, esBlanqueo, esTenido);
+  if (explicita) {
+    if (semTelaConcuerda(explicita, telaF)) return explicita;
+    return null;
+  }
+  return semRelleno(fibraP, tonoP, esBlanqueo, esTenido, telaF, semTonoColor(rec && rec.color));
+}
+
+function fichaEntradaMs(rec) {
+  if (!rec || !rec.fecha || !rec.hEntrada) return null;
+  var fp = String(rec.fecha).split('-');
+  var hp = String(rec.hEntrada).split(':');
+  if (fp.length < 3 || hp.length < 2) return null;
+  var Y = Number(fp[0]);
+  var M = Number(fp[1]);
+  var D = Number(fp[2]);
+  var h = Number(hp[0]);
+  var mi = Number(hp[1]);
+  if (!Y || !isFinite(h) || !isFinite(mi)) return null;
+  var start = new Date(Y, (M || 1) - 1, D || 1, h || 0, mi || 0, 0);
+  if (isNaN(start.getTime())) return null;
+  return start.getTime();
+}
+
+/**
+ * Lectura para la tarjeta. klass: std-ok | std-warn | std-bad | std-none.
+ * Verde < 80 %, ámbar 80–100 %, rojo > 100 %.
+ */
+function semaforoProceso(rec) {
+  var none = {
+    klass: 'std-none',
+    main: 'Sin estándar',
+    sub: 'No hay un tiempo confirmado para esta ficha',
+    key: ''
+  };
+  var key = null;
+  try { key = semaforoClasificar(rec, semTelasDisponibles()); }
+  catch (e) { return none; }
+  if (!key) return none;
+  var row = null;
+  for (var i = 0; i < TIEMPOS_ESTANDAR.length; i++) {
+    if (TIEMPOS_ESTANDAR[i].key === key) { row = TIEMPOS_ESTANDAR[i]; break; }
+  }
+  if (!row || !(row.horas > 0)) return none;
+  var stdTxt = fmtHorasTabla(row.horas);
+  var ms = fichaEntradaMs(rec);
+  if (ms == null) {
+    return {
+      klass: 'std-none',
+      main: 'Sin hora de entrada',
+      sub: row.label + ' · estándar ' + stdTxt,
+      key: key
+    };
+  }
+  var stdMin = Math.round(row.horas * 60);
+  var elMin = Math.floor((Date.now() - ms) / 60000);
+  if (elMin < 0) elMin = 0;
+  var elapsed = fmtMinutos(elMin);
+  if (elMin > stdMin) {
+    return {
+      klass: 'std-bad',
+      main: fmtSobre(elMin - stdMin),
+      sub: row.label + ' · ' + elapsed + ' de ' + stdTxt,
+      key: key
+    };
+  }
+  var main = elapsed + ' de ' + stdTxt;
+  if (elMin * 10 < stdMin * 8) {
+    return { klass: 'std-ok', main: main, sub: row.label, key: key };
+  }
+  return { klass: 'std-warn', main: main, sub: row.label, key: key };
+}
+
+/* ---------------------------------------------------------------
    HELPERS
 --------------------------------------------------------------- */
 const $  = (s, p=document) => p.querySelector(s);
@@ -11085,9 +11448,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 24;
+  const CURRENT_VERSION = 25;
 
   const CHANGELOG = [
+    {
+      v: 25,
+      date: '2026-11-20',
+      icon: '⏱',
+      title: 'Semáforo de proceso en fichas abiertas',
+      summary: 'Cada ficha abierta compara el tiempo desde la hora de entrada con el estándar de ese proceso. Verde va a tiempo, ámbar se acerca y rojo ya se pasó. Si no hay estándar confirmado, se queda en gris.',
+      bullets: [
+        'Verde: menos del 80% del tiempo estándar. Ámbar: del 80% al 100%. Rojo: encima del estándar, con cuánto se pasó.',
+        'Gris «Sin estándar» cuando el proceso no está en la tabla. No adivina la fibra ni el tono.',
+        'La raya de En proceso / Cerrar pronto / Olvidada (2 h y 6 h) sigue igual. No se guarda nada nuevo.'
+      ],
+      where: 'Ficha → Fichas abiertas'
+    },
     {
       v: 24,
       date: '2026-11-01',
@@ -13509,6 +13885,19 @@ function renderOpenFichasPanel(){
     const motivoOptions = MOTIVO_LIST.map(m =>
       `<option value="${m.key}" ${motivo===m.key?'selected':''}>${m.label}</option>`
     ).join('');
+    let sm;
+    try { sm = semaforoProceso(r); }
+    catch (e) {
+      sm = { klass: 'std-none', main: 'Sin estándar', sub: 'No hay un tiempo confirmado para esta ficha' };
+    }
+    const smHtml = `
+        <div class="of-std ${sm.klass}" role="status">
+          <span class="of-std-dot" aria-hidden="true"></span>
+          <span class="of-std-text">
+            <span class="of-std-main">${semEsc(sm.main)}</span>
+            <span class="of-std-sub">${semEsc(sm.sub)}</span>
+          </span>
+        </div>`;
     return `
       <div class="open-ficha-card ${ag.klass} ${cardMotivoCls}">
         ${motivoBanner}
@@ -13519,6 +13908,7 @@ function renderOpenFichasPanel(){
           </div>
           <span class="of-aging-chip">${ag.label} · ${hLabel}</span>
         </div>
+        ${smHtml}
         <div class="of-body">
           <div class="of-cell"><div class="lbl-mini">Entrada</div><div class="val">${r.hEntrada || '--'}</div></div>
           <div class="of-cell"><div class="lbl-mini">Kilos</div><div class="val">${fmtKg(r.kilos)} kg</div></div>
@@ -32033,12 +32423,18 @@ init();
     var lines = inherited.map(function (r) {
       var ag = typeof fichaAging === 'function' ? fichaAging(r) : { label: '', hours: 0 };
       var h = ag.hours < 1 ? Math.round(ag.hours * 60) + ' min' : ag.hours.toFixed(1) + ' h';
+      var sm = null;
+      try { if (typeof semaforoProceso === 'function') sm = semaforoProceso(r); } catch (e) { sm = null; }
+      var smHtml = sm
+        ? '<div class="of-std ' + sm.klass + '" role="status"><span class="of-std-dot"></span><span class="of-std-text"><span class="of-std-main">' + esc(sm.main) + '</span><span class="of-std-sub">' + esc(sm.sub) + '</span></span></div>'
+        : '';
       return '<div style="padding:10px 0;border-top:1px solid #253149">' +
         '<b style="color:#fff">' + esc(r.machine || '—') + '</b> · lote ' + esc(r.lote || '—') +
         ' · ' + esc(ag.label || '') + ' · ' + h +
         '<div style="color:#94a3b8;font-size:13px">Abrió ' + esc(r.operadorAbrir || r.operador || '—') +
         ' · turno ' + esc(r.shiftAbrir || r.shift || '—') +
-        (r.motivoApertura ? ' · ' + esc(r.motivoApertura) : '') + '</div></div>';
+        (r.motivoApertura ? ' · ' + esc(r.motivoApertura) : '') + '</div>' +
+        smHtml + '</div>';
     }).join('');
     var sheet = document.createElement('div');
     sheet.id = 'vnRelevoSheet';
