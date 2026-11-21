@@ -117,8 +117,15 @@
   html.vista-nueva #vnFichaScroll > :first-child p { display: none; }
   html.vista-nueva #tab-capture .card.p-5.mb-4 { padding: 12px !important; margin-bottom: 8px !important; }
   html.vista-nueva #vnFichaScroll > .card:has(#fmAbrir) { order: 2; }
-  html.vista-nueva #tab-capture:not(.vn-cerrar) #openFichasPanel { order: 50; }
-  html.vista-nueva #tab-capture.vn-cerrar #openFichasPanel { order: 3; }
+  /* Fichas abiertas queda debajo del modo (Abrir / Cerrar / Captura completa)
+     y arriba de los campos. Igual en Abrir y en Cerrar. La barra de acciones
+     no está en este scroll: sigue al final de la columna, encima del dock. */
+  html.vista-nueva #vnFichaScroll > #openFichasPanel { order: 3; }
+  html.vista-nueva #openFichasPanel .btn,
+  html.vista-nueva #openFichasPanel select,
+  html.vista-nueva #openFichasPanel input {
+    min-height: 44px;
+  }
   html.vista-nueva #tab-capture:not(.hidden) #fichaActions {
     position: relative;
     flex: 0 0 auto;
@@ -11448,9 +11455,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 26;
+  const CURRENT_VERSION = 27;
 
   const CHANGELOG = [
+    {
+      v: 27,
+      date: '2026-11-21',
+      icon: '📋',
+      title: 'Fichas abiertas arriba en la vista nueva',
+      summary: 'En la vista nueva, Fichas abiertas queda junto a Abrir ficha, antes de los campos. La vista de siempre no cambia.',
+      bullets: [
+        'Debajo de Abrir, Cerrar y Captura completa ves las fichas que siguen abiertas, con el mismo semáforo de proceso.',
+        'Turno, máquina, lote, tela y kilos quedan debajo, para abrir la siguiente.',
+        'Abrir ficha y Limpiar siguen fijos encima de la barra de pestañas.'
+      ],
+      where: 'Ficha · Vista nueva (prueba)'
+    },
     {
       v: 26,
       date: '2026-11-16',
