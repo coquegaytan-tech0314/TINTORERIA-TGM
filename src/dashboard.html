@@ -112,13 +112,20 @@
     font-size: 1rem;
   }
   html.vista-nueva #fmHint { display: none !important; }
-  html.vista-nueva #vnFichaScroll > * { order: 10; }
-  html.vista-nueva #vnFichaScroll > :first-child { order: 1; margin-bottom: 8px !important; }
+  /* Mismo orden que la vista de siempre: Fichas abiertas, luego los modos, luego la captura.
+     order 0 sigue el HTML. La barra de acciones sigue al final de la columna. */
+  html.vista-nueva #vnFichaScroll > * { order: 0; }
+  html.vista-nueva #vnFichaScroll > :first-child { order: 0; margin-bottom: 8px !important; }
   html.vista-nueva #vnFichaScroll > :first-child p { display: none; }
   html.vista-nueva #tab-capture .card.p-5.mb-4 { padding: 12px !important; margin-bottom: 8px !important; }
-  html.vista-nueva #vnFichaScroll > .card:has(#fmAbrir) { order: 2; }
-  html.vista-nueva #tab-capture:not(.vn-cerrar) #openFichasPanel { order: 50; }
-  html.vista-nueva #tab-capture.vn-cerrar #openFichasPanel { order: 3; }
+  html.vista-nueva #vnFichaScroll > .card:has(#fmAbrir) { order: 0; }
+  html.vista-nueva #tab-capture:not(.vn-cerrar) #openFichasPanel { order: 0; }
+  html.vista-nueva #tab-capture.vn-cerrar #openFichasPanel { order: 0; }
+  html.vista-nueva #openFichasPanel select,
+  html.vista-nueva #openFichasPanel input {
+    min-height: 44px;
+    font-size: 1rem;
+  }
   html.vista-nueva #tab-capture:not(.hidden) #fichaActions {
     position: relative;
     flex: 0 0 auto;
@@ -11448,9 +11455,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 26;
+  const CURRENT_VERSION = 27;
 
   const CHANGELOG = [
+    {
+      v: 27,
+      date: '2026-11-21',
+      icon: '📋',
+      title: 'La vista nueva ordena la Ficha como la de siempre',
+      summary: 'En la pestaña Ficha de la vista nueva, Fichas abiertas vuelve arriba y la captura queda debajo, igual que en la vista de siempre. La barra de Abrir ficha sigue fija.',
+      bullets: [
+        'Fichas abiertas queda debajo del título, donde está en la vista de siempre.',
+        'Turno, máquina y los campos de la ficha quedan después, en el mismo orden de siempre.',
+        'La barra de Abrir ficha sigue fija encima del menú. El semáforo y el aviso de captura tarde siguen igual.'
+      ],
+      where: 'Vista nueva (prueba) → pestaña Ficha'
+    },
     {
       v: 26,
       date: '2026-11-16',
