@@ -4263,9 +4263,9 @@
         <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
           <span>Leyenda:</span>
           <span class="inline-block w-4 h-4 rounded" style="background:#1e293b"></span> 0 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> <2 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> &lt;2 h
           <span class="inline-block w-4 h-4 rounded" style="background:#f59e0b"></span> 2–5 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> >5 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> &gt;5 h
         </div>
       </div>
 
@@ -5237,7 +5237,7 @@
           <div class="text-xs text-slate-500 mt-1">Terminado / Pronóstico</div>
           <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
             <div class="flex justify-between"><span>✅ Días ≥ 100%</span><span id="rs_kpi_diasOk" class="font-bold text-emer-accent">0/6</span></div>
-            <div class="flex justify-between mt-0.5"><span>⚠️ Días < 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/6</span></div>
+            <div class="flex justify-between mt-0.5"><span>⚠️ Días &lt; 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/6</span></div>
           </div>
         </div>
 
@@ -5764,9 +5764,9 @@
         <select id="cat_filterCompat" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
           <option value="">Compat. RAMA: todas</option>
           <option value="compatible">🟢 Compatible (1.40–2.10m)</option>
-          <option value="bajo_minimo">🔴 Bajo mínimo (<1.40m)</option>
+          <option value="bajo_minimo">🔴 Bajo mínimo (&lt;1.40m)</option>
           <option value="zona_teorica">🟡 Zona teórica (2.10–2.20m)</option>
-          <option value="sobre_maximo">⚪ Sobre máx (>2.20m)</option>
+          <option value="sobre_maximo">⚪ Sobre máx (&gt;2.20m)</option>
         </select>
         <select id="cat_filterComp" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
           <option value="">Composición: todas</option>
@@ -5896,7 +5896,7 @@
     <div class="mt-4 text-[11px] text-slate-500 space-y-1">
       <p><b>Ruta 🔥 RAMA (mayoría):</b> Teñido (tinas) → RAMA → Acabado (Suavizado felpa / Termofijado lycra) → Empacado.</p>
       <p><b>Ruta 📏 Tubular (angosta):</b> Teñido → Tubular Dry (con Suavizado) → Compactadora → Empacado. Aplica a PIQUE 2F, PIQUE 1F, INTERLOCK, CHIFON, CARDIGAN, RIB (no caben en RAMA por su ancho).</p>
-      <p><b>ETA</b> se calcula del promedio histórico kg/hora por proceso y tipo de tela (recorte 5-95 percentil). La luz 🟢/🟡/🔴 indica estado (verde=empacado, amarillo=en proceso, rojo=sin movimiento >7 días).</p>
+      <p><b>ETA</b> se calcula del promedio histórico kg/hora por proceso y tipo de tela (recorte 5-95 percentil). La luz 🟢/🟡/🔴 indica estado (verde=empacado, amarillo=en proceso, rojo=sin movimiento &gt;7 días).</p>
     </div>
 
   </section>
@@ -6813,7 +6813,7 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
         <div class="px-5 py-3">
           <div class="flex items-center justify-between mb-2">
             <div class="text-slate-300 text-[11px] font-bold">Vista previa <span id="tejHistCount" class="text-slate-500"></span></div>
-            <div class="text-[10px] text-slate-500">Rango kg saludable: <span class="text-emerald-400">22–27</span> · alerta: <span class="text-amber-400">20–22/27–30</span> · rechazo: <span class="text-red-400"><20 o >30</span></div>
+            <div class="text-[10px] text-slate-500">Rango kg saludable: <span class="text-emerald-400">22–27</span> · alerta: <span class="text-amber-400">20–22/27–30</span> · rechazo: <span class="text-red-400">&lt;20 o &gt;30</span></div>
           </div>
           <div class="overflow-x-auto max-h-[45vh] border border-ink-800 rounded-lg">
             <table class="w-full text-xs">
@@ -9626,7 +9626,7 @@ function _populateUserQuickSwitch() {
   list.innerHTML = last.map(u => {
     const ini = (typeof _empInitials === 'function' ? _empInitials(u.name) : u.name.slice(0,2).toUpperCase());
     const bg = (typeof _empAvatarColor === 'function' ? _empAvatarColor(u.name) : '#334155');
-    return `<button type="button" data-emp-id="${u.empleado_id||''}" data-name="${u.name.replace(/"/g,'"')}" class="user-quick-btn flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
+    return `<button type="button" data-emp-id="${u.empleado_id||''}" data-name="${u.name.replace(/"/g,'&quot;')}" class="user-quick-btn flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
       <span style="width:22px;height:22px;background:${bg};color:white;font-weight:800;font-size:10px" class="rounded-full flex items-center justify-center">${ini}</span>
       <span class="text-xs text-white">${u.name}</span>
     </button>`;
@@ -11085,9 +11085,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 24;
+  const CURRENT_VERSION = 25;
 
   const CHANGELOG = [
+    {
+      v: 25,
+      date: '2026-11-16',
+      icon: '🕐',
+      title: 'Aviso si la ficha se captura tarde',
+      summary: 'Si la hora de entrada es de hace más de 2 horas, se pide confirmarla. Si está bien, la ficha se guarda igual.',
+      bullets: [
+        'El aviso dice: «Esta ficha se está capturando tarde. Confirma la hora de entrada real.»',
+        '«La hora está bien» guarda la ficha como siempre. «Corregir hora» regresa al reloj para cambiarla.',
+        'No se agrega ninguna marca ni se cambia la hora sola.'
+      ],
+      where: 'Ficha · Abrir y Captura completa'
+    },
     {
       v: 24,
       date: '2026-11-01',
@@ -11555,10 +11568,10 @@ window.TG_WHATSNEW = (function(){
 
   function escapeHtml(s){
     return String(s == null ? '' : s)
-      .replace(/&/g, '&')
-      .replace(/</g, '<')
-      .replace(/>/g, '>')
-      .replace(/"/g, '"')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
 
@@ -11833,8 +11846,8 @@ window.TG_PREDICTIVE = (function(){
 
   function escapeHtml(s){
     return String(s == null ? '' : s)
-      .replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>')
-      .replace(/"/g, '"').replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   // ============================================================
@@ -12012,8 +12025,8 @@ window.TG_INSIGHTS = (function(){
   }
   function escapeHtml(s){
     return String(s == null ? '' : s)
-      .replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>')
-      .replace(/"/g,'"').replace(/'/g,'&#39;');
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   // ============================================================
@@ -12799,7 +12812,7 @@ const FICHA_LOTE_DIAS = 7;
 
 function fichaEsc(s) {
   return String(s == null ? '' : s)
-    .replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function fichaNormLote(s) {
   return String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
@@ -13554,7 +13567,7 @@ function renderOpenFichasPanel(){
           <div class="of-motivo-banner">
             <span class="mb-icon">${motivoIcon}</span>
             <span class="mb-label">${motivoLabel}</span>
-            ${motivoNotas ? `<span class="mb-note">— ${motivoNotas.replace(/</g,'<')}</span>` : ''}
+            ${motivoNotas ? `<span class="mb-note">— ${motivoNotas.replace(/</g,'&lt;')}</span>` : ''}
           </div>` : `
           <div class="of-needs-motivo-banner">
             <span class="nm-icon">⚠</span>
@@ -13577,7 +13590,7 @@ function renderOpenFichasPanel(){
         <div class="of-body">
           <div class="of-cell"><div class="lbl-mini">Entrada</div><div class="val">${r.hEntrada || '--'}</div></div>
           <div class="of-cell"><div class="lbl-mini">Kilos</div><div class="val">${fmtKg(r.kilos)} kg</div></div>
-          <div class="of-cell"><div class="lbl-mini">Proceso</div><div class="val" title="${(r.proceso||'').replace(/"/g,'"')}">${(r.proceso || '—').slice(0,18)}</div></div>
+          <div class="of-cell"><div class="lbl-mini">Proceso</div><div class="val" title="${(r.proceso||'').replace(/"/g,'&quot;')}">${(r.proceso || '—').slice(0,18)}</div></div>
           <div class="of-cell"><div class="lbl-mini">Tela</div><div class="val">${(r.tela || '—').slice(0,18)}</div></div>
           <div class="of-cell"><div class="lbl-mini">Color</div><div class="val">${(r.color || '—').slice(0,18)}</div></div>
           <div class="of-cell"><div class="lbl-mini">Turno entrada</div><div class="val">${r.shiftAbrir || r.shift || '—'}</div></div>
@@ -13588,7 +13601,7 @@ function renderOpenFichasPanel(){
             <option value="">${motivo ? '— Sin motivo —' : '— Selecciona aquí —'}</option>
             ${motivoOptions}
           </select>
-          <input type="text" placeholder="Nota opcional (ej. lote 26-1234)" value="${motivoNotas.replace(/"/g,'"')}" onchange="saveOpenFichaMotivoNotas('${r.id}', this.value)" />
+          <input type="text" placeholder="Nota opcional (ej. lote 26-1234)" value="${motivoNotas.replace(/"/g,'&quot;')}" onchange="saveOpenFichaMotivoNotas('${r.id}', this.value)" />
         </div>
         <div class="of-actions">
           <button class="btn btn-primary !py-2 !px-3 text-sm" onclick="openCerrarFichaModal('${r.id}')">Cerrar ficha</button>
@@ -18302,9 +18315,9 @@ function renderPlanAvance() {
       const catChip = cat==='Suavizado' ? 'chip-info' : cat==='Termofijado' ? 'chip-warn' : cat==='Empacado' ? 'chip-ok' : 'chip-info';
       return `<tr data-pid="${it.id}">
         <td class="text-slate-500">${idx+1}</td>
-        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="tela" value="${(it.tela||'').replace(/"/g,'"')}" placeholder="Tela" /></td>
-        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="color" value="${(it.color||'').replace(/"/g,'"')}" placeholder="Color" /></td>
-        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="lote" value="${(it.lote||'').replace(/"/g,'"')}" placeholder="Lote" style="width:80px" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="tela" value="${(it.tela||'').replace(/"/g,'&quot;')}" placeholder="Tela" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="color" value="${(it.color||'').replace(/"/g,'&quot;')}" placeholder="Color" /></td>
+        <td><input class="plan-edit field !py-1 !px-2 text-xs" data-k="lote" value="${(it.lote||'').replace(/"/g,'&quot;')}" placeholder="Lote" style="width:80px" /></td>
         <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="kg" type="number" step="1" min="0" value="${meta||''}" style="width:80px" /></td>
         <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="rend" type="number" step="0.01" min="0" value="${it.rend||''}" style="width:70px" /></td>
         <td><input class="plan-edit field !py-1 !px-2 text-xs text-right" data-k="vel" type="number" step="0.1" min="0" value="${it.vel||''}" style="width:60px" /></td>
@@ -18562,9 +18575,9 @@ function renderPlanCompactAvance() {
       const cat = _planCatProceso(it.proceso);
       return `<tr data-pid="${it.id}">
         <td class="text-slate-500">${idx+1}</td>
-        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="tela" value="${(it.tela||'').replace(/"/g,'"')}" placeholder="Tela" /></td>
-        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="color" value="${(it.color||'').replace(/"/g,'"')}" placeholder="Color" /></td>
-        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="lote" value="${(it.lote||'').replace(/"/g,'"')}" placeholder="Lote" style="width:80px" /></td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="tela" value="${(it.tela||'').replace(/"/g,'&quot;')}" placeholder="Tela" /></td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="color" value="${(it.color||'').replace(/"/g,'&quot;')}" placeholder="Color" /></td>
+        <td><input class="planc-edit field !py-1 !px-2 text-xs" data-k="lote" value="${(it.lote||'').replace(/"/g,'&quot;')}" placeholder="Lote" style="width:80px" /></td>
         <td><input class="planc-edit field !py-1 !px-2 text-xs text-right" data-k="kg" type="number" step="1" min="0" value="${meta||''}" style="width:80px" /></td>
         <td><select class="planc-edit field !py-1 !px-2 text-xs" data-k="proceso" style="min-width:110px">
           ${['Suavizado','Termofijado','Empacado','Otros'].map(opt => `<option value="${opt}" ${cat===opt?'selected':''}>${opt}</option>`).join('')}
@@ -19960,13 +19973,13 @@ function _empRolloRow(r, i, tipo) {
     ? `<select data-idx="${i}" data-tipo="sosp" data-field="motivo" class="field !py-1 !px-1.5 !text-[11px] w-24">
          ${EMP_MOTIVOS.map(m => `<option value="${m}"${(r.motivo===m)?' selected':''}>${m}</option>`).join('')}
        </select>`
-    : `<input data-idx="${i}" data-tipo="primera" data-field="observaciones" type="text" placeholder="Obs." value="${(r.observaciones||'').replace(/"/g,'"')}" class="field !py-1 !px-1.5 !text-[11px] flex-1" />`;
+    : `<input data-idx="${i}" data-tipo="primera" data-field="observaciones" type="text" placeholder="Obs." value="${(r.observaciones||'').replace(/"/g,'&quot;')}" class="field !py-1 !px-1.5 !text-[11px] flex-1" />`;
 
   const bgClass = tipo === 'primera' ? 'bg-green-900/20 border-green-800/30' : 'bg-amber-900/20 border-amber-800/30';
 
   return `
     <div class="flex items-center gap-1.5 ${bgClass} border rounded-md p-1.5">
-      <input data-idx="${i}" data-tipo="${tipo}" data-field="numero" type="text" placeholder="${numeroPh}" value="${(r.numero||'').replace(/"/g,'"')}" class="field !py-1 !px-1.5 !text-[11px] w-16" />
+      <input data-idx="${i}" data-tipo="${tipo}" data-field="numero" type="text" placeholder="${numeroPh}" value="${(r.numero||'').replace(/"/g,'&quot;')}" class="field !py-1 !px-1.5 !text-[11px] w-16" />
       <input data-idx="${i}" data-tipo="${tipo}" data-field="kilos" type="number" step="0.01" placeholder="kg" value="${r.kilos || ''}" class="field !py-1 !px-1.5 !text-[11px] w-16 text-right" />
       ${dropdown}
       <button data-idx="${i}" data-tipo="${tipo}" data-action="del" class="text-red-400 hover:text-red-300 text-sm leading-none px-1" title="Eliminar rollo">×</button>
@@ -20418,7 +20431,7 @@ function _rvsRenderLoteCard(empFicha) {
           ${decCount.confirmado_cb > 0 ? `<span class="bg-red-900/50 border border-red-700/50 text-red-200 font-bold px-2 py-0.5 rounded">⚠ ${decCount.confirmado_cb} C.B.</span>` : ''}
         </div>
         ${dirtyCount > 0
-          ? `<button data-rvs-save="${lote.replace(/"/g,'"')}" class="bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-black px-3 py-1.5 rounded-md shadow">💾 Guardar (${dirtyCount})</button>`
+          ? `<button data-rvs-save="${lote.replace(/"/g,'&quot;')}" class="bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-black px-3 py-1.5 rounded-md shadow">💾 Guardar (${dirtyCount})</button>`
           : ''}
       </div>
     </div>
@@ -20427,7 +20440,7 @@ function _rvsRenderLoteCard(empFicha) {
   const rollosHtml = rollos.map((r, i) => _rvsRolloRow(lote, r, i)).join('');
 
   return `
-    <div class="card p-3" data-rvs-lote="${lote.replace(/"/g,'"')}">
+    <div class="card p-3" data-rvs-lote="${lote.replace(/"/g,'&quot;')}">
       ${headerHtml}
       <div class="space-y-1.5">
         ${rollosHtml}
@@ -20449,7 +20462,7 @@ function _rvsRolloRow(lote, r, idx) {
     const cls = isSel
       ? `${colorClass.replace('/20', '/60').replace('/40','')} ring-2 ring-white/40 text-white font-bold`
       : `${colorClass} hover:brightness-125 text-slate-300`;
-    return `<button data-rvs-dec="${dec}" data-lote="${lote.replace(/"/g,'"')}" data-numero="${num.replace(/"/g,'"')}" class="${cls} text-[10px] font-semibold px-2 py-1 rounded transition flex items-center gap-1">${icon} ${label}</button>`;
+    return `<button data-rvs-dec="${dec}" data-lote="${lote.replace(/"/g,'&quot;')}" data-numero="${num.replace(/"/g,'&quot;')}" class="${cls} text-[10px] font-semibold px-2 py-1 rounded transition flex items-center gap-1">${icon} ${label}</button>`;
   };
 
   // Motivo badge color
@@ -20476,7 +20489,7 @@ function _rvsRolloRow(lote, r, idx) {
         ${btn('aprobado','✓','Aprobado','bg-green-900/40 border border-green-700/40')}
         ${btn('reparado','🔧','Reparado','bg-blue-900/40 border border-blue-700/40')}
         ${btn('confirmado_cb','⚠','C.B.','bg-red-900/40 border border-red-700/40')}
-        <input data-rvs-notas="1" data-lote="${lote.replace(/"/g,'"')}" data-numero="${num.replace(/"/g,'"')}" type="text" value="${(r.notas||'').replace(/"/g,'"')}" placeholder="Notas…" class="field !py-1 !px-2 !text-[11px] w-32" />
+        <input data-rvs-notas="1" data-lote="${lote.replace(/"/g,'&quot;')}" data-numero="${num.replace(/"/g,'&quot;')}" type="text" value="${(r.notas||'').replace(/"/g,'&quot;')}" placeholder="Notas…" class="field !py-1 !px-2 !text-[11px] w-32" />
       </div>
     </div>
   `;
@@ -20552,7 +20565,7 @@ function _rvsSetNotas(lote, numero, notas) {
  */
 function _rvsUpdateSaveBtn(lote) {
   const dirtyCount = (RVS_STATE.buffer[lote] ? Object.keys(RVS_STATE.buffer[lote]).length : 0);
-  const card = document.querySelector(`[data-rvs-lote="${lote.replace(/"/g,'"')}"]`);
+  const card = document.querySelector(`[data-rvs-lote="${lote.replace(/"/g,'&quot;')}"]`);
   if (!card) return;
   let btn = card.querySelector('[data-rvs-save]');
   const headerBar = card.querySelector('.flex.items-center.gap-2:last-child') || card.querySelector('.flex.items-center.gap-2');
@@ -25716,9 +25729,9 @@ function _tejHistRender() {
       const teleWarn = (r.tela && r.tela_raw && _tejHistNorm(r.tela) !== _tejHistNorm(r.tela_raw)) ? `<div class="text-[9px] text-amber-400 mt-0.5">raw: ${r.tela_raw}</div>` : '';
       return `<tr data-id="${r.id}" class="${r.skip?'opacity-40':''}">
         <td class="px-2 py-1.5"><input type="checkbox" ${!r.skip?'checked':''} data-hist-field="skip" data-hist-id="${r.id}" /></td>
-        <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-36" list="tejHistOperadoresList" value="${(r.operador||'').replace(/"/g,'"')}" data-hist-field="operador" data-hist-id="${r.id}" /></td>
-        <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-16" value="${(r.maquina||'').replace(/"/g,'"')}" data-hist-field="maquina" data-hist-id="${r.id}" /></td>
-        <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-40" list="tejHistTelasList" value="${(r.tela||'').replace(/"/g,'"')}" data-hist-field="tela" data-hist-id="${r.id}" />${teleWarn}</td>
+        <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-36" list="tejHistOperadoresList" value="${(r.operador||'').replace(/"/g,'&quot;')}" data-hist-field="operador" data-hist-id="${r.id}" /></td>
+        <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-16" value="${(r.maquina||'').replace(/"/g,'&quot;')}" data-hist-field="maquina" data-hist-id="${r.id}" /></td>
+        <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-40" list="tejHistTelasList" value="${(r.tela||'').replace(/"/g,'&quot;')}" data-hist-field="tela" data-hist-id="${r.id}" />${teleWarn}</td>
         <td class="px-2 py-1.5"><input class="field !py-0.5 !px-1.5 !text-xs w-56 font-mono ${weightsCls}" value="${r.weights.join(' + ')}" data-hist-field="weights" data-hist-id="${r.id}" placeholder="25.60 + 24.85" />
           <div class="text-[9px] text-slate-500 mt-0.5">${r.weights.length} rollos</div></td>
         <td class="px-2 py-1.5 text-right font-mono text-xs">${total.toFixed(2)}</td>
@@ -25861,7 +25874,7 @@ function _slug(s) {
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase() || 'x';
 }
 function _htmlEscape(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 /* ---------------- Firestore subscription ---------------- */
@@ -26150,7 +26163,7 @@ function attachTelaAutocomplete(input, opts) {
   let currentIdx = -1;
   let currentItems = [];
 
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   function updateBorder() {
     input.classList.remove('tela-ok', 'tela-warn', 'tela-error');
@@ -26699,7 +26712,7 @@ function renderCatalogoTelas() {
     if (bits.length === 0) return '<span class="text-emerald-400 text-[11px]">✓ completo</span>';
     return `<span class="text-amber-400 text-[11px]" title="Falta: ${bits.join(', ')}">${3-bits.length}/3</span>`;
   };
-  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   tbody.innerHTML = filtered.map(t => `
     <tr class="hover:bg-ink-800/60 cursor-pointer transition-colors" data-cat-row="${esc(t.id)}">
@@ -26724,7 +26737,7 @@ function _catShowDetail(id) {
   const cfg = state.cfgRama || RAMA_DEFAULTS;
   const fmt = (v, dec) => (v == null || !Number.isFinite(Number(v))) ? '—' : Number(v).toFixed(dec);
   const fmtInt = v => (v == null || !Number.isFinite(Number(v))) ? '—' : Math.round(Number(v));
-  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   const anchoBadge = _catCompatBadge(t.compatibilidadRama);
   let compatMsg = '';
@@ -27099,7 +27112,7 @@ function _reconRender(dates) {
       </table>
     </div>
     <div class="text-[10px] text-slate-500 mt-2">
-      <b>Cómo leer:</b> Δ es <i>dashboard menos reporte real</i>. Positivo = el dashboard cuenta de más (probable duplicado / re-pase sin marcar). Negativo = el dashboard cuenta de menos (falta capturar un lote). Umbrales: <5% ✓ OK · <15% ⚠ leve · ≥15% ✕ revisar.
+      <b>Cómo leer:</b> Δ es <i>dashboard menos reporte real</i>. Positivo = el dashboard cuenta de más (probable duplicado / re-pase sin marcar). Negativo = el dashboard cuenta de menos (falta capturar un lote). Umbrales: &lt;5% ✓ OK · &lt;15% ⚠ leve · ≥15% ✕ revisar.
     </div>`;
 }
 
@@ -28891,7 +28904,7 @@ function renderEstadistica() {
   };
   const cellText = (row, field) => {
     const v = row[field] || '';
-    return `<td class="p-2"><input class="est-cell w-full bg-transparent border-0 outline-none focus:bg-slate-800/60 rounded px-1" data-lote="${row.lote}" data-field="${field}" type="text" value="${String(v).replace(/"/g,'"')}" /></td>`;
+    return `<td class="p-2"><input class="est-cell w-full bg-transparent border-0 outline-none focus:bg-slate-800/60 rounded px-1" data-lote="${row.lote}" data-field="${field}" type="text" value="${String(v).replace(/"/g,'&quot;')}" /></td>`;
   };
 
   tbody.innerHTML = rows.map((r, i) => {
@@ -29316,7 +29329,7 @@ init();
   }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
-      return ({ '&':'&','<':'<','>':'>','"':'"',"'":'&#39;' })[c];
+      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
     });
   }
   function timeAgo(ms){
@@ -29871,7 +29884,7 @@ init();
     return '3°';
   }
   function escOpt(s){
-    return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   }
   function readShiftOp(){
     var raw;
@@ -30646,7 +30659,7 @@ init();
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
   }
 
@@ -31549,7 +31562,7 @@ init();
   }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
   }
   function clockShift() {
