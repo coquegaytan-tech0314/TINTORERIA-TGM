@@ -4263,9 +4263,9 @@
         <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
           <span>Leyenda:</span>
           <span class="inline-block w-4 h-4 rounded" style="background:#1e293b"></span> 0 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> &lt;2 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#10b981"></span> <2 h
           <span class="inline-block w-4 h-4 rounded" style="background:#f59e0b"></span> 2–5 h
-          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> &gt;5 h
+          <span class="inline-block w-4 h-4 rounded" style="background:#ef4444"></span> >5 h
         </div>
       </div>
 
@@ -5237,7 +5237,7 @@
           <div class="text-xs text-slate-500 mt-1">Terminado / Pronóstico</div>
           <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
             <div class="flex justify-between"><span>✅ Días ≥ 100%</span><span id="rs_kpi_diasOk" class="font-bold text-emer-accent">0/6</span></div>
-            <div class="flex justify-between mt-0.5"><span>⚠️ Días &lt; 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/6</span></div>
+            <div class="flex justify-between mt-0.5"><span>⚠️ Días < 85%</span><span id="rs_kpi_diasBad" class="font-bold text-amber-accent">0/6</span></div>
           </div>
         </div>
 
@@ -5764,9 +5764,9 @@
         <select id="cat_filterCompat" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
           <option value="">Compat. RAMA: todas</option>
           <option value="compatible">🟢 Compatible (1.40–2.10m)</option>
-          <option value="bajo_minimo">🔴 Bajo mínimo (&lt;1.40m)</option>
+          <option value="bajo_minimo">🔴 Bajo mínimo (<1.40m)</option>
           <option value="zona_teorica">🟡 Zona teórica (2.10–2.20m)</option>
-          <option value="sobre_maximo">⚪ Sobre máx (&gt;2.20m)</option>
+          <option value="sobre_maximo">⚪ Sobre máx (>2.20m)</option>
         </select>
         <select id="cat_filterComp" class="px-2 py-2 rounded bg-ink-800 border border-ink-700 text-white text-sm">
           <option value="">Composición: todas</option>
@@ -5896,7 +5896,7 @@
     <div class="mt-4 text-[11px] text-slate-500 space-y-1">
       <p><b>Ruta 🔥 RAMA (mayoría):</b> Teñido (tinas) → RAMA → Acabado (Suavizado felpa / Termofijado lycra) → Empacado.</p>
       <p><b>Ruta 📏 Tubular (angosta):</b> Teñido → Tubular Dry (con Suavizado) → Compactadora → Empacado. Aplica a PIQUE 2F, PIQUE 1F, INTERLOCK, CHIFON, CARDIGAN, RIB (no caben en RAMA por su ancho).</p>
-      <p><b>ETA</b> se calcula del promedio histórico kg/hora por proceso y tipo de tela (recorte 5-95 percentil). La luz 🟢/🟡/🔴 indica estado (verde=empacado, amarillo=en proceso, rojo=sin movimiento &gt;7 días).</p>
+      <p><b>ETA</b> se calcula del promedio histórico kg/hora por proceso y tipo de tela (recorte 5-95 percentil). La luz 🟢/🟡/🔴 indica estado (verde=empacado, amarillo=en proceso, rojo=sin movimiento >7 días).</p>
     </div>
 
   </section>
@@ -6813,7 +6813,7 @@ Olga Zamora | A-63 | Morata | 2560, 2485, 2610"></textarea>
         <div class="px-5 py-3">
           <div class="flex items-center justify-between mb-2">
             <div class="text-slate-300 text-[11px] font-bold">Vista previa <span id="tejHistCount" class="text-slate-500"></span></div>
-            <div class="text-[10px] text-slate-500">Rango kg saludable: <span class="text-emerald-400">22–27</span> · alerta: <span class="text-amber-400">20–22/27–30</span> · rechazo: <span class="text-red-400">&lt;20 o &gt;30</span></div>
+            <div class="text-[10px] text-slate-500">Rango kg saludable: <span class="text-emerald-400">22–27</span> · alerta: <span class="text-amber-400">20–22/27–30</span> · rechazo: <span class="text-red-400"><20 o >30</span></div>
           </div>
           <div class="overflow-x-auto max-h-[45vh] border border-ink-800 rounded-lg">
             <table class="w-full text-xs">
@@ -11555,9 +11555,9 @@ window.TG_WHATSNEW = (function(){
 
   function escapeHtml(s){
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
+      .replace(/&/g, '&')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
       .replace(/"/g, '"')
       .replace(/'/g, '&#39;');
   }
@@ -11833,7 +11833,7 @@ window.TG_PREDICTIVE = (function(){
 
   function escapeHtml(s){
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>')
       .replace(/"/g, '"').replace(/'/g, '&#39;');
   }
 
@@ -12012,7 +12012,7 @@ window.TG_INSIGHTS = (function(){
   }
   function escapeHtml(s){
     return String(s == null ? '' : s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>')
       .replace(/"/g,'"').replace(/'/g,'&#39;');
   }
 
@@ -12799,7 +12799,7 @@ const FICHA_LOTE_DIAS = 7;
 
 function fichaEsc(s) {
   return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '"');
+    .replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
 }
 function fichaNormLote(s) {
   return String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
@@ -13554,7 +13554,7 @@ function renderOpenFichasPanel(){
           <div class="of-motivo-banner">
             <span class="mb-icon">${motivoIcon}</span>
             <span class="mb-label">${motivoLabel}</span>
-            ${motivoNotas ? `<span class="mb-note">— ${motivoNotas.replace(/</g,'&lt;')}</span>` : ''}
+            ${motivoNotas ? `<span class="mb-note">— ${motivoNotas.replace(/</g,'<')}</span>` : ''}
           </div>` : `
           <div class="of-needs-motivo-banner">
             <span class="nm-icon">⚠</span>
@@ -25861,7 +25861,7 @@ function _slug(s) {
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase() || 'x';
 }
 function _htmlEscape(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;'}[c]));
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 }
 
 /* ---------------- Firestore subscription ---------------- */
@@ -26150,7 +26150,7 @@ function attachTelaAutocomplete(input, opts) {
   let currentIdx = -1;
   let currentItems = [];
 
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;'}[c]));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 
   function updateBorder() {
     input.classList.remove('tela-ok', 'tela-warn', 'tela-error');
@@ -26699,7 +26699,7 @@ function renderCatalogoTelas() {
     if (bits.length === 0) return '<span class="text-emerald-400 text-[11px]">✓ completo</span>';
     return `<span class="text-amber-400 text-[11px]" title="Falta: ${bits.join(', ')}">${3-bits.length}/3</span>`;
   };
-  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;'}[c]));
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 
   tbody.innerHTML = filtered.map(t => `
     <tr class="hover:bg-ink-800/60 cursor-pointer transition-colors" data-cat-row="${esc(t.id)}">
@@ -26724,7 +26724,7 @@ function _catShowDetail(id) {
   const cfg = state.cfgRama || RAMA_DEFAULTS;
   const fmt = (v, dec) => (v == null || !Number.isFinite(Number(v))) ? '—' : Number(v).toFixed(dec);
   const fmtInt = v => (v == null || !Number.isFinite(Number(v))) ? '—' : Math.round(Number(v));
-  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;'}[c]));
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 
   const anchoBadge = _catCompatBadge(t.compatibilidadRama);
   let compatMsg = '';
@@ -27099,7 +27099,7 @@ function _reconRender(dates) {
       </table>
     </div>
     <div class="text-[10px] text-slate-500 mt-2">
-      <b>Cómo leer:</b> Δ es <i>dashboard menos reporte real</i>. Positivo = el dashboard cuenta de más (probable duplicado / re-pase sin marcar). Negativo = el dashboard cuenta de menos (falta capturar un lote). Umbrales: &lt;5% ✓ OK · &lt;15% ⚠ leve · ≥15% ✕ revisar.
+      <b>Cómo leer:</b> Δ es <i>dashboard menos reporte real</i>. Positivo = el dashboard cuenta de más (probable duplicado / re-pase sin marcar). Negativo = el dashboard cuenta de menos (falta capturar un lote). Umbrales: <5% ✓ OK · <15% ⚠ leve · ≥15% ✕ revisar.
     </div>`;
 }
 
@@ -29316,7 +29316,7 @@ init();
   }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
-      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;' })[c];
+      return ({ '&':'&','<':'<','>':'>','"':'"',"'":'&#39;' })[c];
     });
   }
   function timeAgo(ms){
@@ -29871,7 +29871,7 @@ init();
     return '3°';
   }
   function escOpt(s){
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'"');
+    return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"');
   }
   function readShiftOp(){
     var raw;
@@ -30646,7 +30646,7 @@ init();
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '"', "'": '&#39;' })[c];
+      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
     });
   }
 
@@ -31549,7 +31549,7 @@ init();
   }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '"', "'": '&#39;' })[c];
+      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
     });
   }
   function clockShift() {
