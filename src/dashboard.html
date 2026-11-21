@@ -11448,9 +11448,22 @@ window.TG_WHATSNEW = (function(){
   // Bump CURRENT_VERSION cuando agregues nuevas entradas para que
   // el pop-up vuelva a aparecer a todos los usuarios.
   // ============================================================
-  const CURRENT_VERSION = 25;
+  const CURRENT_VERSION = 26;
 
   const CHANGELOG = [
+    {
+      v: 26,
+      date: '2026-11-16',
+      icon: '🕐',
+      title: 'Aviso si la ficha se captura tarde',
+      summary: 'Si la hora de entrada es de hace más de 2 horas, se pide confirmarla. Si está bien, la ficha se guarda igual.',
+      bullets: [
+        'El aviso dice: «Esta ficha se está capturando tarde. Confirma la hora de entrada real.»',
+        '«La hora está bien» guarda la ficha como siempre. «Corregir hora» regresa al reloj para cambiarla.',
+        'No se agrega ninguna marca ni se cambia la hora sola.'
+      ],
+      where: 'Ficha · Abrir y Captura completa'
+    },
     {
       v: 25,
       date: '2026-11-20',
@@ -13397,6 +13410,47 @@ function fichaConfirmSoft(ctx, onOk) {
   go();
 }
 
+/* La hora de entrada es hora de planta (America/Mexico_City, UTC−6).
+   Más de 2 horas antes de guardar: se pregunta. Confirmar sigue
+   con los mismos datos. Corregir solo regresa al reloj. */
+function fichaEntradaTarde(fecha, hEntrada, nowMs) {
+  if (!fecha || !hEntrada) return false;
+  if (!/^(\d{2}):(\d{2})$/.test(String(hEntrada))) return false;
+  const ms = new Date(String(fecha).slice(0, 10) + 'T' + hEntrada + ':00-06:00').getTime();
+  if (!ms || isNaN(ms)) return false;
+  return ((nowMs == null ? Date.now() : nowMs) - ms) > 2 * 60 * 60 * 1000;
+}
+function fichaConfirmTarde(ctx, onOk) {
+  if (!ctx || !fichaEntradaTarde(ctx.fecha, ctx.hEntrada)) { onOk(); return; }
+  const hora = fichaEsc(ctx.hEntrada);
+  const modal = fichaAbrirModal(
+    '<div class="card p-5 w-full max-w-lg" style="border:2px solid rgba(251,191,36,0.55)">' +
+      '<h3 id="fichaGuardTitle" class="text-xl font-black text-white leading-snug">Esta ficha se está capturando tarde. Confirma la hora de entrada real.</h3>' +
+      '<p class="text-slate-200 mt-2 text-base leading-snug">La hora de entrada escrita es <b class="text-white" style="font-variant-numeric:tabular-nums">' + hora + '</b>. Si está bien, la ficha se guarda igual.</p>' +
+      '<div class="grid grid-cols-1 gap-3 mt-4">' +
+        '<button type="button" id="fichaTardeOk" class="btn touch-xl" style="background:#b45309;color:#fff;min-height:48px">La hora está bien</button>' +
+        '<button type="button" id="fichaTardeFix" class="btn btn-secondary touch-xl" style="min-height:48px">Corregir hora</button>' +
+      '</div>' +
+    '</div>',
+    function () {
+      if (ctx.horaEl) {
+        try { ctx.horaEl.scrollIntoView({ block: 'center' }); ctx.horaEl.focus(); } catch (e) {}
+      }
+    }
+  );
+  modal.setAttribute('aria-labelledby', 'fichaGuardTitle');
+  document.getElementById('fichaTardeOk').addEventListener('click', function () {
+    fichaCerrarModal();
+    onOk();
+  });
+  document.getElementById('fichaTardeFix').addEventListener('click', function () {
+    fichaCerrarModal();
+    if (ctx.horaEl) {
+      try { ctx.horaEl.scrollIntoView({ block: 'center' }); ctx.horaEl.focus(); } catch (e) {}
+    }
+  });
+}
+
 function saveProd(andNew) {
   if (!fichaEnsureTurnoOperador()) return;
   if (!state.selectedMachine) return toast('Selecciona una máquina', true);
@@ -13408,17 +13462,24 @@ function saveProd(andNew) {
   // Autocorrect telas · bloquea si la tela no está en el catálogo
   if (typeof assertTelaOk === 'function' && !assertTelaOk($('#f_tela'), { required: false })) return;
 
+  const fechaFicha = $('#f_fecha').value || todayISO();
+  fichaConfirmTarde({
+    fecha: fechaFicha,
+    hEntrada: $('#f_hEntrada').value,
+    horaEl: document.getElementById('f_hEntrada')
+  }, function () {
   fichaConfirmSoft({
     kilos: kilos,
     lote: $('#f_lote').value.trim(),
     machine: state.selectedMachine,
-    fecha: $('#f_fecha').value || todayISO(),
+    fecha: fechaFicha,
     proceso: $('#f_proceso').value.trim(),
     notas: $('#f_notas').value.trim(),
     excludeId: null,
     kilosEl: document.getElementById('f_kilos'),
     loteEl: document.getElementById('f_lote')
   }, function (loteYaAvisado) { saveProdCommit(andNew, loteYaAvisado); });
+  });
 }
 
 function saveProdCommit(andNew, loteYaAvisado) {
@@ -13580,17 +13641,24 @@ function saveFichaAbrir(){
   if (!kilos || kilos <= 0)   return toast('Captura los kilos de entrada', true);
   if (!$('#f_hEntrada').value) return toast('Captura la hora de entrada', true);
 
+  const fechaFicha = $('#f_fecha').value || todayISO();
+  fichaConfirmTarde({
+    fecha: fechaFicha,
+    hEntrada: $('#f_hEntrada').value,
+    horaEl: document.getElementById('f_hEntrada')
+  }, function () {
   fichaConfirmSoft({
     kilos: kilos,
     lote: $('#f_lote').value.trim(),
     machine: state.selectedMachine,
-    fecha: $('#f_fecha').value || todayISO(),
+    fecha: fechaFicha,
     proceso: $('#f_proceso').value.trim(),
     notas: $('#f_notas').value.trim(),
     excludeId: null,
     kilosEl: document.getElementById('f_kilos'),
     loteEl: document.getElementById('f_lote')
   }, function () { saveFichaAbrirCommit(); });
+  });
 }
 
 function saveFichaAbrirCommit(){
